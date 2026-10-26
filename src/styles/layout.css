@@ -4,6 +4,33 @@
  * 颜色一律取自 tokens.css 的 --g-* 令牌。
  */
 
+/* ===== 像素星空背景（铺满整个网页屏幕） ===== */
+.g-pixel-stars {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background-color: var(--g-bg);
+  /* 像素网格（10px）+ 氛围光晕叠加 */
+  background-image: var(--g-pixel-grid), var(--g-ambience);
+  background-size: 10px 10px, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
+  pointer-events: none;
+}
+
+.g-pixel-stars-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 浅色主题下不显示星空（底色改回浅色令牌） */
+[data-theme='light'] .g-pixel-stars {
+  display: none;
+}
+
 /* ===== 页头 Header ===== */
 .g-header {
   position: sticky;

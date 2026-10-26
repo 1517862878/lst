@@ -3,7 +3,7 @@
  * URL 即状态（?q=）；关键词高亮；分类/排序筛选；空态建议。
  */
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { Container } from '@/components/layout/Container'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Input } from '@/components/ui/Input'
@@ -120,6 +120,6 @@ function SearchResultItem({ photo, terms }: { photo: Photo; terms: string[] }) {
           ))}
         </p>
       </div>
-    </a>
+    </Link>
   )
 }

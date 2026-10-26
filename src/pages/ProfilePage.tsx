@@ -19,7 +19,11 @@ export function ProfilePage() {
   const profileQuery = useProfileByUsername(username)
 
   const userId = profileQuery.data?.id
-  const { data: photos, isLoading } = usePhotosByUser(userId ?? '', tab as 'works' | 'likes' | 'favorites')
+  // 修正：三个 Tab 各自取对应数据。早先三个 Tab 共用同一个 photos 变量，
+  // 导致切「收藏」看到的仍是「作品」内容（真实缺陷，由 E2E 发现）。
+  const worksQuery = usePhotosByUser(userId ?? '', 'works')
+  const likesQuery = usePhotosByUser(userId ?? '', 'likes')
+  const favoritesQuery = usePhotosByUser(userId ?? '', 'favorites')
 
   if (profileQuery.isLoading) {
     return (
@@ -63,17 +67,30 @@ export function ProfilePage() {
         ]}
         value={tab}
         onValueChange={setTab}
-      />
-
-      <TabsPrimitive.Content value="works" className="g-tabs-content">
-        <PhotoGrid photos={photos ?? []} loading={isLoading} emptyTitle="还没有作品" emptyActions={[{ label: '去发布', to: '/publish' }]} />
-      </TabsPrimitive.Content>
-      <TabsPrimitive.Content value="likes" className="g-tabs-content">
-        <PhotoGrid photos={photos ?? []} loading={isLoading} emptyTitle="还没有喜欢的作品" />
-      </TabsPrimitive.Content>
-      <TabsPrimitive.Content value="favorites" className="g-tabs-content">
-        <PhotoGrid photos={photos ?? []} loading={isLoading} emptyTitle="还没有收藏的作品" />
-      </TabsPrimitive.Content>
+      >
+        <TabsPrimitive.Content value="works" className="g-tabs-content">
+          <PhotoGrid
+            photos={worksQuery.data ?? []}
+            loading={worksQuery.isLoading}
+            emptyTitle="还没有作品"
+            emptyActions={[{ label: '去发布', to: '/publish' }]}
+          />
+        </TabsPrimitive.Content>
+        <TabsPrimitive.Content value="likes" className="g-tabs-content">
+          <PhotoGrid
+            photos={likesQuery.data ?? []}
+            loading={likesQuery.isLoading}
+            emptyTitle="还没有喜欢的作品"
+          />
+        </TabsPrimitive.Content>
+        <TabsPrimitive.Content value="favorites" className="g-tabs-content">
+          <PhotoGrid
+            photos={favoritesQuery.data ?? []}
+            loading={favoritesQuery.isLoading}
+            emptyTitle="还没有收藏的作品"
+          />
+        </TabsPrimitive.Content>
+      </Tabs>
     </Container>
   )
 }

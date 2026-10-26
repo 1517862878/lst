@@ -80,7 +80,7 @@
 | 搜索引擎 | MiniSearch 7（中文分词） |
 | Markdown | marked 18 + DOMPurify 3 |
 | 本地存储 | IndexedDB（idb 8） |
-| 测试 | Vitest 3 + Testing Library |
+| 测试 | Vitest 3 + Testing Library（单元）+ Playwright 1.64（E2E） |
 
 ---
 
@@ -161,10 +161,17 @@ pnpm preview    # 本地预览构建产物（默认 http://localhost:4173）
 ### 质量检查
 
 ```bash
-pnpm lint       # ESLint（要求 0 error 0 warning）
-pnpm test       # Vitest 单元测试
-pnpm format     # Prettier 格式化
+pnpm lint          # ESLint（要求 0 error 0 warning）
+pnpm test          # Vitest 单元测试（8 个）
+pnpm test:e2e      # Playwright E2E（3 条主链路，15 个用例）
+pnpm format        # Prettier 格式化
 ```
+
+E2E 说明：
+
+- 会自动构建产物并起一个本地静态服务器（`scripts/serve-dist.mjs`），无需手工准备
+- 使用**系统已安装的 Chrome**（`channel: 'chrome'`），不需要 `npx playwright install` 下载浏览器
+- 若系统没有 Chrome，先执行 `npx playwright install chromium` 并把 `playwright.config.ts` 里的 `channel` 去掉
 
 ### 可用脚本一览
 
@@ -174,8 +181,11 @@ pnpm format     # Prettier 格式化
 | `pnpm build` | `tsc` 类型检查 + Vite 生产构建 |
 | `pnpm postbuild` | 生成 GitHub Pages 用的 `404.html` 回退（`build` 后自动执行） |
 | `pnpm preview` | 预览 `dist/` 构建产物 |
+| `pnpm serve:dist` | 纯 Node 静态服务器（绕过 vite.config，适合受限环境） |
 | `pnpm lint` | ESLint 代码检查 |
 | `pnpm test` | 运行单元测试 |
+| `pnpm test:e2e` | 运行 E2E 主链路测试 |
+| `pnpm test:e2e:report` | 查看 E2E 报告 |
 | `pnpm format` | Prettier 格式化全部文件 |
 
 ### 部署到 GitHub Pages（可选）
@@ -317,9 +327,10 @@ pages / features  →  hooks  →  services  →  data/contracts  →  { data/mo
 欢迎提交 Issue 与 Pull Request。提交前请确认：
 
 ```bash
-pnpm lint    # 0 error 0 warning
-pnpm test    # 全部通过
-pnpm build   # 构建成功
+pnpm lint        # 0 error 0 warning
+pnpm test        # 单元测试全部通过
+pnpm test:e2e    # E2E 主链路全部通过
+pnpm build       # 构建成功
 ```
 
 详细规范见 [CONTRIBUTING.md](CONTRIBUTING.md)。发现安全漏洞请按 [SECURITY.md](SECURITY.md) 通过私有渠道报告，**不要公开 Issue**。
@@ -333,6 +344,7 @@ pnpm build   # 构建成功
 | [ROADMAP.md](ROADMAP.md) | 完整开发计划：技术选型、数据模型、周榜公式、版权合规、分阶段计划、第二期动态化方案 |
 | [docs/FRONTEND-WORK.md](docs/FRONTEND-WORK.md) | 前端落地工作清单 |
 | [docs/DATA-MODEL.md](docs/DATA-MODEL.md) | 数据模型事实源 |
+| [docs/MIGRATIONS.md](docs/MIGRATIONS.md) | **数据库迁移说明**：11 张表、28 条 RLS 策略、执行方式、上线前校验清单 |
 | [docs/architecture.svg](docs/architecture.svg) | 架构图 |
 | [分布工程总结.md](分布工程总结.md) | 分部工程总结（S1–S8 每阶段做了什么、如何验证） |
 

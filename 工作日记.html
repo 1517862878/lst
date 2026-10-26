@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工科影展 · 开发工作日记</title>
+<style>
+:root{
+  --bg:#f7f8fa; --card:#ffffff; --ink:#1a2027; --ink2:#5b6673; --line:#e4e8ee;
+  --accent:#2563eb; --good:#16a34a; --warn:#d97706; --red:#dc2626;
+  --chip:#eef2ff; --chipInk:#3730a3; --code:rgba(127,127,127,.14);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0f1319; --card:#171c24; --ink:#e8edf3; --ink2:#97a3b2; --line:#28303b;
+    --accent:#60a5fa; --good:#4ade80; --warn:#fbbf24; --red:#f87171;
+    --chip:#1e2a44; --chipInk:#93c5fd; --code:rgba(255,255,255,.1); }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.75 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;padding:32px 20px 70px}
+main{max-width:1000px;margin:0 auto}
+h1{font-size:27px;margin:0 0 6px;letter-spacing:.3px}
+.sub{color:var(--ink2);margin:0 0 8px;font-size:14px}
+.lead{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:10px;padding:16px 20px;margin:20px 0 28px;font-size:14.5px;color:var(--ink2)}
+.lead strong{color:var(--ink)}
+h2{font-size:19px;margin:40px 0 14px;padding-bottom:7px;border-bottom:2px solid var(--line)}
+h3{font-size:15.5px;margin:24px 0 8px}
+p{margin:8px 0}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{background:var(--code);padding:1px 6px;border-radius:5px;font-size:13px;
+  font-family:Consolas,"JetBrains Mono",monospace}
+.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:16px 0}
+.link{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:14px}
+.link b{display:block;font-size:13px;color:var(--ink2);font-weight:400;margin-bottom:2px}
+
+/* 主干流程图 */
+.flow{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px;margin:18px 0;overflow-x:auto}
+.flow pre{margin:0;font:13.5px/1.9 Consolas,"JetBrains Mono",monospace;color:var(--ink);white-space:pre}
+.flow pre b{color:var(--accent);font-weight:600}
+
+/* 表格 */
+table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:14px;margin:14px 0}
+th{background:rgba(37,99,235,.07);text-align:left;padding:10px 14px;font-weight:600;white-space:nowrap}
+td{padding:11px 14px;border-top:1px solid var(--line);vertical-align:top}
+td:first-child{white-space:nowrap;font-weight:600}
+.chip{display:inline-block;background:var(--chip);color:var(--chipInk);border-radius:6px;
+  padding:1px 8px;font-size:12.5px;margin:2px 4px 2px 0;white-space:nowrap}
+
+/* 阶段卡 */
+.stage{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+.stage h3{margin:0 0 4px;font-size:16px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.badge{background:rgba(22,163,74,.13);color:var(--good);border:1px solid rgba(22,163,74,.35);
+  padding:1px 9px;border-radius:999px;font-size:12px;font-weight:600}
+.stage .why{color:var(--ink2);font-size:13.5px;background:rgba(37,99,235,.055);
+  border-radius:8px;padding:9px 13px;margin:10px 0 0}
+.stage .why b{color:var(--accent)}
+.verify{color:var(--ink2);font-size:13px;margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)}
+.verify b{color:var(--good)}
+
+/* 坑 */
+.pit{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--warn);
+  border-radius:10px;padding:14px 18px;margin:10px 0}
+.pit h4{margin:0 0 6px;font-size:14.5px}
+.pit .sym{color:var(--red);font-size:13px;font-family:Consolas,monospace}
+.pit .fix{color:var(--ink2);font-size:13.5px;margin-top:6px}
+.pit .fix b{color:var(--good)}
+
+/* 数字 */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin:18px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 16px;text-align:center}
+.stat b{display:block;font-size:21px;line-height:1.35;color:var(--accent)}
+.stat span{color:var(--ink2);font-size:12.5px}
+
+/* 时间线 */
+.tl{list-style:none;padding:0;margin:16px 0;border-left:3px solid var(--line)}
+.tl li{position:relative;padding:0 0 16px 24px;font-size:14px}
+.tl li::before{content:"";position:absolute;left:-7px;top:5px;width:11px;height:11px;
+  border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+.tl time{color:var(--accent);font-weight:600;font-family:Consolas,monospace;margin-right:7px}
+.tl .big::before{background:var(--good);width:14px;height:14px;left:-8.5px}
+
+.callout{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--good);
+  border-radius:10px;padding:16px 20px;margin:22px 0;font-size:14.5px;color:var(--ink2)}
+.callout strong{color:var(--ink)}
+footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink2);font-size:13px}
+@media (max-width:720px){ th,td{padding:8px 10px} td:first-child{white-space:normal} h1{font-size:22px} }
+</style>
+</head>
+<body>
+<main>
+
+<h1>工科影展 · 开发工作日记</h1>
+<p class="sub">2026-10-26 · 「分部工程」式开发全程记录</p>
+
+<div class="lead">
+  这份日记写给「不是本人」的读者看：<strong>这个项目是怎么一步步做出来的、中间踩过什么坑、最后长成了什么样</strong>。
+  不追求术语精确，追求看得懂。主干在第二节，细节在后面。
+</div>
+
+<!-- ───────── 一 ───────── -->
+<h2>一、一句话说清这是什么</h2>
+<p><strong>工科影展</strong>是一个<strong>摄影作品分享社区</strong>——有点像 QQ 空间，但发的是照片，还带拍摄地点和拍摄心得。用户能点赞、收藏、评论，每周有排行榜，还能按分类找图、搜关键词。</p>
+<p>第一版做成了<strong>纯前端</strong>：不需要服务器、不需要数据库、不需要注册任何云服务，所有数据存在<strong>使用者自己的浏览器里</strong>，打开网页就能用。</p>
+
+<div class="links">
+  <div class="link"><b>在线体验</b><a href="https://1517862878.github.io/lst/">1517862878.github.io/lst</a></div>
+  <div class="link"><b>源码仓库</b><a href="https://github.com/1517862878/lst">github.com/1517862878/lst</a></div>
+  <div class="link"><b>演示账号</b><code>alice</code> / <code>bob</code> / <code>editor</code> · 密码 <code>demo1234</code></div>
+</div>
+
+<!-- ───────── 二 ───────── -->
+<h2>二、项目主干（先看这个，别被细节淹没）</h2>
+<p>整个开发分成 <strong>8 个阶段</strong>，每阶段是一个完整可交付的「分部工程」。做完一个就验证一个，<strong>验证不过不进入下一阶段</strong>。</p>
+
+<div class="flow"><pre>  S1 打地基 ──→ S2 造数据层 ──→ S3 能看 ──→ S4 能发能登录
+                                                 ↓
+  S8 打包上线 ←── S7 学习与法律 ←── S6 搜索与榜单 ←── S5 能互动</pre></div>
+
+<p>用盖房子打比方：</p>
+<table>
+<thead><tr><th>阶段</th><th>通俗理解</th><th>技术说法</th></tr></thead>
+<tbody>
+<tr><td>S1</td><td>打地基、立承重墙、定装修风格</td><td>工程脚手架 + 设计系统（颜色 / 按钮 / 弹窗等基础件）</td></tr>
+<tr><td>S2</td><td>埋管线、修仓库</td><td>定义数据形状、造假数据库、灌满测试数据</td></tr>
+<tr><td>S3</td><td>装修出能逛的展厅</td><td>首页、作品墙、详情页、分类页</td></tr>
+<tr><td>S4</td><td>装上大门和发布台</td><td>登录注册、发作品、个人主页</td></tr>
+<tr><td>S5</td><td>装上点赞评论的互动装置</td><td>点赞 / 收藏 / 评论 + 多标签页同步</td></tr>
+<tr><td>S6</td><td>装上导航和排行榜</td><td>中文搜索 + 每周排行榜</td></tr>
+<tr><td>S7</td><td>建图书角和法律告示墙</td><td>教程板块 + 7 个法律页面</td></tr>
+<tr><td>S8</td><td>竣工验收、打包上线</td><td>代码分包瘦身 + 开源文档 + 部署</td></tr>
+</tbody>
+</table>
+
+<h3>主干之外，两个决定了「好不好维护」的关键决定</h3>
+<table>
+<tbody>
+<tr><td>① 数据层用「接口 + 可替换实现」</td>
+    <td>页面只认「我要一页作品」这个需求，不关心数据是浏览器给的还是服务器给的。所以第二期接真后端时，<strong>页面代码一行都不用改</strong>。</td></tr>
+<tr><td>② 每阶段同一套验收</td>
+    <td>类型检查 0 错、代码检查 0 错、单元测试通过、构建成功、首屏体积不超预算、所有路由能打开。任一项不过，就不算完成。</td></tr>
+</tbody>
+</table>
+
+<!-- ───────── 三 ───────── -->
+<h2>三、逐阶段做了什么</h2>
+
+<div class="stage">
+  <h3>S1 · 地基 <span class="badge">14:39 起</span></h3>
+  <p>搭好 Vite 7 + TypeScript + React 19 + Tailwind 4 + react-router 7 的骨架；配好 ESLint / Prettier / Vitest 三件套；设计明暗两套配色；做 15 个基础组件（按钮、输入框、弹窗、标签页等）+ 6 个布局组件；搭 3 个页面（首页骨架、404、组件画廊）。</p>
+  <div class="why"><b>值得记的一条规矩</b>：这阶段立了「依赖方向铁律」（项目代号 FL-2），并用 ESLint 强制检查——页面可以调用数据层，但数据层<strong>不许反向引用页面</strong>。这条规矩在 S8 分包时救了命。</div>
+  <div class="verify">验收：类型检查 0 错 · 代码检查 0 错 0 警 · 构建成功 · 首屏 <b>132.6 KB</b> · 单测 2 个通过</div>
+</div>
+
+<div class="stage">
+  <h3>S2 · 数据层 <span class="badge">这一天最「重」的一段</span></h3>
+  <p>定义清楚「一个作品有哪些字段」「一个用户有哪些字段」（13 个枚举、9 类实体）；写周榜公式 <code>得分 = 1×点赞 + 3×收藏</code> 并<strong>单独测了 6 个用例</strong>（自己给自己点赞不算数、时间区间左闭右开、名次不能重复）；写全套数据校验规则（用户名多长、密码多复杂、EXIF 哪些字段允许留）；定义 <strong>9 个「仓库接口」</strong>；用浏览器自带 IndexedDB 造一个假数据库实现这 9 个接口；灌入演示数据——<strong>10 个用户、80 张作品、300 条互动、12 篇文章</strong>，而且是<strong>幂等</strong>的，重复刷新不会灌第二遍。</p>
+  <div class="why"><b>为什么要造这么多数据</b>：演示版没有真用户，只有 3 张图看不出互联网产品的样子。80 张作品能让作品墙、排行榜、搜索都显得真实。</div>
+  <div class="verify">验收：单测 8 个通过 · 首屏 <b>137.2 KB</b></div>
+</div>
+
+<div class="stage">
+  <h3>S3 · 能看了</h3>
+  <p>时间工具（算 ISO 周、算「3 小时前」，时区锁 Asia/Shanghai）；三个数据读取钩子（无限滚动、读分类榜单、读登录状态）；作品卡片 / 缩略图 / 网格 + 无限滚动；<strong>5 个页面</strong>：首页（精选 + 榜单 Top5 + 教程 + 分类入口）、作品墙（网格 / 瀑布流切换）、详情页（大图 + EXIF + 相关推荐）、分类总览、分类墙。</p>
+  <div class="why"><b>一个巧妙的选择</b>：演示版没有真实图片，所有缩略图是<strong>前端按作品 ID 生成的纯色块</strong>。好处是仓库里<strong>不含任何第三方图片</strong>，完全规避版权风险。</div>
+  <div class="verify">验收：6 条路由全部 HTTP 200 · 首屏 <b>147.4 KB</b></div>
+</div>
+
+<div class="stage">
+  <h3>S4 · 能登录、能发布</h3>
+  <p>登录 / 注册表单（演示账号一键填入、协议必须勾选）；<strong>路由守卫</strong>（没登录访问发布页跳去登录，登录完自动跳回来）；<strong>图片处理管线</strong>——只收 JPG、自动压成 WebP 存两档（展示 2400px / 缩略 640px）、提取 EXIF 但<strong>只留 7 个白名单字段</strong>、<strong>GPS 坐标一律剔除</strong>；4 个页面：登录、注册、发布（草稿自动保存）、个人主页（三 Tab）、设置页。</p>
+  <div class="why"><b>为什么要抠 EXIF</b>：手机拍的照片默认带 GPS 精确坐标。原样展示等于把用户家庭住址公开——这是摄影社区最容易出的隐私事故，所以在 S4 就堵死。</div>
+  <div class="verify">验收：9 条路由 200 · 首屏 <b>153.1 KB</b> · 依赖方向检查通过</div>
+</div>
+
+<div class="stage">
+  <h3>S5 · 能互动了</h3>
+  <p>点赞 / 收藏按钮（未登录点击跳登录）；评论区（需登录、一级回复、删除后显示占位、<strong>纯文本渲染防 XSS</strong>）；<strong>乐观更新</strong>——点一下立刻变化不用等，请求失败自动回滚；<strong>跨标签页同步</strong>——用 BroadcastChannel，一个标签页点赞，另一个标签页计数跟着变。</p>
+  <div class="why"><b>「乐观更新」打个比方</b>：好比发微信，消息立刻显示在屏幕上（其实还在上传）。体验上「秒回」，技术上失败了再撤回。</div>
+  <div class="verify">验收：首屏 <b>155.8 KB</b> · 路由与模块 200</div>
+</div>
+
+<div class="stage">
+  <h3>S6 · 能搜、有排行榜</h3>
+  <p>引入 MiniSearch 做搜索，<strong>中文分词</strong>是关键难点——英文按空格分词就行，中文没有空格。方案是先用浏览器原生 <code>Intl.Segmenter</code> 分词，不行再用「两字一组」兜底。搜索页把关键词写在网址里（<code>/search?q=星空</code>，方便分享）、结果高亮、无结果有空态。周榜页有<strong>当期实时榜 + 历史终榜 + 规则公开说明</strong>。</p>
+  <div class="why"><b>为什么规则要公开</b>：排行榜算法不透明，用户会怀疑暗箱操作。所以把 <code>1×赞 + 3×藏</code> 直接印在页面上，不藏。</div>
+  <div class="verify">验收：首屏 <b>164.5 KB</b>；出现「chunk 超过 500KB」警告（MiniSearch 偏大），<strong>这个警告在 S8 被彻底解决</strong></div>
+</div>
+
+<div class="stage">
+  <h3>S7 · 学习板块 + 法律页</h3>
+  <p>引入 <code>marked</code> + <code>DOMPurify</code> 渲染教程 Markdown。教程含学习首页（4 大主题）、主题筛选、文章阅读（带目录锚点）；<strong>7 个法律页面</strong>：关于、服务条款、隐私政策、版权声明、DMCA、开源许可、社区规范，条款里写清授权 8 种选择与 EXIF 隐私说明。</p>
+  <div class="why"><b>为什么 DOMPurify 是必须的</b>：Markdown 能内嵌 HTML，不净化就等于给 XSS 开后门。白名单标签、白名单属性、外链强制 <code>noopener</code>。</div>
+  <div class="verify">验收：首屏 <b>195.1 KB</b> —— 逼近 200 KB 预算，红线在望</div>
+</div>
+
+<div class="stage">
+  <h3>S8 · 竣工验收 + 上线准备</h3>
+  <p>① <strong>分包瘦身</strong>：所有二级页面改成按需加载（React.lazy）；② <strong>开源文档 5 件套</strong>（LICENSE / README / CREDITS / CONTRIBUTING / SECURITY）；③ <strong>部署准备</strong>：构建后脚本自动生成 <code>404.html</code> 作为深链回退。</p>
+  <div class="why"><b>效果最戏剧性的一步</b>：首屏从 <strong>195.1 KB 降到 126.9 KB</strong>，体积砍掉 35%。</div>
+  <div class="verify">验收：<b>全部 24 条路由 HTTP 200</b> · 首屏 <b>126.9 KB</b> ✅ · 此时<strong>未做任何 git 操作</strong>，代码只在本机</div>
+</div>
+
+<!-- ───────── 四 ───────── -->
+<h2>四、最后交付时又发生了什么（S9 · 上线）</h2>
+<p>静态开发完成于 16:13。之后在 17 点前后做了三件事：<strong>换包装、开源、上线</strong>。</p>
+
+<h3>4.1 把长篇总结改成好读的样子</h3>
+<p>原本的《分布工程总结》是 93 行纯文字 Markdown，全是长段落。改成了两个版本：</p>
+<table>
+<tbody>
+<tr><td>阅读版 <code>.html</code></td><td>一页总览：顶部 5 个大数字卡片、一张 8 行表格、所有地址变成可点链接、跟随系统自动明暗配色</td></tr>
+<tr><td>维护版 <code>.md</code></td><td>开头一张总览表，每阶段压缩到 2–3 个要点，长度减半</td></tr>
+</tbody>
+</table>
+
+<h3>4.2 开源到 GitHub</h3>
+<p>创建 Public 仓库 <code>lst</code>，推上 130 个文件，配 MIT 协议、10 个话题标签。过程中踩了三个坑：</p>
+
+<div class="pit">
+  <h4>坑 1 · git 根本连不上</h4>
+  <p class="sym">git push 超时 / SEC_E_NO_CREDENTIALS (0x8009030e)</p>
+  <p class="fix">逐个探测端口发现：<code>github.com:443</code> 通不了，只有 <code>api.github.com</code> 通；系统 TLS 也坏了。<b>解法</b>：放弃 git，全程用 GitHub REST API 建库和提交。</p>
+</div>
+
+<div class="pit">
+  <h4>坑 2 · LICENSE 被认成「其他」</h4>
+  <p class="sym">GitHub 显示 NOASSERTION 而不是 MIT</p>
+  <p class="fix">查 API 看到 <code>spdx_id: NOASSERTION</code>。原因是我在标准 MIT 文本<b>末尾加了中文说明</b>，破坏了指纹匹配。<b>解法</b>：LICENSE 恢复纯 MIT 文本，分层说明移到新建的 <code>NOTICE.md</code>。</p>
+</div>
+
+<div class="pit">
+  <h4>坑 3 · 空仓库不能直接建树</h4>
+  <p class="sym">409 Git Repository is empty</p>
+  <p class="fix"><b>解法</b>：先用 Contents API 打一个占位文件造出首个提交，再用 Git Data API 整体覆盖，最后用「孤儿提交」把历史压成 1 条。</p>
+</div>
+
+<div class="callout">
+  <strong>一个额外的发现</strong>：写 <code>.github/workflows/</code> 下的文件时，Contents API 和 Git Data API <strong>都返回 404</strong>；但同一个 token 写 <code>.github/test.md</code> 却成功（201）。说明<strong>不是权限通用问题，而是 workflows 子路径单独要求 <code>workflow</code> scope</strong>，而这个 token 只有 <code>repo</code>。
+</div>
+
+<h3>4.3 部署上线</h3>
+<p>原本计划用 GitHub Actions 自动构建，因为上面那个 scope 限制，<strong>改用分支部署</strong>：</p>
+<div class="flow"><pre>本地构建 (VITE_BASE=/lst/) ──→ 产物推到 gh-pages 分支 ──→ Pages 源设为该分支</pre></div>
+<p><strong>结果</strong>：线上地址已可访问，首页 200，JS / CSS 资源全部 200，深链接有 <code>404.html</code> 回退。</p>
+<div class="pit">
+  <h4>小插曲 · 验证时自己吓自己</h4>
+  <p class="sym">误报：所有资源 404</p>
+  <p class="fix">原因是我把路径拼错了——base 里已经含 <code>/lst</code>，验证脚本又拼了一次。<b>改正后确认全部正常</b>。教训：验证脚本本身也要验证。</p>
+</div>
+
+<!-- ───────── 五 ───────── -->
+<h2>五、成果清单</h2>
+
+<div class="stats">
+  <div class="stat"><b>102</b><span>源码文件</span></div>
+  <div class="stat"><b>7,425</b><span>源码行数</span></div>
+  <div class="stat"><b>130</b><span>仓库文件</span></div>
+  <div class="stat"><b>20</b><span>页面</span></div>
+  <div class="stat"><b>24</b><span>路由全 200</span></div>
+  <div class="stat"><b>8</b><span>单元测试</span></div>
+  <div class="stat"><b>126.9 KB</b><span>首屏 JS gzip</span></div>
+  <div class="stat"><b>0 / 0</b><span>类型 / 检查错误</span></div>
+</div>
+
+<h3>代码分布</h3>
+<table>
+<thead><tr><th>目录</th><th>文件</th><th>行数</th><th>是什么</th></tr></thead>
+<tbody>
+<tr><td>pages</td><td>20</td><td>1,552</td><td>页面</td></tr>
+<tr><td>styles</td><td>8</td><td>1,879</td><td>设计令牌与分阶段样式</td></tr>
+<tr><td>data</td><td>14</td><td>1,088</td><td>数据层（接口 + mock 实现 + seed）</td></tr>
+<tr><td>components</td><td>24</td><td>856</td><td>设计系统（16 UI + 8 布局 / 守卫）</td></tr>
+<tr><td>features</td><td>11</td><td>772</td><td>业务组件</td></tr>
+<tr><td>domain</td><td>5</td><td>410</td><td>领域模型与规则</td></tr>
+<tr><td>lib</td><td>8</td><td>396</td><td>工具（时间 / 搜索 / Markdown / 图片）</td></tr>
+<tr><td>hooks</td><td>6</td><td>296</td><td>数据钩子</td></tr>
+<tr><td>app</td><td>4</td><td>156</td><td>应用外壳与路由表</td></tr>
+<tr><td>test</td><td>1</td><td>1</td><td>测试环境装配</td></tr>
+</tbody>
+</table>
+
+<h3>功能覆盖</h3>
+<p>
+<span class="chip">注册登录（演示）</span><span class="chip">发布：仅 JPG / WebP 压缩 / EXIF 白名单 / GPS 剔除 / 草稿</span><span class="chip">浏览：精选 / 双视图 / 详情 EXIF / 8 分类</span><span class="chip">互动：赞藏评 / 乐观更新 / 跨标签同步 / 防 XSS</span><span class="chip">搜索：中文分词 / 加权 / 模糊 / 高亮</span><span class="chip">周榜：1×赞+3×藏 / 实时+历史 / 规则公开</span><span class="chip">学习：4 主题 / 净化渲染</span><span class="chip">7 法律页</span><span class="chip">明暗双主题</span>
+</p>
+
+<!-- ───────── 六 ───────── -->
+<h2>六、踩过的坑（给未来的自己）</h2>
+<p>这一节可能是最实用的部分。</p>
+
+<h3>环境类</h3>
+<table>
+<thead><tr><th>坑</th><th>症状</th><th>解法</th></tr></thead>
+<tbody>
+<tr><td>Node 不在 PATH</td><td><code>node</code> 命令找不到</td><td>用 DSH 捆绑版 node 的完整路径</td></tr>
+<tr><td>路径含中文 + 空格</td><td>pnpm 生成的链接畸形，Vite 找不到 rollup</td><td>安装必须加 <code>--node-linker=hoisted</code></td></tr>
+<tr><td>esbuild 清理系统 Temp 失败</td><td><code>Access denied</code></td><td>把 <code>TMP</code> / <code>TEMP</code> / <code>TMPDIR</code> 指向项目内 <code>.tmp</code></td></tr>
+<tr><td>vite dev 起不来</td><td><code>spawn EPERM</code></td><td>管道式子进程被沙箱拦截；放宽权限，或用纯 Node 静态服务器替代</td></tr>
+<tr><td>沙箱临时目录被清理</td><td><code>--temp is not an existing directory</code></td><td>TMP 指向项目内目录，别依赖系统 Temp</td></tr>
+</tbody>
+</table>
+
+<h3>网络类</h3>
+<table>
+<thead><tr><th>现象</th><th>原因</th><th>解法</th></tr></thead>
+<tbody>
+<tr><td><code>github.com:443</code> 超时</td><td>网络阻断</td><td>只走 <code>api.github.com</code></td></tr>
+<tr><td>git / curl 报 <code>SEC_E_NO_CREDENTIALS</code></td><td>系统 schannel TLS 故障</td><td>改用 Node 自带 OpenSSL 的 <code>fetch</code></td></tr>
+<tr><td>空仓库建 tree 报 409</td><td>GitHub 限制</td><td>先造一个初始提交</td></tr>
+<tr><td>写 workflows 报 404</td><td>token 缺 <code>workflow</code> scope</td><td>改用分支部署</td></tr>
+</tbody>
+</table>
+
+<h3>设计类</h3>
+<table>
+<thead><tr><th>决定</th><th>为什么</th></tr></thead>
+<tbody>
+<tr><td>缩略图用纯色块而非真实图片</td><td>规避第三方图片版权风险</td></tr>
+<tr><td>EXIF 只留 7 个白名单字段、GPS 必删</td><td>防止泄露用户位置</td></tr>
+<tr><td>评论纯文本、Markdown 走 DOMPurify</td><td>防 XSS</td></tr>
+<tr><td>排行榜公式印在页面上</td><td>避免用户怀疑暗箱操作</td></tr>
+<tr><td>数据层用接口 + 可替换实现</td><td>第二期接真后端时页面零改动</td></tr>
+<tr><td>ESLint 强制依赖方向</td><td>防止数据层反向依赖页面，保持可替换性</td></tr>
+</tbody>
+</table>
+
+<!-- ───────── 七 ───────── -->
+<h2>七、当前状态与下一步</h2>
+<p><strong>第一期（静态演示版）已完整交付并上线。</strong>能跑、能用、能看、已开源、已部署。</p>
+
+<h3>已知限制（不是 bug，是设计）</h3>
+<table>
+<thead><tr><th>限制</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>换浏览器 / 清缓存 → 数据没了</td><td>存在 IndexedDB，清除即丢</td></tr>
+<tr><td>无法跨设备</td><td>没有服务器，数据不出浏览器</td></tr>
+<tr><td>账号不安全</td><td>密码明文在前端，会话存 localStorage</td></tr>
+<tr><td>深链接返回 404 状态码</td><td>GitHub Pages 静态托管固有行为（页面仍能正常显示）</td></tr>
+</tbody>
+</table>
+<p>这些限制在仓库的 <code>SECURITY.md</code> 里明确标注为「设计如此」而非漏洞。</p>
+
+<h3>下一步（第二期 · 动态化）</h3>
+<p>已规划 7 个阶段，<strong>启动时机待定</strong>：</p>
+<div class="flow"><pre>D0 Supabase 基建 ──→ D1 鉴权 ──→ D2 只读 ──→ D3 写入
+                                        └──→ D4 榜单服务端化 ──→ D5 安全 ──→ D6 上线</pre></div>
+<p>到那时，S1–S8 打下的「接口 + 可替换实现」架构就该发挥作用：<strong>换掉数据层的实现，页面不需要动</strong>。</p>
+
+<!-- ───────── 八 ───────── -->
+<h2>八、时间线</h2>
+<ul class="tl">
+  <li><time>14:39</time>S1 开始：搭工程骨架，第一个文件 <code>tokens.css</code>（设计令牌）</li>
+  <li><time>14:40</time>基础组件开工（<code>Button.tsx</code> 等）</li>
+  <li><time>~15:00</time>S2 数据层完成：9 个仓储接口 + mock 实现 + seed</li>
+  <li><time>~15:30</time>S3 浏览主链路完成</li>
+  <li><time>~16:00</time>S4 账号与发布、S5 互动、S6 搜索与榜单陆续完成</li>
+  <li><time>16:08</time>S7 学习板块与法律页完成</li>
+  <li><time>16:10</time>路由表最终定型（24 条）</li>
+  <li class="big"><time>16:13</time><strong>S8 完成</strong>：分包瘦身至 126.9 KB，24 路由全通</li>
+  <li><time>16:40</time>开始整理《分布工程总结》可读版</li>
+  <li class="big"><time>17:06</time><strong>创建 GitHub 仓库</strong> <code>lst</code>（Public / MIT）</li>
+  <li class="big"><time>17:42</time><strong>GitHub Pages 上线</strong>：<a href="https://1517862878.github.io/lst/">1517862878.github.io/lst</a></li>
+  <li><time>17:57</time>写这份工作日记</li>
+</ul>
+
+<!-- ───────── 九 ───────── -->
+<h2>九、一句话总结</h2>
+<div class="callout">
+  <p><strong>用一天时间，从零做出一个能上线的摄影社区前端</strong>：8 个阶段、7,425 行代码、24 条路由、首屏 127 KB，代码开源、网站可访问。</p>
+  <p>关键不在「做了多少功能」，而在<strong>每一层都留了后路</strong>——数据层可以换、页面可以拆、隐私可以兜、版权可以避。这样它不只是一个演示，而是一个能继续长下去的东西。</p>
+</div>
+
+<footer>
+  相关文档：<a href="分布工程总结.html">分布工程总结（可视化总览）</a> · <a href="分布工程总结.md">分布工程总结（维护版）</a> · <a href="README.md">README</a> · <a href="ROADMAP.md">ROADMAP</a>
+</footer>
+
+</main>
+</body>
+</html>

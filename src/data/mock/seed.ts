@@ -129,19 +129,41 @@ export function buildSeedData(): SeedResult {
   })
 
   // 300 条互动，分布最近 5 周（覆盖多个周窗口，供榜单测试）
+  //
+  // 两个必须注意的点（都由 E2E 发现）：
+  //   1) 互动不能完全随机撒在 35 天里 —— 那样落在「本周窗口」的只有寥寥几条，
+  //      分散到 80 个作品后绝大多数得分为 0，排行榜看起来像坏了。
+  //      因此按 60% 集中在最近 7 天、40% 散布到前 4 周。
+  //   2) likes/favorites 的主键是 (userId, photoId)，**同一用户对同一作品只能有一行**。
+  //      早先是纯随机组合，导致生成 300 条但实际只存入 267 条（重复被 IDB 覆盖），
+  //      而 likeCount 却按去重前的数组统计 —— 计数虚高，点赞后重算反而"变小"，
+  //      表现为"点了赞数字不动"。所以这里用组合键去重，保证数量与计数一致。
+  const usedKeys = new Set<string>()
   const likes: Interaction[] = []
   const favorites: Interaction[] = []
-  for (let i = 0; i < 300; i++) {
+
+  let guard = 0
+  while (likes.length + favorites.length < 300 && guard++ < 10000) {
     const photo = pick(photos)
     const user = pick(profiles)
+
     // 自赞自藏允许存在（真实数据如此），榜单计算会排除
-    const t = now - Math.floor(rand() * 35) * DAY - Math.floor(rand() * DAY)
+    const recent = rand() < 0.6
+    const t = recent
+      ? now - Math.floor(rand() * 6.5 * DAY) // 本周内（0–6.5 天）
+      : now - 7 * DAY - Math.floor(rand() * 28 * DAY) // 前 4 周
+
+    const key = `${user.id}|${photo.id}`
+    if (usedKeys.has(key)) continue // 同一用户对同一作品只允许一次互动
+    usedKeys.add(key)
+
     const it: Interaction = { userId: user.id, photoId: photo.id, createdAt: iso(t) }
     if (rand() < 0.6) likes.push(it)
     else favorites.push(it)
   }
 
   // 回填 photos 的派生计数（只读派生原则：由互动行计算）
+  // 因为上面已保证 (userId, photoId) 唯一，这里的计数与数据库实际行数完全一致
   const likeMap = new Map<string, number>()
   const favMap = new Map<string, number>()
   for (const l of likes) likeMap.set(l.photoId, (likeMap.get(l.photoId) ?? 0) + 1)

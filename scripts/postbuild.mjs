@@ -4,7 +4,7 @@
  * 作用：把 dist/index.html 复制为 dist/404.html（SPA 深层路由回退）。
  * 注意：本脚本仅在用户将来部署到 GitHub Pages 时使用；本地开发无需执行。
  */
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
+import { copyFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 

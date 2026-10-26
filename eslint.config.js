@@ -6,10 +6,32 @@ import prettier from 'eslint-config-prettier'
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'node_modules', 'coverage', 'playwright-report', 'test-results'],
+    ignores: [
+      'dist',
+      'node_modules',
+      'coverage',
+      'playwright-report',
+      'test-results',
+      '.tmp',
+      '.pnpm-store',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    // Node 脚本（构建后处理、本地静态服务器等）运行在 Node 环境，需要 Node 全局变量
+    files: ['scripts/**/*.{mjs,js,cjs}'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        URL: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+      },
+    },
+  },
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {

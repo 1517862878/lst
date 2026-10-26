@@ -9,15 +9,29 @@ import './styles/index.css'
 const rootEl = document.getElementById('root')
 if (!rootEl) throw new Error('找不到 #root 挂载点')
 
-// 首次访问灌入演示数据（幂等）；失败不阻塞渲染，页面会显示空态
-void ensureSeeded().catch((e) => {
-  console.error('[seed] 初始化失败', e)
-})
+/**
+ * 启动顺序：先灌种子，再渲染。
+ *
+ * 为什么必须 await：早先是 `void ensureSeeded()` 后立刻 render，
+ * 结果首次访问时页面的数据查询跑在种子写入之前，查到 0 条 →
+ * 首页精选/榜单/教程全空，刷新一次才有内容（真实 bug，由 E2E 发现）。
+ *
+ * 兜底策略：种子失败也不能白屏 —— 记错误后照常渲染，页面会显示空态。
+ */
+async function bootstrap(): Promise<void> {
+  try {
+    await ensureSeeded()
+  } catch (e) {
+    console.error('[seed] 初始化失败，将以空数据启动', e)
+  }
 
-createRoot(rootEl).render(
-  <StrictMode>
-    <Providers>
-      <RouterProvider router={router} />
-    </Providers>
-  </StrictMode>,
-)
+  createRoot(rootEl!).render(
+    <StrictMode>
+      <Providers>
+        <RouterProvider router={router} />
+      </Providers>
+    </StrictMode>,
+  )
+}
+
+void bootstrap()

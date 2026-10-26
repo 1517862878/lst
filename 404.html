@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="工科影展——分享拍摄作品、拍摄地点与心得的摄影社区（演示模式）"
+    />
+    <title>工科影展 · 摄影作品社区</title>
+    <script>
+      // 首屏前应用主题，避免闪白（令牌见 src/styles/tokens.css）
+      try {
+        var p = JSON.parse(localStorage.getItem('gy:prefs') || '{}')
+        var t = (p.state && p.state.theme) || 'system'
+        var d =
+          t === 'system'
+            ? window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+            : t
+        document.documentElement.dataset.theme = d
+      } catch (e) {
+        /* 忽略损坏的偏好数据 */
+      }
+    </script>
+    <script type="module" crossorigin src="/lst/assets/index-BBi397wP.js"></script>
+    <link rel="stylesheet" crossorigin href="/lst/assets/index-xqEyBvyT.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

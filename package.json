@@ -14,11 +14,13 @@
     "postbuild": "node scripts/postbuild.mjs",
     "preview": "vite preview",
     "serve:dist": "node scripts/serve-dist.mjs 4173",
+    "serve:subpath": "node scripts/serve-subpath.mjs 4180 /lst/",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:subpath": "playwright test -c playwright.subpath.config.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"
   },

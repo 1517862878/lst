@@ -25,7 +25,7 @@ test.describe('子路径部署（/lst/）', () => {
   })
 
   test('各主路由都能打开（basename 生效）', async ({ page }) => {
-    const routes = [
+    const routes: Array<[string, string]> = [
       ['/gallery', '作品墙'],
       ['/categories', '分类总览'],
       ['/rankings/weekly', '本周排行榜'],

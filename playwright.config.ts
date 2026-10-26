@@ -13,6 +13,14 @@ import { defineConfig, devices } from '@playwright/test'
 const PORT = 4173
 const BASE_URL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`
 
+/**
+ * 是否使用系统已安装的 Chrome。
+ * 本机（Windows 开发机）装了 Chrome，用它可省去下载 ~150MB 浏览器包；
+ * CI（GitHub Actions）没有系统 Chrome，用的是 `playwright install` 装的 chromium。
+ * 设 E2E_SYSTEM_CHROME=0 可强制使用 Playwright 自带浏览器。
+ */
+const useSystemChrome = process.env.E2E_SYSTEM_CHROME !== '0' && !process.env.CI
+
 export default defineConfig({
   testDir: './tests/e2e',
   // 排除子路径部署测试（需单独的 config 与构建）
@@ -44,8 +52,7 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        // 用系统 Chrome，避免 npx playwright install 下载浏览器
-        channel: 'chrome',
+        ...(useSystemChrome ? { channel: 'chrome' as const } : {}),
         viewport: { width: 1440, height: 900 },
       },
     },
@@ -54,9 +61,12 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        // 用 process.execPath 而非裸 "node"：本机 PATH 上没有 node（DSH 捆绑运行时）
+        // 用 process.execPath 而非裸 "node"：本机 PATH 上没有 node（DSH 捆绑运行时），
+        // 而 process.execPath 在 CI 与本地都指向正确的 node 可执行文件
         command: `"${process.execPath}" scripts/serve-dist.mjs ${PORT}`,
-        url: BASE_URL,
+        // 探活打根路径（返回 200）；深链接在这套服务器下会 SPA 回退，状态码仍是 200，
+        // 但为与 GitHub Pages 行为保持一致，这里统一用根路径
+        url: BASE_URL + '/',
         // 不复用旧服务：复用会拿到上一次构建的产物，导致改了 dist 仍在测旧代码
         reuseExistingServer: false,
         timeout: 120_000,

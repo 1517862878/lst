@@ -16,6 +16,9 @@ const PORT = 4180
 const PREFIX = '/lst'
 const BASE_URL = process.env.E2E_SUBPATH_URL ?? `http://127.0.0.1:${PORT}${PREFIX}`
 
+/** 本机用系统 Chrome 省下载；CI 用 Playwright 自带 chromium（见 playwright.config.ts 说明） */
+const useSystemChrome = process.env.E2E_SYSTEM_CHROME !== '0' && !process.env.CI
+
 export default defineConfig({
   testDir: './tests/e2e',
   testMatch: ['**/04-subpath-deploy.spec.ts'],
@@ -40,7 +43,7 @@ export default defineConfig({
       name: 'chromium-subpath',
       use: {
         ...devices['Desktop Chrome'],
-        channel: 'chrome',
+        ...(useSystemChrome ? { channel: 'chrome' as const } : {}),
         viewport: { width: 1440, height: 900 },
       },
     },

@@ -66,11 +66,26 @@ const server = createServer(async (req, res) => {
     }
 
     const relPath = pathname.slice(PREFIX.length + 1) // 去掉 '/lst/'
+
+    // 根路径（'/lst/'）→ 直接给 index.html。
+    // 注意不能靠 normalize(join('.', '')) 判断：它会返回 '.' 而不是空串。
+    if (relPath === '') {
+      const idx = await tryFile(join(DIST, 'index.html'))
+      if (idx) {
+        res.writeHead(200, { 'content-type': MIME['.html'], 'cache-control': 'no-cache' })
+        res.end(await readFile(idx))
+        return
+      }
+      send(res, 404, 'index.html missing')
+      return
+    }
+
+    // 防目录穿越
     const rel = normalize(join('.', relPath)).replace(/^(\.\.[/\\])+/, '')
     let file = await tryFile(join(DIST, rel))
 
-    // 目录/根 → index.html
-    if (!file && (rel === '' || rel === 'index.html')) {
+    // 目录形式 → index.html
+    if (!file && rel === 'index.html') {
       file = await tryFile(join(DIST, 'index.html'))
     }
 

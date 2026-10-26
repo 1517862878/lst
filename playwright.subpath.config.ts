@@ -50,6 +50,8 @@ export default defineConfig({
     ? undefined
     : {
         command: `"${process.execPath}" scripts/serve-subpath.mjs ${PORT} ${PREFIX}/`,
+        // 探活打根路径（返回 200），不要打深链接 ——
+        // GitHub Pages 对深链接返回 404 状态 + 404.html 内容，探活会误判为服务未就绪
         url: BASE_URL + '/',
         reuseExistingServer: false,
         timeout: 120_000,

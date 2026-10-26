@@ -11,7 +11,7 @@
 create table if not exists public.weekly_rank_snapshots (
   id              uuid primary key default gen_random_uuid(),
   iso_week        text not null check (iso_week ~ '^\d{4}-W\d{2}$'),
-  kind            text not null check (kind in ('daily', 'final')),
+  kind            text not null check (kind in ('live', 'final')),
   timezone        text not null default 'Asia/Shanghai',
   week_start_utc  timestamptz not null,
   week_end_utc    timestamptz not null,

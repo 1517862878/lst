@@ -26,7 +26,8 @@ export type LocationPrecision = 'exact' | 'district' | 'city' | 'hidden'
 
 export type CommentStatus = 'visible' | 'hidden' | 'removed'
 
-export type RankingKind = 'daily' | 'final'
+/** 榜单类型：live = 当期实时榜（未结算），final = 已结算终榜 */
+export type RankingKind = 'live' | 'final'
 
 export type ArticleDifficulty = 'beginner' | 'intermediate' | 'advanced'
 

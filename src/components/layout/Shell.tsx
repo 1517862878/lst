@@ -1,14 +1,19 @@
 import { Outlet } from 'react-router'
 import { Footer } from './Footer'
 import { Header } from './Header'
+import { useSession } from '@/hooks/useSession'
 
-export interface ShellProps {
-  /** 页头会话信息（登录态）；静态期由 useSession 提供 */
-  sessionUser?: { id: string; username: string; displayName: string } | null
-}
+/**
+ * 全站外壳：Header + 主内容 + Footer。
+ * 会话状态在此订阅（路由以 <Shell /> 无 props 渲染），Header 据此
+ * 显示「空白头像 → 登录/注册菜单」或「用户头像 → 用户菜单」。
+ */
+export function Shell() {
+  const { data: session } = useSession()
+  const sessionUser = session
+    ? { id: session.userId, username: session.username, displayName: session.displayName }
+    : null
 
-/** 全站外壳：Header + 主内容 + Footer + 演示模式角标（FRONTEND-WORK §3.2 Shell） */
-export function Shell({ sessionUser = null }: ShellProps) {
   return (
     <>
       <a className="g-skip-link" href="#main">

@@ -55,27 +55,56 @@
   --g-dur-fast: 150ms;
   --g-dur-base: 250ms;
   --g-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 玻璃拟态（页头/菜单） */
+  --g-glass-bg: rgb(255 255 255 / 0.7);
+  --g-glass-border: rgb(15 23 42 / 0.08);
+  --g-header-bg: rgb(248 250 252 / 0.8);
+
+  /* 氛围光晕 */
+  --g-ambience:
+    radial-gradient(60rem 30rem at 15% -10%, rgb(29 78 216 / 0.06), transparent 60%),
+    radial-gradient(50rem 28rem at 90% 0%, rgb(147 51 234 / 0.05), transparent 55%);
+
+  /* 主按钮渐变与光晕 */
+  --g-brand-grad: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 55%, #1e40af 100%);
+  --g-brand-glow: 0 8px 24px -8px rgb(29 78 216 / 0.4);
 }
 
 [data-theme='dark'] {
-  --g-bg: #0b1220;
-  --g-surface: #111a2c;
-  --g-surface-2: #1b2638;
-  --g-ink: #e2e8f0;
-  --g-ink-2: #94a3b8;
-  --g-ink-3: #64748b;
-  --g-line: #273449;
-  --g-brand: #3b82f6;
-  --g-brand-ink: #0b1220;
-  --g-brand-soft: #1e3a8a;
+  /* 高级暗色：近黑底 + 低饱和中性色 + 单一鎏金强调色（影展质感） */
+  --g-bg: #07070b;
+  --g-surface: #101018;
+  --g-surface-2: #1a1a24;
+  --g-ink: #eceaf0;
+  --g-ink-2: #a09eaa;
+  --g-ink-3: #6f6d7a;
+  --g-line: #262530;
+  --g-brand: #d4af6a;
+  --g-brand-ink: #14100a;
+  --g-brand-soft: #33291a;
   --g-success: #4ade80;
   --g-warning: #fbbf24;
   --g-danger: #f87171;
-  --g-focus: #60a5fa;
+  --g-focus: #e0c088;
 
   --g-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-  --g-shadow-md: 0 4px 12px rgb(0 0 0 / 0.5);
-  --g-shadow-lg: 0 12px 32px rgb(0 0 0 / 0.6);
+  --g-shadow-md: 0 8px 24px rgb(0 0 0 / 0.5);
+  --g-shadow-lg: 0 16px 48px rgb(0 0 0 / 0.65);
+
+  /* 玻璃拟态（页头/菜单） */
+  --g-glass-bg: rgb(255 255 255 / 0.05);
+  --g-glass-border: rgb(255 255 255 / 0.1);
+  --g-header-bg: rgb(7 7 11 / 0.72);
+
+  /* 氛围光晕 */
+  --g-ambience:
+    radial-gradient(60rem 30rem at 15% -10%, rgb(212 175 106 / 0.08), transparent 60%),
+    radial-gradient(50rem 28rem at 90% 0%, rgb(120 110 160 / 0.07), transparent 55%);
+
+  /* 主按钮渐变与光晕 */
+  --g-brand-grad: linear-gradient(135deg, #e6c887 0%, #d4af6a 45%, #b98f45 100%);
+  --g-brand-glow: 0 8px 24px -8px rgb(212 175 106 / 0.45);
 }
 
 /* 基础复位与全局样式 */
@@ -96,6 +125,9 @@ body {
   line-height: 1.6;
   color: var(--g-ink);
   background-color: var(--g-bg);
+  background-image: var(--g-ambience);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   -webkit-font-smoothing: antialiased;
 }
 

@@ -5,6 +5,7 @@
 @import './s5-interactions.css';
 @import './s6-search-ranking.css';
 @import './s7-learn-legal.css';
+@import './layout.css';
 @import 'tailwindcss';
 
 @layer components {

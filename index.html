@@ -10,18 +10,13 @@
     <title>工科影展 · 摄影作品社区</title>
     <script>
       // 首屏前应用主题，避免闪白（令牌见 src/styles/tokens.css）
+      // 默认暗色高级风；仅当用户在偏好里明确存了 'light' 才用浅色。
       try {
         var p = JSON.parse(localStorage.getItem('gy:prefs') || '{}')
-        var t = (p.state && p.state.theme) || 'system'
-        var d =
-          t === 'system'
-            ? window.matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light'
-            : t
-        document.documentElement.dataset.theme = d
+        var t = (p.state && p.state.theme) || 'dark'
+        document.documentElement.dataset.theme = t === 'light' ? 'light' : 'dark'
       } catch (e) {
-        /* 忽略损坏的偏好数据 */
+        document.documentElement.dataset.theme = 'dark'
       }
     </script>
   </head>

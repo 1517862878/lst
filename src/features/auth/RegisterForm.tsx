@@ -3,7 +3,7 @@
  * 协议必选 + 用户名格式校验（zod schema）。
  */
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
@@ -79,9 +79,10 @@ export function RegisterForm() {
         label={
           <>
             我已阅读并同意{' '}
-            <a href="/terms" target="_blank" rel="noreferrer">
+            {/* 用 Link 而非 <a href="/terms">：子路径部署（/lst/）下原生 href 会丢 base */}
+            <Link to="/terms" target="_blank" rel="noreferrer">
               用户协议
-            </a>{' '}
+            </Link>{' '}
             与版权条款
           </>
         }

@@ -62,36 +62,54 @@ const DmcaPage = lazyNamed(() => import('@/pages/LegalPages'), 'DmcaPage')
 const LicensesPage = lazyNamed(() => import('@/pages/LegalPages'), 'LicensesPage')
 const CommunityPage = lazyNamed(() => import('@/pages/LegalPages'), 'CommunityPage')
 
-export const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <Shell />,
-    children: [
-      { index: true, element: <HomePage /> },
-      { path: 'gallery', element: <GalleryPage /> },
-      { path: 'works/:id', element: <WorkDetailPage /> },
-      { path: 'categories', element: <CategoriesPage /> },
-      { path: 'categories/:slug', element: <CategoryPage /> },
-      { path: 'login', element: <LoginPage /> },
-      { path: 'register', element: <RegisterPage /> },
-      { path: 'publish', element: <PublishPage /> },
-      { path: 'u/:username', element: <ProfilePage /> },
-      { path: 'settings/profile', element: <SettingsPage /> },
-      { path: 'me', element: <MePage /> },
-      { path: 'search', element: <SearchPage /> },
-      { path: 'rankings/weekly', element: <RankingPage /> },
-      { path: 'rankings/weekly/:isoWeek', element: <RankingPage /> },
-      { path: 'learn', element: <LearnHomePage /> },
-      { path: 'learn/topics/:topic', element: <LearnTopicPage /> },
-      { path: 'learn/:slug', element: <ArticlePage /> },
-      { path: 'about', element: <AboutPage /> },
-      { path: 'terms', element: <TermsPage /> },
-      { path: 'privacy', element: <PrivacyPage /> },
-      { path: 'copyright', element: <CopyrightPage /> },
-      { path: 'dmca', element: <DmcaPage /> },
-      { path: 'licenses', element: <LicensesPage /> },
-      { path: 'community', element: <CommunityPage /> },
-      { path: '*', element: <NotFoundPage /> },
-    ],
-  },
-])
+/**
+ * 路由表。
+ *
+ * basename 必须跟随 Vite 的 base：
+ *   部署到 GitHub Pages 子路径（https://user.github.io/lst/）时，base = '/lst/'，
+ *   浏览器地址是 /lst/gallery，而路由定义的是 gallery。
+ *   不设 basename 的话，pathname 无法匹配任何路由，整站会落到 404 页
+ *   （真实缺陷：本地开发 base='/' 时完全正常，部署后才暴露）。
+ *
+ * 归一化处理：Vite 的 base 末尾带斜杠（'/lst/'），basename 不能带尾斜杠，
+ * 根路径时为空串（不是 '/'，否则 react-router 会拼成双斜杠）。
+ */
+const RAW_BASE = import.meta.env.BASE_URL ?? '/'
+const BASENAME = RAW_BASE === '/' ? '' : RAW_BASE.replace(/\/+$/, '')
+
+export const router = createBrowserRouter(
+  [
+    {
+      path: '/',
+      element: <Shell />,
+      children: [
+        { index: true, element: <HomePage /> },
+        { path: 'gallery', element: <GalleryPage /> },
+        { path: 'works/:id', element: <WorkDetailPage /> },
+        { path: 'categories', element: <CategoriesPage /> },
+        { path: 'categories/:slug', element: <CategoryPage /> },
+        { path: 'login', element: <LoginPage /> },
+        { path: 'register', element: <RegisterPage /> },
+        { path: 'publish', element: <PublishPage /> },
+        { path: 'u/:username', element: <ProfilePage /> },
+        { path: 'settings/profile', element: <SettingsPage /> },
+        { path: 'me', element: <MePage /> },
+        { path: 'search', element: <SearchPage /> },
+        { path: 'rankings/weekly', element: <RankingPage /> },
+        { path: 'rankings/weekly/:isoWeek', element: <RankingPage /> },
+        { path: 'learn', element: <LearnHomePage /> },
+        { path: 'learn/topics/:topic', element: <LearnTopicPage /> },
+        { path: 'learn/:slug', element: <ArticlePage /> },
+        { path: 'about', element: <AboutPage /> },
+        { path: 'terms', element: <TermsPage /> },
+        { path: 'privacy', element: <PrivacyPage /> },
+        { path: 'copyright', element: <CopyrightPage /> },
+        { path: 'dmca', element: <DmcaPage /> },
+        { path: 'licenses', element: <LicensesPage /> },
+        { path: 'community', element: <CommunityPage /> },
+        { path: '*', element: <NotFoundPage /> },
+      ],
+    },
+  ],
+  { basename: BASENAME },
+)

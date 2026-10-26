@@ -4,7 +4,7 @@
  * 一级回复；软删显示占位。
  */
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import type { Comment } from '@/domain/types'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
@@ -92,7 +92,8 @@ export function CommentSection({ photoId, currentUserId }: CommentSectionProps) 
         ) : (
           <p className="g-comment-login-hint">
             请先{' '}
-            <a href={`/login?next=${encodeURIComponent(`/works/${photoId}`)}`}>登录</a> 后再评论。
+            {/* 用 Link 保留 base：子路径部署时原生 href 会丢失 /lst/ 前缀 */}
+            <Link to={`/login?next=${encodeURIComponent(`/works/${photoId}`)}`}>登录</Link> 后再评论。
           </p>
         )}
       </form>

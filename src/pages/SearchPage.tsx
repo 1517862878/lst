@@ -100,7 +100,8 @@ function SearchResultList({ photos, terms }: { photos: Photo[]; terms: string[] 
 
 function SearchResultItem({ photo, terms }: { photo: Photo; terms: string[] }) {
   return (
-    <a href={`/works/${photo.id}`} className="g-search-result-item">
+    // 用 Link 而非 <a href>：子路径部署（/lst/）时原生 href 会丢 base，点进 404
+    <Link to={`/works/${photo.id}`} className="g-search-result-item">
       <div className="g-search-result-body">
         <h3 className="g-search-result-title">
           <HighlightedText text={photo.title} terms={terms} />

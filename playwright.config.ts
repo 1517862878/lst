@@ -3,8 +3,10 @@
  *
  * 设计说明：
  *   1) 优先用系统已装的 Chrome（channel: 'chrome'），避免下载 ~150MB 浏览器包
- *   2) webServer 用 vite preview 跑构建产物 —— 测的是"真实上线的代码"，不是 dev 模式
- *   3) 构建需要 esbuild，受限沙箱会 EPERM，故通过环境变量在 CI/本地放宽
+ *   2) webServer 跑构建产物 —— 测的是"真实上线的代码"，不是 dev 模式
+ *   3) 子路径部署测试（04-subpath-deploy）单独用 playwright.subpath.config.ts，
+ *      因为它要求 dist 以 VITE_BASE=/lst/ 构建、并挂在 /lst/ 前缀下，
+ *      与默认 base='/' 的服务器不兼容，混跑会全部失败。
  */
 import { defineConfig, devices } from '@playwright/test'
 
@@ -13,6 +15,8 @@ const BASE_URL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`
 
 export default defineConfig({
   testDir: './tests/e2e',
+  // 排除子路径部署测试（需单独的 config 与构建）
+  testIgnore: ['**/04-subpath-deploy.spec.ts'],
   // 主链路测试串行执行：避免多个 worker 同时灌种子数据导致 IndexedDB 竞争
   workers: 1,
   fullyParallel: false,

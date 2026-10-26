@@ -9,6 +9,14 @@
   background: var(--g-surface-2);
 }
 
+/* 真实图片：铺满容器，保持比例不拉伸 */
+.g-photo-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .g-photo-thumb-fill {
   position: absolute;
   inset: 0;

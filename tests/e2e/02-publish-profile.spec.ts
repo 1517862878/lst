@@ -71,6 +71,20 @@ test.describe('主链路 2 · 发布与个人主页', () => {
     await expect(page.getByRole('heading', { name: title })).toBeVisible()
     // 拍摄地点应正确显示
     await expect(page.getByText(/测试地点/)).toBeVisible()
+
+    // 断言：上传的图片真的被渲染出来（而不是回退到占位色块）
+    // 这是回归保护 —— 早先 PublishPage 只写入 IndexedDB、PhotoThumb 从不读取，
+    // 导致"发布成功却只显示渐变色块"。这条断言防止该问题再次出现。
+    const detailImg = page.locator('.g-photo-thumb-img').first()
+    await expect(detailImg).toBeVisible({ timeout: 20_000 })
+    // object URL 说明它来自存储层取出的 Blob，而非静态资源
+    const src = await detailImg.getAttribute('src')
+    expect(src).toMatch(/^blob:/)
+    // 注意：页面上还有"相关作品"等种子数据仍走占位块（它们没有真实文件），
+    // 所以这里不能断言全页 .g-photo-thumb-fill 为 0，只针对主图所在容器断言。
+    const mainThumb = page.locator('.g-photo-thumb-display').first()
+    await expect(mainThumb.locator('.g-photo-thumb-fill')).toHaveCount(0)
+    await expect(mainThumb.locator('.g-photo-thumb-img')).toHaveCount(1)
   })
 
   test('发布后个人主页「作品」Tab 能看到该作品', async ({ page }) => {

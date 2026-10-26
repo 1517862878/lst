@@ -72,7 +72,7 @@
 |---|---|
 | 框架 | React 19 · TypeScript (strict) · Vite 7 |
 | 路由 | react-router 7（全路由懒加载分包） |
-| 样式 | Tailwind CSS 4（明暗双套设计令牌） |
+| 样式 | Tailwind CSS 4 · 像素风主题（明暗双套令牌，零圆角 + 硬阴影） |
 | 数据请求 | TanStack Query 5 |
 | 全局状态 | Zustand 5 |
 | UI 原语 | Radix UI（无障碍） |
@@ -80,6 +80,7 @@
 | 搜索引擎 | MiniSearch 7（中文分词） |
 | Markdown | marked 18 + DOMPurify 3 |
 | 本地存储 | IndexedDB（idb 8） |
+| 字体 | Fusion Pixel 12px（中文像素字体，OFL 许可，见 [CREDITS.md](CREDITS.md)） |
 | 测试 | Vitest 3 + Testing Library（单元）+ Playwright 1.64（E2E） |
 
 ---

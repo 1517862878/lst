@@ -1,23 +1,50 @@
+/* ══════════════════════════════════════════════════════════
+   基础组件 · 像素风格
+   通用做法：2px 硬描边 + 实心偏移阴影 + 零圆角 + 按下时位移
+   ══════════════════════════════════════════════════════════ */
+
 /* ===== 按钮 Button ===== */
 .g-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--g-space-2);
-  border: 1px solid transparent;
-  border-radius: var(--g-radius-md);
+  border: var(--g-border) solid var(--g-line);
+  border-radius: 0;
   font-family: inherit;
-  font-weight: 500;
-  line-height: 1.4;
+  font-size: var(--g-text-base);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: var(--g-tracking);
   cursor: pointer;
-  transition: background-color var(--g-dur-fast) var(--g-ease),
-    border-color var(--g-dur-fast) var(--g-ease), opacity var(--g-dur-fast) var(--g-ease);
   white-space: nowrap;
+  /* 像素按钮的灵魂：实心偏移阴影 */
+  box-shadow: var(--g-shadow-md);
+  /* 按下时整体位移到阴影位置，视觉上"压下去" */
+  transition:
+    transform var(--g-dur-fast) var(--g-ease),
+    box-shadow var(--g-dur-fast) var(--g-ease),
+    background-color var(--g-dur-fast) var(--g-ease);
+  /* 禁用文本选中，避免双击变蓝 */
+  user-select: none;
+}
+
+.g-btn:hover:not(:disabled) {
+  /* 悬停稍抬，阴影变长 */
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--g-line);
+}
+
+.g-btn:active:not(:disabled) {
+  /* 按下：位移到阴影位置，阴影归零 —— 经典按压手感 */
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--g-line);
 }
 
 .g-btn:disabled {
-  opacity: 0.55;
+  opacity: 0.45;
   cursor: not-allowed;
+  box-shadow: var(--g-shadow-sm);
 }
 
 .g-btn-primary {
@@ -26,13 +53,13 @@
 }
 
 .g-btn-primary:hover:not(:disabled) {
-  filter: brightness(1.08);
+  background: var(--g-brand);
+  filter: brightness(1.1);
 }
 
 .g-btn-secondary {
   background: var(--g-surface);
   color: var(--g-ink);
-  border-color: var(--g-line);
 }
 
 .g-btn-secondary:hover:not(:disabled) {
@@ -42,10 +69,21 @@
 .g-btn-ghost {
   background: transparent;
   color: var(--g-ink-2);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .g-btn-ghost:hover:not(:disabled) {
   background: var(--g-surface-2);
+  color: var(--g-ink);
+  border-color: var(--g-line);
+  transform: none;
+  box-shadow: var(--g-shadow-sm);
+}
+
+.g-btn-ghost:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .g-btn-danger {
@@ -53,23 +91,28 @@
   color: #fff;
 }
 
-.g-btn-danger:hover:not(:disabled) {
-  filter: brightness(1.08);
+.g-btn-sm {
+  font-size: var(--g-text-base);
+  padding: 4px 10px;
+  box-shadow: var(--g-shadow-sm);
 }
 
-.g-btn-sm {
-  font-size: var(--g-text-sm);
-  padding: 4px 10px;
+.g-btn-sm:hover:not(:disabled) {
+  box-shadow: 3px 3px 0 var(--g-line);
+}
+
+.g-btn-sm:active:not(:disabled) {
+  transform: translate(2px, 2px);
 }
 
 .g-btn-md {
   font-size: var(--g-text-base);
-  padding: 7px 14px;
+  padding: 7px 16px;
 }
 
 .g-btn-lg {
   font-size: var(--g-text-lg);
-  padding: 10px 20px;
+  padding: 10px 24px;
 }
 
 .g-btn-icon {
@@ -82,18 +125,20 @@
   height: 1em;
 }
 
+/* 加载指示器：像素风的方块旋转，不用圆环 */
 .g-spinner {
   display: inline-block;
-  width: 1em;
-  height: 1em;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: g-spin 0.7s linear infinite;
+  width: 10px;
+  height: 10px;
+  background: currentColor;
+  animation: g-spin 0.6s steps(4, end) infinite;
 }
 
 @keyframes g-spin {
-  to {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
     transform: rotate(360deg);
   }
 }
@@ -103,57 +148,79 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  color: var(--g-ink-2);
-  border: none;
-  border-radius: var(--g-radius-md);
+  background: var(--g-surface);
+  color: var(--g-ink);
+  border: var(--g-border) solid var(--g-line);
+  border-radius: 0;
   cursor: pointer;
-  transition: background-color var(--g-dur-fast) var(--g-ease),
-    color var(--g-dur-fast) var(--g-ease);
+  box-shadow: var(--g-shadow-sm);
+  transition:
+    transform var(--g-dur-fast) var(--g-ease),
+    box-shadow var(--g-dur-fast) var(--g-ease);
 }
 
 .g-icon-btn:hover:not(:disabled) {
   background: var(--g-surface-2);
-  color: var(--g-ink);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--g-line);
+}
+
+.g-icon-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .g-icon-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
 .g-icon-btn-sm {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
 }
 
 .g-icon-btn-md {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
 }
 
 .g-icon-btn-lg {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
 }
 
 .g-icon-btn svg {
   width: 1.1em;
   height: 1.1em;
+  /* 图标也像素化 */
+  shape-rendering: crispEdges;
 }
 
 /* ===== 表单 Input / Textarea ===== */
 .g-field {
   display: flex;
   flex-direction: column;
-  gap: var(--g-space-1);
+  gap: var(--g-space-2);
   width: 100%;
 }
 
 .g-label {
-  font-size: var(--g-text-sm);
-  font-weight: 500;
+  font-size: var(--g-text-base);
+  font-weight: 400;
   color: var(--g-ink);
+  /* 标签前加一个小方块，像游戏里的选中标记 */
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-2);
+}
+
+.g-label::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--g-brand);
+  flex-shrink: 0;
 }
 
 .g-required {
@@ -163,14 +230,20 @@
 .g-input-wrap {
   display: flex;
   align-items: center;
-  border: 1px solid var(--g-line);
-  border-radius: var(--g-radius-md);
+  border: var(--g-border) solid var(--g-line);
+  border-radius: 0;
   background: var(--g-surface);
+  /* 内嵌阴影，形成"凹槽"感 */
+  box-shadow: var(--g-shadow-inset);
   transition: border-color var(--g-dur-fast) var(--g-ease);
 }
 
 .g-input-wrap:focus-within {
-  border-color: var(--g-focus);
+  border-color: var(--g-brand);
+  /* 焦点时加一圈外描边 */
+  box-shadow:
+    var(--g-shadow-inset),
+    0 0 0 2px var(--g-brand);
 }
 
 .g-input-wrap-error {
@@ -185,38 +258,48 @@
   color: var(--g-ink);
   font-family: inherit;
   font-size: var(--g-text-base);
-  padding: 8px 12px;
+  letter-spacing: var(--g-tracking);
+  padding: 8px 10px;
   outline: none;
 }
 
 .g-input-error {
-  border: 1px solid var(--g-danger);
-  border-radius: var(--g-radius-md);
+  border: var(--g-border) solid var(--g-danger);
+  border-radius: 0;
 }
 
 .g-input-wrap .g-input {
   border: none;
 }
 
-.g-input::placeholder {
+/* 占位符用斜纹表达"空"，比浅灰更像素风 */
+.g-input::placeholder,
+.g-textarea::placeholder {
   color: var(--g-ink-3);
+  opacity: 1;
 }
 
 .g-textarea {
   min-height: 96px;
   resize: vertical;
-  border: 1px solid var(--g-line);
-  border-radius: var(--g-radius-md);
+  border: var(--g-border) solid var(--g-line);
+  border-radius: 0;
   background: var(--g-surface);
-  padding: 8px 12px;
+  box-shadow: var(--g-shadow-inset);
+  padding: 8px 10px;
   font-family: inherit;
   font-size: var(--g-text-base);
+  letter-spacing: var(--g-tracking);
   color: var(--g-ink);
+  line-height: var(--g-leading);
 }
 
 .g-textarea:focus {
   outline: none;
-  border-color: var(--g-focus);
+  border-color: var(--g-brand);
+  box-shadow:
+    var(--g-shadow-inset),
+    0 0 0 2px var(--g-brand);
 }
 
 .g-input-adorn {
@@ -247,21 +330,25 @@
   font-size: var(--g-text-xs);
   color: var(--g-ink-3);
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
-/* ===== 徽标 Badge ===== */
+/* ===== 徽标 Badge：像素标签，方形 + 硬边 ===== */
 .g-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: var(--g-radius-full);
+  padding: 1px 6px;
+  border: 1px solid var(--g-line);
+  border-radius: 0;
   font-size: var(--g-text-xs);
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.5;
+  white-space: nowrap;
 }
 
 .g-badge-sm {
-  padding: 1px 6px;
+  padding: 0 4px;
+  font-size: var(--g-text-xs);
 }
 
 .g-badge-neutral {
@@ -275,29 +362,30 @@
 }
 
 .g-badge-success {
-  background: color-mix(in srgb, var(--g-success) 14%, transparent);
-  color: var(--g-success);
+  background: var(--g-success);
+  color: var(--g-bg);
 }
 
 .g-badge-warning {
-  background: color-mix(in srgb, var(--g-warning) 16%, transparent);
-  color: var(--g-warning);
+  background: var(--g-warning);
+  color: var(--g-bg);
 }
 
 .g-badge-danger {
-  background: color-mix(in srgb, var(--g-danger) 14%, transparent);
-  color: var(--g-danger);
+  background: var(--g-danger);
+  color: var(--g-bg);
 }
 
-/* ===== 头像 Avatar ===== */
+/* ===== 头像 Avatar：方形像素头像 ===== */
 .g-avatar {
   object-fit: cover;
-  border-radius: var(--g-radius-full);
-  border: 1px solid var(--g-line);
+  border: var(--g-border) solid var(--g-line);
+  border-radius: 0;
+  image-rendering: pixelated;
 }
 
 .g-avatar-square {
-  border-radius: var(--g-radius-md);
+  border-radius: 0;
 }
 
 .g-avatar-fallback {
@@ -306,39 +394,58 @@
   justify-content: center;
   background: var(--g-brand-soft);
   color: var(--g-brand);
-  font-weight: 600;
+  font-weight: 400;
   user-select: none;
+  border: var(--g-border) solid var(--g-line);
+  border-radius: 0;
 }
 
-/* ===== 骨架屏 Skeleton ===== */
+/* ===== 骨架屏 Skeleton：条纹流动，不用脉冲 ===== */
 .g-skeleton {
   display: inline-block;
   background: var(--g-surface-2);
-  animation: g-pulse 1.5s ease-in-out infinite;
+  border: 1px solid var(--g-line-soft);
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
   vertical-align: middle;
 }
 
-@keyframes g-pulse {
-  0%,
-  100% {
-    opacity: 1;
+/* 斜纹动画：像老游戏的加载条 */
+.g-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    var(--g-bg-grid) 4px,
+    var(--g-bg-grid) 8px
+  );
+  animation: g-skeleton-slide 0.8s steps(4, end) infinite;
+}
+
+@keyframes g-skeleton-slide {
+  from {
+    transform: translateX(0);
   }
-  50% {
-    opacity: 0.5;
+  to {
+    transform: translateX(8px);
   }
 }
 
 .g-skeleton-text {
   height: 1em;
-  border-radius: var(--g-radius-sm);
 }
 
 .g-skeleton-circle {
-  border-radius: var(--g-radius-full);
+  /* 像素风没有圆，用方形 */
+  border-radius: 0;
 }
 
 .g-skeleton-rect {
-  border-radius: var(--g-radius-md);
+  border-radius: 0;
 }
 
 /* ===== 空态 EmptyState ===== */
@@ -348,33 +455,36 @@
   align-items: center;
   text-align: center;
   padding: var(--g-space-7) var(--g-space-4);
-  gap: var(--g-space-2);
+  gap: var(--g-space-3);
+  border: var(--g-border) dashed var(--g-line-soft);
+  background: var(--g-surface);
 }
 
 .g-empty-icon {
   width: 40px;
   height: 40px;
   color: var(--g-ink-3);
+  shape-rendering: crispEdges;
 }
 
 .g-empty-title {
   margin: 0;
   font-size: var(--g-text-lg);
-  font-weight: 600;
+  font-weight: 400;
   color: var(--g-ink);
 }
 
 .g-empty-desc {
   margin: 0;
-  font-size: var(--g-text-sm);
+  font-size: var(--g-text-base);
   color: var(--g-ink-2);
-  max-width: 480px;
+  max-width: 460px;
 }
 
 .g-empty-actions {
   display: flex;
-  gap: var(--g-space-2);
-  margin-top: var(--g-space-2);
+  gap: var(--g-space-3);
+  margin-top: var(--g-space-3);
 }
 
 /* ===== 错误态 ErrorState ===== */
@@ -384,25 +494,28 @@
   align-items: center;
   text-align: center;
   padding: var(--g-space-7) var(--g-space-4);
-  gap: var(--g-space-2);
+  gap: var(--g-space-3);
+  border: var(--g-border) solid var(--g-danger);
+  background: var(--g-surface);
 }
 
 .g-error-icon {
   width: 40px;
   height: 40px;
   color: var(--g-danger);
+  shape-rendering: crispEdges;
 }
 
 .g-error-title {
   margin: 0;
   font-size: var(--g-text-lg);
-  font-weight: 600;
+  font-weight: 400;
   color: var(--g-ink);
 }
 
 .g-error-desc {
   margin: 0;
-  font-size: var(--g-text-sm);
+  font-size: var(--g-text-base);
   color: var(--g-ink-2);
 }
 
@@ -410,51 +523,68 @@
   margin: 0;
   font-size: var(--g-text-xs);
   color: var(--g-ink-3);
+  font-family: var(--g-font-mono);
 }
 
-/* ===== 选项卡 Tabs ===== */
+/* ===== 选项卡 Tabs：像游戏里的菜单标签 ===== */
 .g-tabs-list {
-  display: inline-flex;
-  gap: var(--g-space-2);
-  border-bottom: 1px solid var(--g-line);
+  display: flex;
+  gap: 0;
+  border-bottom: var(--g-border) solid var(--g-line);
   width: 100%;
+  padding: 0;
 }
 
 .g-tabs-trigger {
   padding: var(--g-space-2) var(--g-space-4);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
+  background: var(--g-surface-2);
+  border: var(--g-border) solid var(--g-line);
+  border-bottom: none;
+  border-radius: 0;
   color: var(--g-ink-2);
   font-family: inherit;
-  font-size: var(--g-text-sm);
-  font-weight: 500;
+  font-size: var(--g-text-base);
+  font-weight: 400;
   cursor: pointer;
-  transition: color var(--g-dur-fast) var(--g-ease),
-    border-color var(--g-dur-fast) var(--g-ease);
+  margin-bottom: calc(-1 * var(--g-border));
+  margin-right: -2px;
+  transition:
+    background-color var(--g-dur-fast) var(--g-ease),
+    color var(--g-dur-fast) var(--g-ease);
+  position: relative;
 }
 
 .g-tabs-trigger:hover {
+  background: var(--g-surface-3);
   color: var(--g-ink);
 }
 
+/* 选中态：底色抬起 + 底部用背景色"打通"，形成文件夹标签效果 */
 .g-tabs-trigger[data-state='active'] {
+  background: var(--g-surface);
   color: var(--g-brand);
-  border-bottom-color: var(--g-brand);
+  border-bottom: var(--g-border) solid var(--g-surface);
+  z-index: 1;
+  font-weight: 400;
 }
 
 .g-tabs-count {
   margin-left: var(--g-space-1);
   font-size: var(--g-text-xs);
   color: var(--g-ink-3);
+  font-variant-numeric: tabular-nums;
 }
 
-/* ===== 对话框 Dialog ===== */
+/* ===== 对话框 Dialog：像素窗 ===== */
 .g-dialog-overlay {
   position: fixed;
   inset: 0;
-  background: rgb(0 0 0 / 0.5);
+  background: rgb(26 22 17 / 0.72);
   z-index: 50;
+  /* 遮罩也用网格 */
+  background-image:
+    linear-gradient(rgb(26 22 17 / 0.72), rgb(26 22 17 / 0.72)),
+    repeating-linear-gradient(45deg, transparent, transparent 4px, rgb(255 255 255 / 0.03) 4px, rgb(255 255 255 / 0.03) 8px);
 }
 
 .g-dialog {
@@ -463,7 +593,8 @@
   left: 50%;
   transform: translate(-50%, -50%);
   background: var(--g-surface);
-  border-radius: var(--g-radius-lg);
+  border: var(--g-border) solid var(--g-line);
+  border-radius: 0;
   box-shadow: var(--g-shadow-lg);
   width: min(480px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
@@ -476,58 +607,63 @@
   display: flex;
   align-items: flex-start;
   gap: var(--g-space-2);
-  padding: var(--g-space-4);
-  border-bottom: 1px solid var(--g-line);
+  padding: var(--g-space-3) var(--g-space-4);
+  border-bottom: var(--g-border) solid var(--g-line);
+  background: var(--g-brand);
+  color: var(--g-brand-ink);
 }
 
 .g-dialog-title {
   margin: 0;
   font-size: var(--g-text-lg);
-  font-weight: 600;
+  font-weight: 400;
   flex: 1;
 }
 
 .g-dialog-desc {
   margin: 0;
-  font-size: var(--g-text-sm);
+  font-size: var(--g-text-base);
   color: var(--g-ink-2);
 }
 
 .g-dialog-close {
   flex-shrink: 0;
   background: transparent;
-  border: none;
-  color: var(--g-ink-2);
+  border: 1px solid currentColor;
+  color: inherit;
   cursor: pointer;
-  padding: var(--g-space-1);
-  border-radius: var(--g-radius-sm);
+  padding: 0 4px;
+  border-radius: 0;
   display: inline-flex;
+  line-height: 1.2;
 }
 
 .g-dialog-close:hover {
-  background: var(--g-surface-2);
+  background: var(--g-brand-ink);
+  color: var(--g-brand);
 }
 
 .g-dialog-close svg {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
 }
 
 .g-dialog-body {
   padding: var(--g-space-4);
   overflow-y: auto;
-  font-size: var(--g-text-sm);
+  font-size: var(--g-text-base);
 }
 
 .g-dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: var(--g-space-2);
+  gap: var(--g-space-3);
   padding: var(--g-space-3) var(--g-space-4);
-  border-top: 1px solid var(--g-line);
+  border-top: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
 }
 
-/* ===== Toast ===== */
+/* ===== Toast：像游戏里的提示横幅 ===== */
 .g-toast-viewport {
   position: fixed;
   top: var(--g-space-4);
@@ -545,12 +681,22 @@
   gap: var(--g-space-2);
   background: var(--g-surface);
   color: var(--g-ink);
-  border: 1px solid var(--g-line);
-  border-left: 3px solid var(--g-brand);
-  border-radius: var(--g-radius-md);
+  border: var(--g-border) solid var(--g-line);
+  border-left: 6px solid var(--g-brand);
+  border-radius: 0;
   box-shadow: var(--g-shadow-md);
-  padding: var(--g-space-3) var(--g-space-4);
-  font-size: var(--g-text-sm);
+  padding: var(--g-space-2) var(--g-space-3);
+  font-size: var(--g-text-base);
+  animation: g-toast-in var(--g-dur-base) steps(3, end);
+}
+
+@keyframes g-toast-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 .g-toast-success {
@@ -562,9 +708,10 @@
 }
 
 .g-toast-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
+  shape-rendering: crispEdges;
 }
 
 .g-toast-success .g-toast-icon {
@@ -575,16 +722,16 @@
   color: var(--g-danger);
 }
 
-/* ===== 分隔线 Divider ===== */
+/* ===== 分隔线 Divider：像素虚线 ===== */
 .g-divider {
   border: none;
-  border-top: 1px solid var(--g-line);
+  border-top: var(--g-border) dashed var(--g-line-soft);
   margin: var(--g-space-4) 0;
 }
 
 .g-divider-v {
   border-top: none;
-  border-left: 1px solid var(--g-line);
+  border-left: var(--g-border) dashed var(--g-line-soft);
   margin: 0 var(--g-space-3);
   height: auto;
   align-self: stretch;
@@ -599,10 +746,12 @@
 
 .g-divider-line {
   flex: 1;
-  border-top: 1px solid var(--g-line);
+  border-top: var(--g-border) dashed var(--g-line-soft);
 }
 
 .g-divider-label {
-  font-size: var(--g-text-sm);
+  font-size: var(--g-text-xs);
   color: var(--g-ink-2);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }

@@ -15,11 +15,7 @@ import { usePhoto, useRelatedPhotos } from '@/hooks/usePhotos'
 import { useSession } from '@/hooks/useSession'
 import { useInteractionSync } from '@/hooks/useInteractions'
 import { formatDate, relativeTime } from '@/lib/time'
-
-const CATEGORY_NAMES: Record<string, string> = {
-  landscape: '风景', people: '人文', architecture: '建筑', industrial: '工业',
-  technology: '科技', macro: '微距', night: '夜景', monochrome: '黑白',
-}
+import { categoryName } from '@/domain/constants'
 
 export function WorkDetailPage() {
   const { id = '' } = useParams()
@@ -66,7 +62,7 @@ export function WorkDetailPage() {
         <div className="g-work-info">
           <h1 className="g-work-title">{photo.title}</h1>
           <div className="g-work-meta">
-            <Badge tone="info">{CATEGORY_NAMES[photo.categorySlug] ?? photo.categorySlug}</Badge>
+            <Badge tone="info">{categoryName(photo.categorySlug)}</Badge>
             {photo.credit && <Badge tone="warning">{photo.credit}</Badge>}
             <span className="g-work-time" title={formatDate(photo.publishedAt ?? photo.createdAt)}>
               {relativeTime(photo.publishedAt ?? photo.createdAt)}

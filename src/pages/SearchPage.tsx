@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { HighlightedText } from '@/features/search/HighlightedText'
 import { useSearch } from '@/hooks/useSearch'
+import { categoryName } from '@/domain/constants'
 import type { Photo } from '@/domain/types'
 
 export function SearchPage() {
@@ -53,7 +54,7 @@ export function SearchPage() {
 
       {categorySlug && (
         <div className="g-search-filters" role="status">
-          <span>分类筛选：{categorySlug}</span>
+          <span>分类筛选：{categoryName(categorySlug)}</span>
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             清除筛选
           </Button>

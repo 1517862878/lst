@@ -124,7 +124,7 @@
   padding: var(--g-space-3);
   background: var(--g-surface-2);
   border-left: 3px solid var(--g-brand);
-  border-radius: 0 var(--g-radius-md) var(--g-radius-md) 0;
+  border-radius: 0;
   color: var(--g-ink-2);
 }
 
@@ -212,7 +212,7 @@
   border-left: 3px solid var(--g-brand);
   color: var(--g-ink-2);
   background: var(--g-surface-2);
-  border-radius: 0 var(--g-radius-md) var(--g-radius-md) 0;
+  border-radius: 0;
 }
 
 .g-article-body table {

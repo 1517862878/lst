@@ -48,3 +48,28 @@ export const DEMO_ACCOUNTS = [
 ]
 
 export const DEMO_PASSWORD = 'demo1234'
+
+/**
+ * 分类 slug → 中文名映射（从 CATEGORIES 派生成 Map，避免多处硬编码）。
+ *
+ * 早先 PhotoCard 只对 landscape 做了映射，其余分类直接显示英文 slug
+ * （卡片上出现 night / architecture / macro），WorkDetailPage 里又抄了一份表。
+ * 现在只在这里生成一次，全站共用。
+ */
+export const CATEGORY_NAME_BY_SLUG: Record<string, string> = Object.fromEntries(
+  CATEGORIES.map((c) => [c.slug, c.name]),
+)
+
+/** 取分类中文名；未知 slug 原样返回 */
+export function categoryName(slug: string): string {
+  return CATEGORY_NAME_BY_SLUG[slug] ?? slug
+}
+
+/** 主题 slug → 中文名 */
+export const TOPIC_NAME_BY_SLUG: Record<string, string> = Object.fromEntries(
+  ARTICLE_TOPICS.map((t) => [t.slug, t.name]),
+)
+
+export function topicName(slug: string): string {
+  return TOPIC_NAME_BY_SLUG[slug] ?? slug
+}

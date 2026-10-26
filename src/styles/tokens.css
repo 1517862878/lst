@@ -1,37 +1,74 @@
 /*
- * 设计令牌（ROADMAP S1、FRONTEND-WORK §1.1）
- * 明暗两套令牌，通过 <html data-theme="light|dark"> 切换。
- * 对比度要求：正文 ≥ 4.5:1，大字与图形 ≥ 3:1（两套都测，C-4）。
- * 命名：CSS 变量 --g-*（g = gongke）。
+ * 设计令牌 · 像素风格（Pixel Art）
+ * 明暗两套，通过 <html data-theme="light|dark"> 切换。
+ *
+ * 像素风的三条铁律：
+ *   1. 零圆角 —— 一切直角。圆角是"现代 UI"的语言，像素风里是异端。
+ *   2. 硬阴影 —— 用不模糊的 offset 实心块模拟立体感（像老式按钮）。
+ *   3. 1px 硬描边 —— 所有容器都有清晰的黑色边框，不用柔和分隔线。
+ *
+ * 字体：Fusion Pixel Font 12px（开源，OFL 许可，见 public/fonts/OFL-fusion-pixel.txt）
+ *      中文像素字体，685KB woff2，只加载 zh_hans 一份。
  */
+
+@font-face {
+  font-family: 'Fusion Pixel';
+  src: url('/fonts/fusion-pixel-12px-zh_hans.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  /* 像素字体必须关闭抗锯齿，否则会糊 */
+}
+
 :root,
 [data-theme='light'] {
-  /* 色板 */
-  --g-bg: #f8fafc; /* 页面底色 */
-  --g-surface: #ffffff; /* 卡片/弹层 */
-  --g-surface-2: #f1f5f9; /* 次级底色 */
-  --g-ink: #0f172a; /* 正文 */
-  --g-ink-2: #475569; /* 次级文字 */
-  --g-ink-3: #94a3b8; /* 弱文字 */
-  --g-line: #e2e8f0; /* 边框分隔 */
-  --g-brand: #1d4ed8; /* 主色 */
-  --g-brand-ink: #ffffff; /* 主色上文字 */
-  --g-brand-soft: #dbeafe; /* 主色浅底 */
-  --g-success: #15803d;
-  --g-warning: #b45309;
-  --g-danger: #b91c1c;
-  --g-focus: #2563eb; /* 焦点环 */
+  /* ── 色板：16 色调色板风（低饱和、高对比） ── */
+  --g-bg: #e8e0d0; /* 米黄纸底，像老游戏卡带说明书 */
+  --g-bg-grid: #d8cfbc; /* 网格线 */
+  --g-surface: #f5f0e4; /* 卡片底 */
+  --g-surface-2: #e0d7c4; /* 次级底 */
+  --g-surface-3: #cfc4ac; /* 按下态 */
 
-  /* 字阶 */
-  --g-font: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
-  --g-text-xs: 0.75rem; /* 12px */
-  --g-text-sm: 0.875rem; /* 14px */
-  --g-text-base: 1rem; /* 16px */
-  --g-text-lg: 1.125rem; /* 18px */
-  --g-text-xl: 1.25rem; /* 20px */
-  --g-text-2xl: 1.5rem; /* 24px */
+  --g-ink: #1a1611; /* 主文字：近黑棕 */
+  --g-ink-2: #4a4033; /* 次级文字 */
+  --g-ink-3: #8a7c66; /* 弱文字 */
 
-  /* 间距 */
+  --g-line: #1a1611; /* 描边：与文字同色，形成强边框 */
+  --g-line-soft: #b8ac94; /* 弱分隔线 */
+
+  --g-brand: #c8452f; /* 主色：砖红（像 FC 玛丽奥的帽子） */
+  --g-brand-ink: #fff8ec;
+  --g-brand-soft: #f0c4b8;
+
+  --g-accent-2: #2f6c8c; /* 次强调：青蓝 */
+  --g-success: #3d7a3d;
+  --g-warning: #b8802a;
+  --g-danger: #a3281b;
+  --g-focus: #1a1611;
+
+  /* 像素阴影：实心偏移，绝不模糊 */
+  --g-shadow-sm: 2px 2px 0 var(--g-line);
+  --g-shadow-md: 4px 4px 0 var(--g-line);
+  --g-shadow-lg: 6px 6px 0 var(--g-line);
+  --g-shadow-inset: inset 2px 2px 0 rgb(0 0 0 / 0.18);
+
+  /* ── 字阶：像素字体按整数倍缩放最清晰（12 → 24 → 36）──
+     12px 是字体的原生设计尺寸；再大就走 2× / 3×，避免非整数缩放导致字形模糊。
+     基础字号用 16px 而不是 12px —— 12px 在 1440 宽的屏幕上明显偏小。 */
+  --g-font: 'Fusion Pixel', 'Courier New', monospace;
+  --g-font-mono: 'Fusion Pixel', 'Courier New', ui-monospace, monospace;
+  --g-text-xs: 12px;
+  --g-text-sm: 14px;
+  --g-text-base: 16px;
+  --g-text-lg: 24px;
+  --g-text-xl: 32px;
+  --g-text-2xl: 48px;
+
+  /* 像素风行高要更松，12px 字体在 1.6 下更好读 */
+  --g-leading: 1.75;
+  --g-tracking: 0.02em;
+
+  /* ── 间距：严格 4 的倍数，保持网格感 ── */
   --g-space-1: 4px;
   --g-space-2: 8px;
   --g-space-3: 12px;
@@ -39,46 +76,62 @@
   --g-space-5: 24px;
   --g-space-6: 32px;
   --g-space-7: 48px;
+  --g-space-8: 64px;
 
-  /* 圆角 */
-  --g-radius-sm: 6px;
-  --g-radius-md: 8px;
-  --g-radius-lg: 12px;
-  --g-radius-full: 9999px;
+  /* ── 圆角：全部归零 ── */
+  --g-radius-sm: 0;
+  --g-radius-md: 0;
+  --g-radius-lg: 0;
+  --g-radius-full: 0;
 
-  /* 阴影 */
-  --g-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
-  --g-shadow-md: 0 4px 12px rgb(15 23 42 / 0.1);
-  --g-shadow-lg: 0 12px 32px rgb(15 23 42 / 0.16);
+  /* 像素描边宽度 */
+  --g-border: 2px;
 
-  /* 动效 */
-  --g-dur-fast: 150ms;
-  --g-dur-base: 250ms;
-  --g-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  /* ── 显示缩放 ──
+     像素字体的母版只有 12px 一档，非整数倍放大会让字形发糊。
+     所以不做"字号缩放"，而是整体放大渲染比例（类似游戏里的 UI Scale）。
+     16px / 12px = 1.33 倍，字形仍然锐利，同时明显比 12px 好读。 */
+  --g-ui-scale: 1.333;
+
+  /* ── 动效：快而硬，无缓动曲线（像素游戏的手感） ── */
+  --g-dur-fast: 60ms;
+  --g-dur-base: 120ms;
+  --g-ease: steps(2, end);
 }
 
 [data-theme='dark'] {
-  --g-bg: #0b1220;
-  --g-surface: #111a2c;
-  --g-surface-2: #1b2638;
-  --g-ink: #e2e8f0;
-  --g-ink-2: #94a3b8;
-  --g-ink-3: #64748b;
-  --g-line: #273449;
-  --g-brand: #3b82f6;
-  --g-brand-ink: #0b1220;
-  --g-brand-soft: #1e3a8a;
-  --g-success: #4ade80;
-  --g-warning: #fbbf24;
-  --g-danger: #f87171;
-  --g-focus: #60a5fa;
+  --g-bg: #1c1a17; /* 深棕黑，像 CRT 关屏 */
+  --g-bg-grid: #26231f;
+  --g-surface: #2a2721;
+  --g-surface-2: #35312a;
+  --g-surface-3: #403b32;
 
-  --g-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-  --g-shadow-md: 0 4px 12px rgb(0 0 0 / 0.5);
-  --g-shadow-lg: 0 12px 32px rgb(0 0 0 / 0.6);
+  --g-ink: #e8e0d0;
+  --g-ink-2: #b8ac94;
+  --g-ink-3: #7a6f5c;
+
+  --g-line: #0a0806; /* 深色下描边更黑，保持轮廓 */
+  --g-line-soft: #4a4438;
+
+  --g-brand: #e0603f;
+  --g-brand-ink: #1a1611;
+  --g-brand-soft: #5a2a20;
+
+  --g-accent-2: #4a9cc0;
+  --g-success: #6fb86f;
+  --g-warning: #e0a040;
+  --g-danger: #e05545;
+  --g-focus: #e8e0d0;
+
+  --g-shadow-sm: 2px 2px 0 #0a0806;
+  --g-shadow-md: 4px 4px 0 #0a0806;
+  --g-shadow-lg: 6px 6px 0 #0a0806;
+  --g-shadow-inset: inset 2px 2px 0 rgb(0 0 0 / 0.5);
 }
 
-/* 基础复位与全局样式 */
+/* ══════════════════════════════════════════
+   基础复位
+   ══════════════════════════════════════════ */
 *,
 *::before,
 *::after {
@@ -93,10 +146,21 @@ body {
   margin: 0;
   font-family: var(--g-font);
   font-size: var(--g-text-base);
-  line-height: 1.6;
+  line-height: var(--g-leading);
+  letter-spacing: var(--g-tracking);
   color: var(--g-ink);
   background-color: var(--g-bg);
-  -webkit-font-smoothing: antialiased;
+  /* 像素字体必须关闭字体平滑，否则小字号会糊成一团 */
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  font-smooth: never;
+  text-rendering: optimizeSpeed;
+  /* 背景网格：8px 方格，像地图编辑器的网格 */
+  background-image:
+    linear-gradient(var(--g-bg-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--g-bg-grid) 1px, transparent 1px);
+  background-size: 8px 8px;
+  image-rendering: pixelated;
 }
 
 #root {
@@ -116,26 +180,58 @@ a {
 
 a:hover {
   text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 img {
   max-width: 100%;
   display: block;
+  /* 图片也走像素渲染 */
+  image-rendering: pixelated;
 }
 
-button {
+button,
+input,
+textarea,
+select {
   font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  -webkit-font-smoothing: none;
 }
 
-/* 焦点环（C-1：焦点可见，对比度 ≥ 3:1） */
+/* 焦点环：像素风用硬边框，不用 outline 的软边 */
 :focus-visible {
   outline: 2px solid var(--g-focus);
   outline-offset: 2px;
+  /* 双色焦点环，深浅背景下都可见 */
+  box-shadow: 0 0 0 4px var(--g-bg);
 }
 
 ::selection {
   background: var(--g-brand);
   color: var(--g-brand-ink);
+}
+
+/* 滚动条也像素化 */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--g-surface-2);
+  border-left: var(--g-border) solid var(--g-line);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--g-ink-3);
+  border: var(--g-border) solid var(--g-line);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--g-brand);
 }
 
 /* 无障碍：尊重减弱动效偏好 */

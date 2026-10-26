@@ -1,6 +1,16 @@
 # 素材版权登记（CREDITS）
 
 > 规则（ROADMAP §9.3）：仓库中每一张非自摄图片必须在此登记一行；来源不明的图片一律不得进入仓库。
+> 字体等二进制素材同样须登记。
+
+## 字体
+
+| 文件 | 来源 | 作者/出处 | 许可 | 备注 |
+| --- | --- | --- | --- | --- |
+| `public/fonts/fusion-pixel-12px-zh_hans.woff2` | [TakWolf/fusion-pixel-font](https://github.com/TakWolf/fusion-pixel-font) v2026.10.25 | TakWolf | **OFL 1.1**（见 `public/fonts/OFL-fusion-pixel.txt`） | 中文像素字体，简体中文子集，685 KB；由 ark-pixel / cubic-11 / galmuri 等字体融合而来，各来源许可文本随包附带 |
+
+> 说明：OFL 允许随软件分发与嵌入网页（`@font-face`），要求保留许可文本且不得单独售卖字体文件。
+> 本项目为 MIT 开源代码 + OFL 字体，两者兼容。若将来替换字体，请同步更新本表与 `src/styles/tokens.css` 的 `@font-face`。
 
 ## 演示示例图片
 

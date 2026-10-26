@@ -4,6 +4,7 @@
  */
 import { Link } from 'react-router'
 import type { Photo } from '@/domain/types'
+import { categoryName } from '@/domain/constants'
 import { Badge } from '@/components/ui/Badge'
 import { DemoModeBadge } from '@/components/layout/DemoModeBadge'
 import { PhotoThumb } from './PhotoThumb'
@@ -43,7 +44,7 @@ export function PhotoCard({
         <div className="g-photo-card-meta">
           {showAuthor && <span className="g-photo-card-author">{photo.credit ?? '作者'}</span>}
           <Badge tone="neutral" size="sm">
-            {photo.categorySlug === 'landscape' ? '风景' : photo.categorySlug}
+            {categoryName(photo.categorySlug)}
           </Badge>
         </div>
         {showCounts && (

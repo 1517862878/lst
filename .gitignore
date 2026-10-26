@@ -1,0 +1,28 @@
+# 依赖与构建产物
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+
+# 本地包缓存与临时目录（含构建用 TMP）
+.pnpm-store/
+.tmp/
+
+# 本地环境
+*.local
+.env
+.env.*
+!.env.example
+
+# 编辑器与系统
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+npm-debug.log*
+pnpm-debug.log*

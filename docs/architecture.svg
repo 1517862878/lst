@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1010" viewBox="0 0 1280 1010" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC','Segoe UI',sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1280" height="1010" fill="#f8fafc"/>
+
+  <!-- 标题 -->
+  <text x="640" y="48" text-anchor="middle" font-size="28" font-weight="700" fill="#111827">工科影展 · 系统架构图</text>
+  <text x="640" y="74" text-anchor="middle" font-size="13.5" fill="#6b7280">第一期纯静态前端 → 第二期动态站点 ｜ 数据层可插拔 · 页面 / 组件零重写</text>
+
+  <!-- 用户端 -->
+  <rect x="40" y="96" width="1200" height="58" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+  <rect x="52" y="107" width="72" height="36" rx="8" fill="#eef2ff" stroke="#a5b4fc"/>
+  <text x="88" y="131" text-anchor="middle" font-size="13" font-weight="700" fill="#4338ca">用户端</text>
+  <text x="140" y="132" font-size="13.5" fill="#1f2937">浏览器访问　·　首页 / 作品墙 / 详情 / 分类 / 搜索 / 周榜 / 学习板块 / 登录注册 / 个人主页 / 发布</text>
+
+  <!-- 箭头 1 -->
+  <line x1="640" y1="154" x2="640" y2="182" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 前端应用层 -->
+  <rect x="40" y="182" width="1200" height="240" rx="14" fill="#eaf2fd" stroke="#2f6fed"/>
+  <text x="60" y="212" font-size="17" font-weight="700" fill="#1e3a8a">前端应用层　·　React 19 · Vite · TypeScript (strict)</text>
+
+  <g font-size="12.5" fill="#334155">
+    <rect x="60" y="224" width="275" height="118" rx="10" fill="#ffffff" stroke="#bfdbfe"/>
+    <text x="74" y="248" font-size="14" font-weight="700" fill="#1e40af">页面 / 功能层</text>
+    <text x="74" y="270">· 首页 · 作品墙</text>
+    <text x="74" y="288">· 作品详情 · 分类</text>
+    <text x="74" y="306">· 搜索 · 周榜</text>
+    <text x="74" y="324">· 学习板块 · 登录注册</text>
+    <text x="74" y="342">· 个人主页 · 发布</text>
+
+    <rect x="355" y="224" width="275" height="118" rx="10" fill="#ffffff" stroke="#bfdbfe"/>
+    <text x="369" y="248" font-size="14" font-weight="700" fill="#1e40af">Hooks 层</text>
+    <text x="369" y="270">· useSession</text>
+    <text x="369" y="288">· usePhotos</text>
+    <text x="369" y="306">· useInteractions</text>
+    <text x="369" y="324">· useWeeklyRanking</text>
+    <text x="369" y="342">· useUpload / useSearch</text>
+
+    <rect x="650" y="224" width="275" height="118" rx="10" fill="#ffffff" stroke="#bfdbfe"/>
+    <text x="664" y="248" font-size="14" font-weight="700" fill="#1e40af">服务层 Services</text>
+    <text x="664" y="270">· PhotoService</text>
+    <text x="664" y="288">· InteractionService</text>
+    <text x="664" y="306">· RankingService</text>
+    <text x="664" y="324">· AuthService</text>
+    <text x="664" y="342">· StorageService / Search</text>
+
+    <rect x="945" y="224" width="275" height="118" rx="10" fill="#ffffff" stroke="#bfdbfe"/>
+    <text x="959" y="248" font-size="14" font-weight="700" fill="#1e40af">状态管理</text>
+    <text x="959" y="270">· Zustand 客户端状态</text>
+    <text x="959" y="288">· TanStack Query 缓存</text>
+    <text x="959" y="306">· React Router 7 路由</text>
+    <text x="959" y="324">· RHF + zod 表单校验</text>
+    <text x="959" y="342">（仅依赖 domain / hooks）</text>
+  </g>
+
+  <rect x="60" y="354" width="1160" height="44" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="76" y="381" font-size="13" fill="#9a3412">铁律 L-2：页面 / 功能只允许 import hooks 与 domain，禁止直接 import data/mock 或 data/supabase —— 换后端时全站零改动</text>
+
+  <!-- 箭头 2 -->
+  <line x1="640" y1="422" x2="640" y2="450" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 领域契约层 -->
+  <rect x="40" y="450" width="1200" height="98" rx="14" fill="#fff7e0" stroke="#d99a1e"/>
+  <text x="60" y="480" font-size="17" font-weight="700" fill="#92400e">领域契约层 Domain　·　类型先行（零重写的基石）</text>
+
+  <rect x="62" y="492" width="372" height="44" rx="9" fill="#ffffff" stroke="#fcd34d"/>
+  <text x="248" y="519" text-anchor="middle" font-size="13.5" fill="#78350f">types.ts —— 实体 / 枚举 / DTO</text>
+
+  <rect x="454" y="492" width="372" height="44" rx="9" fill="#ffffff" stroke="#fcd34d"/>
+  <text x="640" y="519" text-anchor="middle" font-size="13.5" fill="#78350f">zod schema —— 字段校验</text>
+
+  <rect x="846" y="492" width="372" height="44" rx="9" fill="#ffffff" stroke="#fcd34d"/>
+  <text x="1032" y="519" text-anchor="middle" font-size="13.5" fill="#78350f">仓储接口 contracts —— Photo · Interaction · Ranking · Auth · Storage · Search</text>
+
+  <!-- 箭头 3 -->
+  <line x1="640" y1="548" x2="640" y2="576" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 数据适配层 -->
+  <rect x="40" y="576" width="1200" height="172" rx="14" fill="#f3f0fb" stroke="#7a4fd0"/>
+  <text x="60" y="606" font-size="17" font-weight="700" fill="#4c1d95">数据适配层 Adapter　·　可插拔（静态期 ⇄ 动态期仅切换实现）</text>
+
+  <rect x="60" y="618" width="580" height="114" rx="10" fill="#e8f6ee" stroke="#34a06a"/>
+  <text x="76" y="642" font-size="14.5" font-weight="700" fill="#14532d">静态期 · Mock 适配器</text>
+  <text x="76" y="666" font-size="12.5" fill="#14532d">· mock 仓储实现（与动态期契约测试同跑）</text>
+  <text x="76" y="686" font-size="12.5" fill="#14532d">· IndexedDB —— 本地持久化（刷新不丢）</text>
+  <text x="76" y="706" font-size="12.5" fill="#14532d">· localStorage —— 会话 / 缓存 / 周榜快照</text>
+  <text x="76" y="724" font-size="11.5" fill="#b45309">⚠ 数据保存在用户本机 · 上线前必须替换为真实后端</text>
+
+  <rect x="660" y="618" width="580" height="114" rx="10" fill="#ede9fe" stroke="#8b5cf6"/>
+  <text x="676" y="642" font-size="14.5" font-weight="700" fill="#4c1d95">动态期 · Supabase 适配器</text>
+  <text x="676" y="666" font-size="12.5" fill="#4c1d95">· supabase 仓储实现 + mappers（snake_case → camelCase）</text>
+  <text x="676" y="686" font-size="12.5" fill="#4c1d95">· Postgres 15 · Auth 鉴权 · Storage 图片</text>
+  <text x="676" y="706" font-size="12.5" fill="#4c1d95">· Realtime 跨端同步 · pg_cron 周榜结算</text>
+
+  <!-- 箭头 4 -->
+  <line x1="640" y1="748" x2="640" y2="776" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 部署与基础设施 -->
+  <rect x="40" y="776" width="1200" height="104" rx="14" fill="#eef1f5" stroke="#6b7280"/>
+  <text x="60" y="806" font-size="17" font-weight="700" fill="#1f2937">部署与基础设施</text>
+
+  <rect x="60" y="818" width="580" height="50" rx="9" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="350" y="848" text-anchor="middle" font-size="13.5" fill="#1f2937">静态期 —— GitHub Pages 纯静态托管 · base / 404 回退</text>
+
+  <rect x="660" y="818" width="580" height="50" rx="9" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="950" y="848" text-anchor="middle" font-size="13.5" fill="#1f2937">动态期 —— Cloudflare Pages · CDN 缓存 · Sentry 监控 · Resend 邮件</text>
+
+  <!-- 底部说明 -->
+  <text x="60" y="926" font-size="12.5" fill="#6b7280">关键路径：页面 → hooks → 服务 → 仓储接口 → 适配器（mock ｜ supabase）；类型与接口在静态期冻结，动态期只替换适配器实现。</text>
+  <text x="60" y="948" font-size="12.5" fill="#6b7280">契约测试（Contract Test）：同一份用例同时跑在两套适配器上，保证行为一致 —— 详见 ROADMAP.md 第 4、5 章。</text>
+  <text x="60" y="970" font-size="12.5" fill="#9ca3af">图例：蓝 = 前端应用层　琥珀 = 领域契约层　紫 = 数据适配层　绿 = Mock / 动态期实现　灰 = 部署</text>
+</svg>

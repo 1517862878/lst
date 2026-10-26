@@ -1,0 +1,102 @@
+/**
+ * 注册表单（FRONTEND-WORK §3.3 RegisterForm）。
+ * 协议必选 + 用户名格式校验（zod schema）。
+ */
+import { useState } from 'react'
+import { useNavigate } from 'react-router'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { Checkbox } from '@/components/ui/Checkbox'
+import { useToast } from '@/components/ui/useToast'
+import { useSignUp } from '@/hooks/useSession'
+
+export function RegisterForm() {
+  const [username, setUsername] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [password, setPassword] = useState('')
+  const [agreeTerms, setAgreeTerms] = useState(false)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const { signUp } = useSignUp()
+  const navigate = useNavigate()
+  const toast = useToast()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (!agreeTerms) {
+      setError('必须同意用户协议才能注册')
+      return
+    }
+    if (!/^[a-z0-9_-]{3,20}$/.test(username.trim())) {
+      setError('用户名需 3–20 位小写字母/数字/下划线/连字符')
+      return
+    }
+    if (password.length < 6) {
+      setError('密码至少 6 位')
+      return
+    }
+    setSubmitting(true)
+    try {
+      await signUp({ username: username.trim(), displayName: displayName.trim(), password })
+      toast.show('success', '注册成功')
+      navigate('/', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '注册失败')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <form className="g-auth-form" onSubmit={handleSubmit} noValidate>
+      <Input
+        label="用户名"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        placeholder="3–20 位小写字母/数字/下划线/连字符"
+        hint="用于个人主页路径 /u/用户名"
+        autoComplete="username"
+        required
+      />
+      <Input
+        label="昵称"
+        value={displayName}
+        onChange={(e) => setDisplayName(e.target.value)}
+        placeholder="展示名（1–30 字）"
+        required
+      />
+      <Input
+        label="密码"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="至少 6 位（演示模式不具安全性）"
+        autoComplete="new-password"
+        required
+      />
+      <Checkbox
+        label={
+          <>
+            我已阅读并同意{' '}
+            <a href="/terms" target="_blank" rel="noreferrer">
+              用户协议
+            </a>{' '}
+            与版权条款
+          </>
+        }
+        checked={agreeTerms}
+        onCheckedChange={setAgreeTerms}
+        required
+      />
+      {error && (
+        <p className="g-auth-error" role="alert">
+          {error}
+        </p>
+      )}
+      <Button type="submit" loading={submitting} className="g-auth-submit">
+        注册
+      </Button>
+    </form>
+  )
+}

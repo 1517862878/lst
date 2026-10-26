@@ -1,0 +1,123 @@
+/**
+ * Mock 照片仓储（静态期实现）。
+ * 契约：PhotoRepository（data/contracts）；行为与 supabase 实现一致，契约测试同跑。
+ */
+import { AppError, ErrorCodes, type Page, type PhotoCreateInput, type PhotoListQuery, type PhotoPatch, type PhotoRepository } from '@/data/contracts'
+import type { Photo } from '@/domain/types'
+import { getDb, bumpDataVersion } from '../db'
+
+/** 游标编解码：base64url（photo.id 与 sort 键组成，防伪造直接按游标翻页即可） */
+function encodeCursor(key: string): string {
+  return btoa(key).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function decodeCursor(cursor: string): string {
+  const padded = cursor.replace(/-/g, '+').replace(/_/g, '/')
+  return atob(padded)
+}
+
+const DEFAULT_LIMIT = 24
+
+export const mockPhotoRepository: PhotoRepository = {
+  async list(query: PhotoListQuery): Promise<Page<Photo>> {
+    const db = await getDb()
+    let photos = (await db.getAll('photos')).filter((p) => p.status === 'published')
+    if (query.categorySlug) photos = photos.filter((p) => p.categorySlug === query.categorySlug)
+
+    // 排序：latest 按 publishedAt 降序；popular 按 (likeCount*1 + favoriteCount*3) 降序
+    if (query.sort === 'popular') {
+      photos.sort((a, b) => {
+        const scoreA = a.likeCount + a.favoriteCount * 3
+        const scoreB = b.likeCount + b.favoriteCount * 3
+        if (scoreB !== scoreA) return scoreB - scoreA
+        return (b.publishedAt ?? '') < (a.publishedAt ?? '') ? -1 : 1
+      })
+    } else {
+      photos.sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
+    }
+
+    const limit = query.limit ?? DEFAULT_LIMIT
+    let startIndex = 0
+    if (query.cursor) {
+      // 游标 = 上一页最后一条的 id；按当前排序找到它的位置
+      const lastId = decodeCursor(query.cursor)
+      startIndex = photos.findIndex((p) => p.id === lastId)
+      if (startIndex === -1) startIndex = 0
+      else startIndex += 1
+    }
+
+    const items = photos.slice(startIndex, startIndex + limit)
+    const hasMore = startIndex + limit < photos.length
+    const nextCursor = hasMore ? encodeCursor(items[items.length - 1]!.id) : null
+
+    return { items, nextCursor, total: photos.length }
+  },
+
+  async get(id: string): Promise<Photo> {
+    const db = await getDb()
+    const photo = await db.get('photos', id)
+    if (!photo) throw new AppError(ErrorCodes.NOT_FOUND, `作品不存在：${id}`)
+    return photo
+  },
+
+  async create(input: PhotoCreateInput): Promise<Photo> {
+    const db = await getDb()
+    const now = new Date().toISOString()
+    const photo: Photo = {
+      id: crypto.randomUUID(),
+      ...input,
+      status: 'draft',
+      likeCount: 0,
+      favoriteCount: 0,
+      commentCount: 0,
+      viewCount: 0,
+      publishedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    }
+    await db.put('photos', photo)
+    await bumpDataVersion()
+    return photo
+  },
+
+  async publish(id: string): Promise<Photo> {
+    const db = await getDb()
+    const photo = await db.get('photos', id)
+    if (!photo) throw new AppError(ErrorCodes.NOT_FOUND, `作品不存在：${id}`)
+    const now = new Date().toISOString()
+    const updated: Photo = { ...photo, status: 'published', publishedAt: now, updatedAt: now }
+    await db.put('photos', updated)
+    await bumpDataVersion()
+    return updated
+  },
+
+  async update(id: string, patch: PhotoPatch): Promise<Photo> {
+    const db = await getDb()
+    const photo = await db.get('photos', id)
+    if (!photo) throw new AppError(ErrorCodes.NOT_FOUND, `作品不存在：${id}`)
+    const updated: Photo = { ...photo, ...patch, updatedAt: new Date().toISOString() }
+    await db.put('photos', updated)
+    await bumpDataVersion()
+    return updated
+  },
+
+  async remove(id: string): Promise<void> {
+    const db = await getDb()
+    const photo = await db.get('photos', id)
+    if (!photo) throw new AppError(ErrorCodes.NOT_FOUND, `作品不存在：${id}`)
+    await db.put('photos', { ...photo, status: 'removed', deletedAt: new Date().toISOString() })
+    await bumpDataVersion()
+  },
+
+  async related(id: string, limit = 6): Promise<Photo[]> {
+    const db = await getDb()
+    const photo = await db.get('photos', id)
+    if (!photo) throw new AppError(ErrorCodes.NOT_FOUND, `作品不存在：${id}`)
+    const all = (await db.getAll('photos')).filter(
+      (p) => p.status === 'published' && p.categorySlug === photo.categorySlug && p.id !== id,
+    )
+    all.sort((a, b) => b.likeCount - a.likeCount)
+    return all.slice(0, limit)
+  },
+}

@@ -1,0 +1,79 @@
+@import './tokens.css';
+@import './components.css';
+@import './s3-pages.css';
+@import './s4-auth.css';
+@import './s5-interactions.css';
+@import './s6-search-ranking.css';
+@import './s7-learn-legal.css';
+@import 'tailwindcss';
+
+@layer components {
+  /* 通用布局辅助类（映射到设计令牌） */
+  .g-container {
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+    padding-inline: var(--g-space-4);
+  }
+
+  .g-container-sm {
+    max-width: 640px;
+  }
+
+  .g-container-md {
+    max-width: 960px;
+  }
+
+  .g-container-lg {
+    max-width: 1200px;
+  }
+
+  .g-container-full {
+    max-width: none;
+  }
+
+  .g-card {
+    background: var(--g-surface);
+    border: 1px solid var(--g-line);
+    border-radius: var(--g-radius-lg);
+    box-shadow: var(--g-shadow-sm);
+  }
+
+  .g-card-interactive {
+    transition: box-shadow var(--g-dur-fast) var(--g-ease),
+      transform var(--g-dur-fast) var(--g-ease);
+  }
+
+  .g-card-interactive:hover {
+    box-shadow: var(--g-shadow-md);
+    transform: translateY(-2px);
+  }
+
+  /* 无障碍辅助 */
+  .g-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .g-skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    background: var(--g-brand);
+    color: var(--g-brand-ink);
+    padding: var(--g-space-2) var(--g-space-4);
+    border-radius: 0 0 var(--g-radius-md) 0;
+  }
+
+  .g-skip-link:focus {
+    left: 0;
+  }
+}

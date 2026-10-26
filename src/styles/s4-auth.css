@@ -1,0 +1,213 @@
+/* ===== S4 账号/发布/个人主页样式 ===== */
+
+/* 认证页 */
+.g-auth-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-4);
+  padding: var(--g-space-5) 0;
+}
+
+.g-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-4);
+}
+
+.g-auth-error {
+  margin: 0;
+  color: var(--g-danger);
+  font-size: var(--g-text-sm);
+}
+
+.g-auth-submit {
+  width: 100%;
+}
+
+.g-demo-banner {
+  background: var(--g-warning);
+  color: #fff;
+  font-size: var(--g-text-sm);
+  text-align: center;
+  padding: var(--g-space-2) var(--g-space-4);
+  border-radius: var(--g-radius-md);
+}
+
+.g-demo-picker {
+  border-top: 1px solid var(--g-line);
+  padding-top: var(--g-space-3);
+}
+
+.g-demo-picker-title {
+  margin: 0 0 var(--g-space-2);
+  font-size: var(--g-text-sm);
+  color: var(--g-ink-2);
+}
+
+.g-demo-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+}
+
+.g-demo-picker-note {
+  margin: var(--g-space-2) 0 0;
+  font-size: var(--g-text-xs);
+  color: var(--g-warning);
+}
+
+/* 复选框 */
+.g-checkbox-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--g-space-2);
+  flex-wrap: wrap;
+}
+
+.g-checkbox {
+  margin-top: 4px;
+  accent-color: var(--g-brand);
+}
+
+.g-checkbox-label {
+  font-size: var(--g-text-sm);
+  color: var(--g-ink-2);
+  flex: 1;
+  min-width: 0;
+}
+
+/* 发布页 */
+.g-publish-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-4);
+  padding: var(--g-space-4) 0;
+}
+
+.g-upload-zone {
+  border: 2px dashed var(--g-line);
+  border-radius: var(--g-radius-lg);
+  transition: border-color var(--g-dur-fast) var(--g-ease);
+}
+
+.g-upload-zone:hover {
+  border-color: var(--g-brand);
+}
+
+.g-upload-label {
+  display: block;
+  padding: var(--g-space-6);
+  text-align: center;
+  cursor: pointer;
+  color: var(--g-ink-2);
+}
+
+.g-upload-label small {
+  color: var(--g-ink-3);
+}
+
+.g-upload-status {
+  margin: 0;
+  padding: 0 var(--g-space-4) var(--g-space-4);
+  text-align: center;
+  font-size: var(--g-text-sm);
+  color: var(--g-brand);
+}
+
+.g-draft-note {
+  margin: var(--g-space-3) 0 0;
+  padding: var(--g-space-2) var(--g-space-3);
+  background: var(--g-brand-soft);
+  color: var(--g-brand);
+  border-radius: var(--g-radius-md);
+  font-size: var(--g-text-sm);
+}
+
+.g-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--g-line);
+  border-radius: var(--g-radius-md);
+  background: var(--g-surface);
+  color: var(--g-ink);
+  font-family: inherit;
+  font-size: var(--g-text-base);
+}
+
+.g-select:focus {
+  outline: none;
+  border-color: var(--g-focus);
+}
+
+.g-publish-actions {
+  display: flex;
+  gap: var(--g-space-3);
+}
+
+.g-publish-hint {
+  margin: 0;
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-3);
+}
+
+/* 个人主页 */
+.g-profile-header {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-4);
+  padding: var(--g-space-5) 0 var(--g-space-3);
+}
+
+.g-profile-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-1);
+}
+
+.g-profile-header-info .g-page-title {
+  margin: 0;
+}
+
+.g-profile-header-info .g-page-subtitle {
+  margin: 0;
+}
+
+.g-tabs-content {
+  padding-top: var(--g-space-4);
+}
+
+/* 设置页 */
+.g-settings-danger {
+  margin-top: var(--g-space-6);
+  padding-top: var(--g-space-4);
+  border-top: 1px solid var(--g-line);
+}
+
+.g-settings-danger-title {
+  font-size: var(--g-text-lg);
+  font-weight: 600;
+  margin: 0 0 var(--g-space-3);
+}
+
+/* 页面居中 */
+.g-page-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  gap: var(--g-space-3);
+}
+
+/* 页头通用 */
+.g-page-title {
+  margin: 0;
+  font-size: var(--g-text-2xl);
+  font-weight: 700;
+}
+
+.g-page-subtitle {
+  margin: var(--g-space-2) 0 0;
+  color: var(--g-ink-2);
+  font-size: var(--g-text-base);
+}

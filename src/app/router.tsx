@@ -1,0 +1,97 @@
+import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
+import { createBrowserRouter } from 'react-router'
+import { Shell } from '@/components/layout/Shell'
+import { HomePage } from '@/pages/HomePage'
+import { NotFoundPage } from '@/pages/NotFoundPage'
+import { Skeleton } from '@/components/ui/Skeleton'
+
+/**
+ * 路由表（FRONTEND-WORK §1.3）。
+ * S8：除首页与 404 外全部 lazy 分包，控制首屏 JS ≤ 200KB gzip（ROADMAP G-6）。
+ */
+
+interface PageModule {
+  [key: string]: ComponentType
+}
+
+/** 懒加载命名导出页面：加载中显示骨架（避免白屏） */
+function lazyNamed(loader: () => Promise<PageModule>, name: string): () => ReactNode {
+  const C = lazy(async () => {
+    const mod = await loader()
+    const Comp = mod[name]
+    if (!Comp) throw new Error(`模块缺少导出 ${name}`)
+    return { default: Comp }
+  })
+  return function LazyPage() {
+    return (
+      <Suspense
+        fallback={
+          <div className="g-page-center" aria-hidden="true">
+            <Skeleton variant="rect" height={240} />
+          </div>
+        }
+      >
+        <C />
+      </Suspense>
+    )
+  }
+}
+
+const GalleryPage = lazyNamed(() => import('@/pages/GalleryPage'), 'GalleryPage')
+const WorkDetailPage = lazyNamed(() => import('@/pages/WorkDetailPage'), 'WorkDetailPage')
+const CategoriesPage = lazyNamed(() => import('@/pages/CategoriesPage'), 'CategoriesPage')
+const CategoryPage = lazyNamed(() => import('@/pages/CategoryPage'), 'CategoryPage')
+const LoginPage = lazyNamed(() => import('@/pages/LoginPage'), 'LoginPage')
+const RegisterPage = lazyNamed(() => import('@/pages/RegisterPage'), 'RegisterPage')
+const PublishPage = lazyNamed(() => import('@/pages/PublishPage'), 'PublishPage')
+const ProfilePage = lazyNamed(() => import('@/pages/ProfilePage'), 'ProfilePage')
+const SettingsPage = lazyNamed(() => import('@/pages/SettingsPage'), 'SettingsPage')
+const MePage = lazyNamed(() => import('@/pages/MePage'), 'MePage')
+const SearchPage = lazyNamed(() => import('@/pages/SearchPage'), 'SearchPage')
+const RankingPage = lazyNamed(() => import('@/pages/RankingPage'), 'RankingPage')
+const LearnHomePage = lazyNamed(() => import('@/pages/LearnHomePage'), 'LearnHomePage')
+const LearnTopicPage = lazyNamed(() => import('@/pages/LearnTopicPage'), 'LearnTopicPage')
+const ArticlePage = lazyNamed(() => import('@/pages/ArticlePage'), 'ArticlePage')
+
+// 法律页七合一打包（内容静态且相关，一次加载）
+const AboutPage = lazyNamed(() => import('@/pages/LegalPages'), 'AboutPage')
+const TermsPage = lazyNamed(() => import('@/pages/LegalPages'), 'TermsPage')
+const PrivacyPage = lazyNamed(() => import('@/pages/LegalPages'), 'PrivacyPage')
+const CopyrightPage = lazyNamed(() => import('@/pages/LegalPages'), 'CopyrightPage')
+const DmcaPage = lazyNamed(() => import('@/pages/LegalPages'), 'DmcaPage')
+const LicensesPage = lazyNamed(() => import('@/pages/LegalPages'), 'LicensesPage')
+const CommunityPage = lazyNamed(() => import('@/pages/LegalPages'), 'CommunityPage')
+
+export const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Shell />,
+    children: [
+      { index: true, element: <HomePage /> },
+      { path: 'gallery', element: <GalleryPage /> },
+      { path: 'works/:id', element: <WorkDetailPage /> },
+      { path: 'categories', element: <CategoriesPage /> },
+      { path: 'categories/:slug', element: <CategoryPage /> },
+      { path: 'login', element: <LoginPage /> },
+      { path: 'register', element: <RegisterPage /> },
+      { path: 'publish', element: <PublishPage /> },
+      { path: 'u/:username', element: <ProfilePage /> },
+      { path: 'settings/profile', element: <SettingsPage /> },
+      { path: 'me', element: <MePage /> },
+      { path: 'search', element: <SearchPage /> },
+      { path: 'rankings/weekly', element: <RankingPage /> },
+      { path: 'rankings/weekly/:isoWeek', element: <RankingPage /> },
+      { path: 'learn', element: <LearnHomePage /> },
+      { path: 'learn/topics/:topic', element: <LearnTopicPage /> },
+      { path: 'learn/:slug', element: <ArticlePage /> },
+      { path: 'about', element: <AboutPage /> },
+      { path: 'terms', element: <TermsPage /> },
+      { path: 'privacy', element: <PrivacyPage /> },
+      { path: 'copyright', element: <CopyrightPage /> },
+      { path: 'dmca', element: <DmcaPage /> },
+      { path: 'licenses', element: <LicensesPage /> },
+      { path: 'community', element: <CommunityPage /> },
+      { path: '*', element: <NotFoundPage /> },
+    ],
+  },
+])

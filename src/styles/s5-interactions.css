@@ -1,0 +1,189 @@
+/* ===== S5 互动样式 ===== */
+
+/* 详情页操作按钮区 */
+.g-work-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-3);
+  flex-wrap: wrap;
+}
+
+.g-work-views {
+  font-size: var(--g-text-sm);
+  color: var(--g-ink-3);
+}
+
+.g-icon-filled {
+  fill: currentColor;
+}
+
+/* 评论区 */
+.g-comments {
+  margin-top: var(--g-space-6);
+  border-top: 1px solid var(--g-line);
+  padding-top: var(--g-space-5);
+}
+
+.g-comments-title {
+  font-size: var(--g-text-xl);
+  font-weight: 600;
+  margin: 0 0 var(--g-space-4);
+}
+
+.g-comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-3);
+  margin-bottom: var(--g-space-5);
+}
+
+.g-comment-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.g-comment-login-hint {
+  margin: 0;
+  font-size: var(--g-text-sm);
+  color: var(--g-ink-2);
+  padding: var(--g-space-3);
+  background: var(--g-surface-2);
+  border-radius: var(--g-radius-md);
+}
+
+.g-comment-replying {
+  margin: 0;
+  font-size: var(--g-text-sm);
+  color: var(--g-brand);
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-2);
+}
+
+.g-comment-skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-3);
+}
+
+.g-comment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-4);
+}
+
+.g-comment-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+}
+
+.g-comment-item-removed {
+  padding: var(--g-space-3);
+  background: var(--g-surface-2);
+  border-radius: var(--g-radius-md);
+}
+
+.g-comment-removed-text {
+  margin: 0;
+  color: var(--g-ink-3);
+  font-size: var(--g-text-sm);
+}
+
+.g-comment-item-actions {
+  padding-left: 44px;
+}
+
+.g-comment-reply-btn {
+  background: transparent;
+  border: none;
+  color: var(--g-ink-3);
+  font-size: var(--g-text-xs);
+  cursor: pointer;
+  padding: 0;
+}
+
+.g-comment-reply-btn:hover {
+  color: var(--g-brand);
+}
+
+.g-comment-replies {
+  list-style: none;
+  margin: var(--g-space-2) 0 0;
+  padding-left: 44px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-3);
+}
+
+.g-comment-body {
+  display: flex;
+  gap: var(--g-space-3);
+}
+
+.g-comment-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.g-comment-meta {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-2);
+  font-size: var(--g-text-xs);
+}
+
+.g-comment-author {
+  font-weight: 600;
+  color: var(--g-ink);
+}
+
+.g-comment-time {
+  color: var(--g-ink-3);
+}
+
+.g-comment-text {
+  margin: var(--g-space-1) 0 0;
+  font-size: var(--g-text-base);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 我的页面 */
+.g-me-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-3);
+}
+
+.g-me-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-1);
+  padding: var(--g-space-4);
+  background: var(--g-surface);
+  border: 1px solid var(--g-line);
+  border-radius: var(--g-radius-lg);
+  color: var(--g-ink);
+  transition: border-color var(--g-dur-fast) var(--g-ease);
+}
+
+.g-me-item:hover {
+  border-color: var(--g-brand);
+  text-decoration: none;
+}
+
+.g-me-item-title {
+  font-weight: 600;
+  font-size: var(--g-text-lg);
+}
+
+.g-me-item-desc {
+  font-size: var(--g-text-sm);
+  color: var(--g-ink-2);
+}

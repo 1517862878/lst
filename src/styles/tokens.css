@@ -1,0 +1,151 @@
+/*
+ * 设计令牌（ROADMAP S1、FRONTEND-WORK §1.1）
+ * 明暗两套令牌，通过 <html data-theme="light|dark"> 切换。
+ * 对比度要求：正文 ≥ 4.5:1，大字与图形 ≥ 3:1（两套都测，C-4）。
+ * 命名：CSS 变量 --g-*（g = gongke）。
+ */
+:root,
+[data-theme='light'] {
+  /* 色板 */
+  --g-bg: #f8fafc; /* 页面底色 */
+  --g-surface: #ffffff; /* 卡片/弹层 */
+  --g-surface-2: #f1f5f9; /* 次级底色 */
+  --g-ink: #0f172a; /* 正文 */
+  --g-ink-2: #475569; /* 次级文字 */
+  --g-ink-3: #94a3b8; /* 弱文字 */
+  --g-line: #e2e8f0; /* 边框分隔 */
+  --g-brand: #1d4ed8; /* 主色 */
+  --g-brand-ink: #ffffff; /* 主色上文字 */
+  --g-brand-soft: #dbeafe; /* 主色浅底 */
+  --g-success: #15803d;
+  --g-warning: #b45309;
+  --g-danger: #b91c1c;
+  --g-focus: #2563eb; /* 焦点环 */
+
+  /* 字阶 */
+  --g-font: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --g-text-xs: 0.75rem; /* 12px */
+  --g-text-sm: 0.875rem; /* 14px */
+  --g-text-base: 1rem; /* 16px */
+  --g-text-lg: 1.125rem; /* 18px */
+  --g-text-xl: 1.25rem; /* 20px */
+  --g-text-2xl: 1.5rem; /* 24px */
+
+  /* 间距 */
+  --g-space-1: 4px;
+  --g-space-2: 8px;
+  --g-space-3: 12px;
+  --g-space-4: 16px;
+  --g-space-5: 24px;
+  --g-space-6: 32px;
+  --g-space-7: 48px;
+
+  /* 圆角 */
+  --g-radius-sm: 6px;
+  --g-radius-md: 8px;
+  --g-radius-lg: 12px;
+  --g-radius-full: 9999px;
+
+  /* 阴影 */
+  --g-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
+  --g-shadow-md: 0 4px 12px rgb(15 23 42 / 0.1);
+  --g-shadow-lg: 0 12px 32px rgb(15 23 42 / 0.16);
+
+  /* 动效 */
+  --g-dur-fast: 150ms;
+  --g-dur-base: 250ms;
+  --g-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme='dark'] {
+  --g-bg: #0b1220;
+  --g-surface: #111a2c;
+  --g-surface-2: #1b2638;
+  --g-ink: #e2e8f0;
+  --g-ink-2: #94a3b8;
+  --g-ink-3: #64748b;
+  --g-line: #273449;
+  --g-brand: #3b82f6;
+  --g-brand-ink: #0b1220;
+  --g-brand-soft: #1e3a8a;
+  --g-success: #4ade80;
+  --g-warning: #fbbf24;
+  --g-danger: #f87171;
+  --g-focus: #60a5fa;
+
+  --g-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --g-shadow-md: 0 4px 12px rgb(0 0 0 / 0.5);
+  --g-shadow-lg: 0 12px 32px rgb(0 0 0 / 0.6);
+}
+
+/* 基础复位与全局样式 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--g-font);
+  font-size: var(--g-text-base);
+  line-height: 1.6;
+  color: var(--g-ink);
+  background-color: var(--g-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+}
+
+a {
+  color: var(--g-brand);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* 焦点环（C-1：焦点可见，对比度 ≥ 3:1） */
+:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--g-brand);
+  color: var(--g-brand-ink);
+}
+
+/* 无障碍：尊重减弱动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

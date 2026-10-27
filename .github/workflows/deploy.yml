@@ -16,6 +16,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# 构建期断言（vite.config.ts）：生产构建必须显式提供 VITE_API_BASE，或显式声明同源模式，
+# 否则构建失败。GitHub Pages 是纯静态演示（数据源为 mock、接口路径本身就带 /api 前缀），
+# 所以这里显式声明同源 —— 也顺手锁住「不要回退到访客自己的 localhost」这条约束。
+env:
+  VITE_ALLOW_SAME_ORIGIN: '1'
+
 jobs:
   # ── 质量关卡：类型检查、lint、单测 ──
   quality:

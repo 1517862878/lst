@@ -11,7 +11,19 @@ import { AppError, ErrorCodes } from '@/data/contracts'
 
 type ErrorCodeValue = (typeof ErrorCodes)[keyof typeof ErrorCodes]
 
-const API_BASE = (import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:3001').replace(/\/+$/, '')
+/**
+ * API 基址（构建期被 Vite 内联进产物）。
+ *
+ * ⚠️ 这里只写「源」，不要写路径：接口路径本身已带 /api 前缀（见 src/data/api/*.ts）。
+ *
+ * 生产构建绝不回退到 127.0.0.1 —— 那会让「访客的浏览器」去请求「访客自己的 localhost」，
+ * 现象是全站没有数据，而且与「真的还没有数据」无法区分。这种漏配已由 vite.config.ts 的
+ * 构建期断言挡在构建阶段（必须显式给 VITE_API_BASE，或显式声明同源模式
+ * VITE_ALLOW_SAME_ORIGIN=1），所以运行期规则只有两条，不存在静默兜底：
+ *   · 配了 VITE_API_BASE → 用它（本地联调可填 http://127.0.0.1:3001）；
+ *   · 没配 → 同源模式 = 空基址，请求打向本站的 /api/*（本地由 vite dev 的代理转发）。
+ */
+const API_BASE = (import.meta.env.VITE_API_BASE ?? '').trim().replace(/\/+$/, '')
 
 /** 会话令牌存储键（与 auth 模块共用） */
 export const TOKEN_STORAGE_KEY = 'gy:token'

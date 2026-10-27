@@ -573,3 +573,87 @@
 .g-hero-actions {
   animation-delay: 240ms;
 }
+
+/* ===== 主题切换（夜间模式，头像左侧） ===== */
+.g-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--g-glass-border);
+  border-radius: var(--g-radius-full);
+  background: var(--g-glass-bg);
+  cursor: pointer;
+  transition:
+    border-color var(--g-dur-fast) var(--g-ease),
+    box-shadow var(--g-dur-fast) var(--g-ease),
+    background-color var(--g-dur-fast) var(--g-ease);
+}
+
+.g-theme-toggle:hover {
+  border-color: color-mix(in srgb, var(--g-brand) 60%, transparent);
+  box-shadow: var(--g-brand-glow);
+}
+
+.g-theme-toggle-track {
+  position: relative;
+  display: block;
+  width: 64px;
+  height: 32px;
+}
+
+.g-theme-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--g-radius-full);
+  background: var(--g-brand-grad);
+  color: var(--g-brand-ink);
+  box-shadow: var(--g-brand-glow);
+  transition: transform var(--g-dur-base) var(--g-ease);
+}
+
+.g-theme-toggle-thumb svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 夜晚：滑块滑到右侧（64 - 4 - 26 - 4 = 30px） */
+.g-theme-toggle-dark .g-theme-toggle-thumb {
+  transform: translateX(30px);
+}
+
+/* 点击波纹：像素点环扩散（Dot Matrix Ripple，纯 CSS，无 framer-motion） */
+.g-theme-toggle-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: var(--g-radius-full);
+  background: color-mix(in srgb, var(--g-brand) 35%, transparent);
+  opacity: 0;
+  transform: scale(0.4);
+  pointer-events: none;
+}
+
+.g-theme-toggle[data-rippling] .g-theme-toggle-ripple {
+  animation: g-theme-ripple 480ms var(--g-ease);
+}
+
+@keyframes g-theme-ripple {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}

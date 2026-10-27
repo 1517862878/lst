@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { Camera, LogIn, LogOut, Menu, Settings, User, UserPlus, UserRound, X } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useSignOut } from '@/hooks/useSession'
 import { cn } from '@/lib/cn'
 
@@ -72,6 +73,7 @@ export function Header({ sessionUser = null }: HeaderProps) {
         </nav>
 
         <div className="g-header-right">
+          <ThemeToggle />
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button

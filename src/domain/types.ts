@@ -43,7 +43,7 @@ export type ReportStatus = 'open' | 'reviewing' | 'upheld' | 'rejected'
 
 export interface Profile {
   id: string
-  /** 3–20 字符，^[a-z0-9_-]+$ */
+  /** 2–20 字符，^[a-zA-Z0-9_\-\u4e00-\u9fa5]+$（列类型 citext，大小写不敏感） */
   username: string
   /** 1–30 字符 */
   displayName: string
@@ -202,7 +202,7 @@ export interface Session {
   userId: string
   username: string
   displayName: string
-  /** 伪令牌前缀 mock. */
+  /** 会话令牌：mock 模式是 mock.* 伪令牌，api 模式是后端签发的 JWT */
   token: string
   expiresAt: IsoDate
 }

@@ -23,8 +23,8 @@ import { apiPhotoRepository } from './api/photos'
 import { apiCategoryRepository } from './api/categories'
 import { apiArticleRepository } from './api/articles'
 import { apiRankingRepository } from './api/rankings'
+import { apiAuthRepository } from './api/auth'
 import {
-  apiAuthRepository,
   apiCommentRepository,
   apiInteractionRepository,
   apiSearchRepository,

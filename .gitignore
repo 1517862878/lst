@@ -19,6 +19,9 @@ server/dist/
 .env.*
 !.env.example
 
+# 开发期自动生成的 JWT 签名密钥（生产环境必须用环境变量提供，见 server/src/lib/config.ts）
+.jwt-secret
+
 # 编辑器与系统
 .vscode/*
 !.vscode/extensions.json

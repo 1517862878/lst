@@ -6,33 +6,12 @@
  *   排查时会误以为是数据问题而不是功能未实现。
  *   显式抛错能让问题立刻暴露。
  *
- * 第 2 步（鉴权 + 写入）与第 3 步（上传 + 搜索）会逐个替换这里的实现。
+ * 第 2 步已完成鉴权（实现见 ./auth.ts）；剩下的写入、上传、搜索在这里逐个替换。
  */
-import { AppError, type AuthRepository, type CommentRepository, type InteractionRepository, type SearchRepository, type StorageRepository } from '@/data/contracts'
+import { AppError, type CommentRepository, type InteractionRepository, type SearchRepository, type StorageRepository } from '@/data/contracts'
 
 const notImplemented = (feature: string) =>
   new AppError('STORAGE', `该功能尚未接入后端：${feature}（下一步实现）`)
-
-export const apiAuthRepository: AuthRepository = {
-  async getSession() {
-    throw notImplemented('读取会话')
-  },
-  async signIn() {
-    throw notImplemented('登录')
-  },
-  async signUp() {
-    throw notImplemented('注册')
-  },
-  async signOut() {
-    throw notImplemented('登出')
-  },
-  async getProfile() {
-    throw notImplemented('读取资料')
-  },
-  async getProfileByUsername() {
-    throw notImplemented('按用户名读取资料')
-  },
-}
 
 export const apiInteractionRepository: InteractionRepository = {
   async listLikesByUser() {

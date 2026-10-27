@@ -67,6 +67,34 @@ export function mapProfile(row: ProfileRow) {
   }
 }
 
+/**
+ * 公开资料：去掉 phone / phoneVerifiedAt。
+ *
+ * ⚠️ 为什么必须单独有一个函数，而不是直接复用 mapProfile：
+ *   mapProfile 带 phone 字段。任何对外的资料接口（/api/profiles/:id 等）
+ *   若直接返回它，等于把全站用户的手机号公开发布 —— 一次手滑就是数据泄露事故。
+ *   所以"对外"的路径一律走这里，phone 只允许出现在未来的 /api/me（仅本人）里。
+ *
+ * 逐字段显式列出而不是 `const { phone, ...rest } = mapProfile(row)`：
+ *   显式列出时，以后 mapProfile 新增字段不会被无意间带出去（默认拒绝）。
+ */
+export function mapPublicProfile(row: ProfileRow) {
+  const p = mapProfile(row)
+  return {
+    id: p.id,
+    username: p.username,
+    displayName: p.displayName,
+    avatarKey: p.avatarKey,
+    bio: p.bio,
+    role: p.role,
+    links: p.links,
+    licensePreference: p.licensePreference,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+    deletedAt: p.deletedAt,
+  }
+}
+
 export interface PhotoRow {
   id: string
   author_id: string

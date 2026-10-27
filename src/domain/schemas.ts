@@ -25,11 +25,21 @@ export const articleDifficultySchema = z.enum(['beginner', 'intermediate', 'adva
 
 // ===== 表单 =====
 
+/**
+ * 用户名：2–20 位，可用中文、字母、数字、下划线、连字符。
+ *
+ * ⚠️ 这条规则必须与数据库约束 ck_profiles_username_format 一致
+ *    （`^[a-zA-Z0-9_\-\u4e00-\u9fa5]{2,20}$`），也与后端 routes/auth.ts 的校验一致。
+ *    前端比数据库严：用户怎么填都提交不了，且报错说不清原因；
+ *    前端比数据库松：填完提交才报错，体验差。三处必须同改。
+ *
+ * 另注：username 列是 citext（大小写不敏感），"Abc" 与 "abc" 视为同一个用户名。
+ */
 export const usernameSchema = z
   .string()
-  .min(3, '用户名至少 3 位')
+  .min(2, '用户名至少 2 位')
   .max(20, '用户名最多 20 位')
-  .regex(/^[a-z0-9_-]+$/, '仅小写字母、数字、下划线、连字符')
+  .regex(/^[a-zA-Z0-9_\-\u4e00-\u9fa5]+$/, '仅限中文、字母、数字、下划线、连字符')
 
 export const passwordSchema = z
   .string()

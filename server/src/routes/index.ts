@@ -1,10 +1,13 @@
 /**
  * 路由注册入口。
  *
- * 当前阶段（第 1 步）：只读接口。
- * 后续阶段再加：鉴权、写入、上传。
+ * 第 1 步：只读接口。
+ * 第 2 步（本次）：鉴权 —— 身份改为来自 lib/auth.ts 的 JWT 验签结果，
+ *                  并挂上 /api/auth/* 与 /api/profiles/*。
+ * 后续阶段再加：写入（点赞/收藏/评论）、上传、搜索。
  */
 import type { FastifyInstance } from 'fastify'
+import { currentUser } from '../lib/auth.js'
 import { withAnonymous, withRls } from '../lib/db.js'
 import { validation } from '../lib/errors.js'
 import { listPhotos, getPhoto, relatedPhotos } from '../repositories/photos.js'
@@ -16,17 +19,16 @@ import {
   listRankingWeeks,
   getPhotosByIds,
 } from '../repositories/rankings.js'
-
-/** 从 Authorization 头解析用户 id（第 2 步接入 JWT 后替换实现） */
-function userIdOf(req: { headers: Record<string, unknown> }): string | null {
-  const h = req.headers.authorization
-  if (typeof h !== 'string') return null
-  // 临时占位：Bearer <uuid>（第 2 步改成 JWT 校验）
-  const m = /^Bearer\s+(.+)$/i.exec(h)
-  return m ? m[1]!.trim() : null
-}
+import { registerAuthRoutes } from './auth.js'
+import { registerProfileRoutes } from './profiles.js'
 
 export async function registerRoutes(app: FastifyInstance) {
+  // ==========================================================================
+  // 鉴权与资料
+  // ==========================================================================
+  await registerAuthRoutes(app)
+  await registerProfileRoutes(app)
+
   // ==========================================================================
   // 作品
   // ==========================================================================
@@ -51,9 +53,10 @@ export async function registerRoutes(app: FastifyInstance) {
   })
 
   app.get<{ Params: { id: string } }>('/api/photos/:id', async (req) => {
-    const userId = userIdOf(req)
-    // 用带身份的上下文：作者本人能看自己的草稿，他人看不到（RLS 保证）
-    return withRls(userId, (c) => getPhoto(c, req.params.id))
+    // 身份来自 JWT 验签（第 2 步）：伪造令牌不再可能。
+    // 用带身份的上下文：作者本人能看自己的草稿，他人看不到（RLS 保证）。
+    const user = await currentUser(req)
+    return withRls(user?.userId ?? null, (c) => getPhoto(c, req.params.id))
   })
 
   app.get<{ Params: { id: string }; Querystring: { limit?: string } }>(

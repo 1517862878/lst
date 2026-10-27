@@ -28,8 +28,9 @@ export function RegisterForm() {
       setError('必须同意用户协议才能注册')
       return
     }
-    if (!/^[a-z0-9_-]{3,20}$/.test(username.trim())) {
-      setError('用户名需 3–20 位小写字母/数字/下划线/连字符')
+    // 规则与 usernameSchema、数据库 ck_profiles_username_format 三处一致
+    if (!/^[a-zA-Z0-9_\-\u4e00-\u9fa5]{2,20}$/u.test(username.trim())) {
+      setError('用户名需 2–20 位，可用中文、字母、数字、下划线、连字符')
       return
     }
     if (password.length < 6) {
@@ -54,7 +55,7 @@ export function RegisterForm() {
         label="用户名"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        placeholder="3–20 位小写字母/数字/下划线/连字符"
+        placeholder="2–20 位，可用中文、字母、数字、下划线、连字符"
         hint="用于个人主页路径 /u/用户名"
         autoComplete="username"
         required

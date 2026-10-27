@@ -54,8 +54,9 @@ export const mockAuthRepository: AuthRepository = {
   },
 
   async signUp(input: { username: string; displayName: string; password: string }): Promise<Session> {
-    if (!/^[a-z0-9_-]{3,20}$/.test(input.username)) {
-      throw new AppError(ErrorCodes.VALIDATION, '用户名需 3–20 位小写字母/数字/下划线/连字符')
+    // 与 usernameSchema、数据库 ck_profiles_username_format 保持一致（2–20 位，支持中文）
+    if (!/^[a-zA-Z0-9_\-\u4e00-\u9fa5]{2,20}$/u.test(input.username)) {
+      throw new AppError(ErrorCodes.VALIDATION, '用户名需 2–20 位，可用中文、字母、数字、下划线、连字符')
     }
     const db = await getDb()
     const all = await db.getAll('profiles')

@@ -6,6 +6,7 @@ import type { Photo } from '@/domain/types'
 import { PhotoCard } from './PhotoCard'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { cn } from '@/lib/cn'
 
 export interface PhotoGridProps {
@@ -13,6 +14,13 @@ export interface PhotoGridProps {
   view?: 'grid' | 'masonry'
   showAuthor?: boolean
   loading?: boolean
+  /**
+   * 加载失败（三态之三）：与「空态」严格区分开。
+   * 没有它时，请求失败会渲染成「还没有作品」——把故障说成"没有内容"，
+   * 用户既看不出出错也没有重试入口。
+   */
+  error?: unknown
+  onRetry?: (() => void) | undefined
   /** 加载更多哨兵：hasMore 为 true 时滚动到底触发 onLoadMore */
   hasMore?: boolean
   onLoadMore?: () => void
@@ -26,12 +34,15 @@ export function PhotoGrid({
   view = 'grid',
   showAuthor = false,
   loading = false,
+  error,
+  onRetry,
   hasMore = false,
   onLoadMore,
   emptyTitle = '还没有作品',
   emptyActions = [],
   className,
 }: PhotoGridProps) {
+  const failed = Boolean(error)
   return (
     <div className={cn('g-photo-grid-wrap', className)}>
       <div className={cn('g-photo-grid', view === 'masonry' && 'g-photo-grid-masonry')}>
@@ -46,8 +57,21 @@ export function PhotoGrid({
           ))}
         </div>
       )}
-      {photos.length === 0 && !loading && (
-        <EmptyState title={emptyTitle} description="换个筛选条件，或成为第一个分享的人。" actions={emptyActions} />
+      {failed ? (
+        <ErrorState
+          title="作品加载失败"
+          error={error}
+          {...(onRetry ? { onRetry } : {})}
+        />
+      ) : (
+        photos.length === 0 &&
+        !loading && (
+          <EmptyState
+            title={emptyTitle}
+            description="换个筛选条件，或成为第一个分享的人。"
+            actions={emptyActions}
+          />
+        )
       )}
       {hasMore && onLoadMore && <LoadMoreSentinel onIntersect={onLoadMore} hasMore={hasMore} />}
       {!hasMore && photos.length > 0 && (

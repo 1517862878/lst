@@ -8,6 +8,7 @@ import { Container } from '@/components/layout/Container'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { HighlightedText } from '@/features/search/HighlightedText'
 import { useSearch } from '@/hooks/useSearch'
 import { categoryName } from '@/domain/constants'
@@ -23,7 +24,7 @@ export function SearchPage() {
     setInput(q)
   }, [q])
 
-  const { data: photos, isLoading } = useSearch(
+  const { data: photos, isLoading, isError, error, refetch } = useSearch(
     categorySlug ? { text: q, categorySlug } : { text: q },
   )
 
@@ -61,13 +62,16 @@ export function SearchPage() {
         </div>
       )}
 
-      {q && !isLoading && (
+      {q && !isLoading && !isError && (
         <p className="g-search-result-count" role="status" aria-live="polite">
           共 {photos?.length ?? 0} 个结果
         </p>
       )}
 
-      {q && photos ? (
+      {/* 三态：先判失败，再判有无结果 —— 否则失败会被渲染成"没有匹配结果" */}
+      {isError ? (
+        <ErrorState title="搜索失败" error={error} onRetry={() => void refetch()} />
+      ) : q && photos ? (
         <SearchResultList photos={photos} terms={q.split(/\s+/).filter(Boolean)} />
       ) : (
         !isLoading && (

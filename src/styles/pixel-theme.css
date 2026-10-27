@@ -214,15 +214,22 @@
   right: 0;
 }
 
-/* 缩略图：像素渲染 + 无圆角 */
+/* 缩略图容器：无圆角（像素化只留给 UI 装饰，见下方真实照片例外） */
 .g-photo-thumb {
   border-radius: 0;
   background: var(--g-surface-2);
-  image-rendering: pixelated;
+  /* 不给容器设 image-rendering：容器不是图片本身，
+     这里设了会通过继承影响照片，与下方的 auto 例外冲突。 */
 }
 
+/* ⚠️ 可一键回退的产品取舍（2026-10）
+   ─────────────────────────────────────────────
+   真实照片不像素化。原来这里是 image-rendering: pixelated，
+   和 tokens.css 的全局 img 规则一起把用户上传的摄影作品降采样成硬边色块。
+   像素复古的语言留给 UI 装饰，照片内容保留原始画质。
+   回退方式：把下面这条规则改回 image-rendering: pixelated。 */
 .g-photo-thumb-img {
-  image-rendering: pixelated;
+  image-rendering: auto;
 }
 
 /* 详情页大图：由容器控制尺寸，图片用 contain 完整显示。

@@ -6,6 +6,7 @@ import { Link } from 'react-router'
 import { Container } from '@/components/layout/Container'
 import { Section } from '@/components/layout/Section'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { PhotoCard } from '@/features/photos/PhotoCard'
 import { useArticles, useCategories, useWeeklyRanking } from '@/hooks/useContent'
 import { usePhotos, usePhoto } from '@/hooks/usePhotos'
@@ -44,6 +45,12 @@ export function HomePage() {
               <Skeleton key={i} variant="rect" height={220} />
             ))}
           </div>
+        ) : featuredQuery.isError ? (
+          <ErrorState
+            title="精选作品加载失败"
+            error={featuredQuery.error}
+            onRetry={() => void featuredQuery.refetch()}
+          />
         ) : (
           <div className="g-home-grid">
             {featured.map((photo) => (
@@ -60,6 +67,12 @@ export function HomePage() {
               <Skeleton key={i} variant="rect" height={80} />
             ))}
           </div>
+        ) : rankingQuery.isError ? (
+          <ErrorState
+            title="排行榜加载失败"
+            error={rankingQuery.error}
+            onRetry={() => void rankingQuery.refetch()}
+          />
         ) : (
           <ol className="g-rank-mini" aria-label="本周排行榜前五">
             {rankingQuery.data?.entries.slice(0, 5).map((entry) => (
@@ -72,6 +85,12 @@ export function HomePage() {
       <Section title="最新教程" action={{ label: '学习板块', to: '/learn' }}>
         {articlesQuery.isLoading ? (
           <Skeleton variant="rect" height={80} />
+        ) : articlesQuery.isError ? (
+          <ErrorState
+            title="教程加载失败"
+            error={articlesQuery.error}
+            onRetry={() => void articlesQuery.refetch()}
+          />
         ) : (
           <ul className="g-learn-teaser" aria-label="最新教程列表">
             {articlesQuery.data?.items.slice(0, 3).map((a) => (
@@ -87,13 +106,21 @@ export function HomePage() {
       </Section>
 
       <Section title="浏览分类">
-        <div className="g-category-chips" aria-label="分类快捷入口">
-          {(categoriesQuery.data ?? []).map((c) => (
-            <Link key={c.slug} to={`/categories/${c.slug}`} className="g-category-chip">
-              {c.name}
-            </Link>
-          ))}
-        </div>
+        {categoriesQuery.isError ? (
+          <ErrorState
+            title="分类加载失败"
+            error={categoriesQuery.error}
+            onRetry={() => void categoriesQuery.refetch()}
+          />
+        ) : (
+          <div className="g-category-chips" aria-label="分类快捷入口">
+            {(categoriesQuery.data ?? []).map((c) => (
+              <Link key={c.slug} to={`/categories/${c.slug}`} className="g-category-chip">
+                {c.name}
+              </Link>
+            ))}
+          </div>
+        )}
       </Section>
     </Container>
   )

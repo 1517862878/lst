@@ -86,9 +86,20 @@
   box-shadow: none;
 }
 
+/* 危险按钮：保持 --g-danger 的高饱和珊瑚红填充（品牌语言：危险色必须跳），
+   把文字从白色换成深色 --g-bg。
+   2026-10 对比度修复：白字在 --g-danger 上实测浅色 2.80:1、深色 2.55:1，
+   远低于 WCAG AA 4.5:1。改用 --g-bg 作前景后：
+     浅色 #1b2a45 on #ff6b5a = 5.13:1
+     深色 #070b14 on #ff7a68 = 7.72:1
+   为什么不动 --g-danger 本身：它是实心色块底，降低它的明度会连带影响
+   .g-input-error 边框、.g-settings-danger 边框/标题、.g-rank-change-down
+   等把 danger 当"文字色"用在暗底上的场景（那些反而是越亮越清楚）。
+   深底 + 亮色文字是这套像素主题里"填充块"的既有做法，
+   与 .g-demo-banner / .g-demo-badge 的 color: var(--g-bg) 一致。 */
 .g-btn-danger {
   background: var(--g-danger);
-  color: #fff;
+  color: var(--g-bg);
 }
 
 .g-btn-sm {

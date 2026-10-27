@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import { ImageOff } from 'lucide-react'
+import { Link } from 'react-router'
 import { cn } from '@/lib/cn'
 import { Button } from './Button'
 
@@ -34,10 +35,12 @@ export function EmptyState({
       {actions.length > 0 && (
         <div className="g-empty-actions">
           {actions.map((a) =>
+            // 跳转类动作必须是真链接：Button 渲染的是 <button>，data-to 不会产生任何导航，
+            // 那正是 404 / 画廊 / 个人页 4 个死按钮的成因。用 <Link> 还能中键新开、被爬虫跟随。
             a.to ? (
-              <Button key={a.label} size="sm" onClick={a.onClick} data-to={a.to} className="g-empty-action">
+              <Link key={a.label} to={a.to} className="g-btn g-btn-primary g-btn-sm g-empty-action">
                 {a.label}
-              </Button>
+              </Link>
             ) : (
               <Button key={a.label} size="sm" variant="secondary" onClick={a.onClick}>
                 {a.label}

@@ -12,7 +12,11 @@ import { usePhotos } from '@/hooks/usePhotos'
 export function CategoryPage() {
   const { slug = '' } = useParams()
   const categoryQuery = useCategory(slug)
-  const { data, isLoading } = usePhotos({ sort: 'latest', categorySlug: slug, limit: 24 })
+  const { data, isLoading, error, refetch } = usePhotos({
+    sort: 'latest',
+    categorySlug: slug,
+    limit: 24,
+  })
 
   const photos: Photo[] = data?.pages.flatMap((p) => p.items) ?? []
 
@@ -23,7 +27,12 @@ export function CategoryPage() {
         {...(categoryQuery.data?.description ? { description: categoryQuery.data.description } : {})}
         breadcrumbs={[{ label: '分类', to: '/categories' }, { label: categoryQuery.data?.name ?? slug }]}
       />
-      <PhotoGrid photos={photos} loading={isLoading} />
+      <PhotoGrid
+        photos={photos}
+        loading={isLoading}
+        error={error}
+        onRetry={() => void refetch()}
+      />
     </Container>
   )
 }

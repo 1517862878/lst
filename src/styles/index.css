@@ -12,6 +12,21 @@
    通用布局 + 页面外壳 · 像素风格
    ══════════════════════════════════════════════════════════ */
 
+/*
+ * 锚点跳转偏移（2026-10）
+ * ─────────────────────────────────────────────
+ * .g-header 是 position: sticky; top: 0（见下方 .g-header 规则），实测遮挡高度：
+ *   border-bottom 2px + padding-top (12px + 4px) + min-height 56px ≈ 74px
+ *   （box-shadow: inset 0 4px 0 画在页头内部，不额外占高度）
+ * 缺这条规则时，点目录或锚点链接会把目标标题顶进页头下面被遮住。
+ * 取 88px = 页头 64px + 呼吸量 24px，两块都取自间距令牌，
+ * 4 倍数体系不变，日后调 --g-space-* 会跟着走。
+ * 只声明在 html 上：滚动容器是根元素，无需逐元素 scroll-margin。
+ */
+html {
+  scroll-padding-top: calc(var(--g-space-8) + var(--g-space-5));
+}
+
 @layer components {
   /* ── 容器 ── */
   .g-container {
@@ -339,6 +354,22 @@
   }
 
   .g-login-link .g-login-text {
+    display: none;
+  }
+}
+
+/*
+ * 桌面档关掉移动端折叠菜单（断点与上方 860px 严格互补，不留缝隙也不重叠）。
+ *
+ * 为什么必须有这条：.g-mobile-nav 的基础规则在上面，是 display:flex 且不带任何宽度条件，
+ * 而汉堡按钮只在 ≤860px 显示 —— 于是「窄屏展开菜单，再把窗口拉宽」时，菜单会作为一块
+ * 重复导航留在宽屏上。以前完全靠 Header.tsx 里那段 matchMedia effect 兜底，代价是让
+ * 全站最常渲染的组件依赖 window.matchMedia（jsdom 给不出真实的视口判断，页面级测试很
+ * 容易炸，见 src/test/setup.ts 里的桩），而且 effect 在首帧之后才跑，宽屏下会先闪一下。
+ * 这条 CSS 从源头关掉；JS 那层保留不动，只负责把 state 收回一致。
+ */
+@media (min-width: 861px) {
+  .g-mobile-nav {
     display: none;
   }
 }

@@ -15,7 +15,8 @@ export function GalleryPage() {
   const sort = searchParams.get('sort') === 'popular' ? 'popular' : 'latest'
   const [view, setView] = useState<'grid' | 'masonry'>('grid')
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = usePhotos({ sort })
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, error, refetch } =
+    usePhotos({ sort })
 
   const photos = useMemo(
     () => (data?.pages.flatMap((p) => p.items) ?? []).filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i),
@@ -71,6 +72,8 @@ export function GalleryPage() {
         photos={photos}
         view={view}
         loading={isLoading || isFetchingNextPage}
+        error={error}
+        onRetry={() => void refetch()}
         hasMore={hasNextPage}
         onLoadMore={() => void fetchNextPage()}
         emptyActions={[{ label: '去发布', to: '/publish' }]}

@@ -72,6 +72,8 @@ export function ProfilePage() {
           <PhotoGrid
             photos={worksQuery.data ?? []}
             loading={worksQuery.isLoading}
+            error={worksQuery.error}
+            onRetry={() => void worksQuery.refetch()}
             emptyTitle="还没有作品"
             emptyActions={[{ label: '去发布', to: '/publish' }]}
           />
@@ -80,6 +82,8 @@ export function ProfilePage() {
           <PhotoGrid
             photos={likesQuery.data ?? []}
             loading={likesQuery.isLoading}
+            error={likesQuery.error}
+            onRetry={() => void likesQuery.refetch()}
             emptyTitle="还没有喜欢的作品"
           />
         </TabsPrimitive.Content>
@@ -87,6 +91,8 @@ export function ProfilePage() {
           <PhotoGrid
             photos={favoritesQuery.data ?? []}
             loading={favoritesQuery.isLoading}
+            error={favoritesQuery.error}
+            onRetry={() => void favoritesQuery.refetch()}
             emptyTitle="还没有收藏的作品"
           />
         </TabsPrimitive.Content>

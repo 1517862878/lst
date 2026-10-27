@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router'
 import { Shell } from '@/components/layout/Shell'
 import { HomePage } from '@/pages/HomePage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { RouteErrorBoundary } from '@/pages/RouteErrorPage'
 import { Skeleton } from '@/components/ui/Skeleton'
 
 /**
@@ -82,6 +83,8 @@ export const router = createBrowserRouter(
     {
       path: '/',
       element: <Shell />,
+      // 根路由错误边界：懒加载 chunk 拉取失败/渲染抛错时显示 RouteErrorPage，而不是整站白屏
+      errorElement: <RouteErrorBoundary />,
       children: [
         { index: true, element: <HomePage /> },
         { path: 'gallery', element: <GalleryPage /> },

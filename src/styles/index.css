@@ -88,21 +88,23 @@
 
 /* ══════════════════════════════════════════
    像素星空背景（来自 PR #1，适配像素风）
-   ── fixed 全屏、z-index -1，在所有内容之下
-   ── 明暗两套主题都显示；浅色下用 --g-stars-opacity 压低星点强度
-   ── 容器自己铺页面底色（body 已设为透明，否则会把星空盖住）
+   ── fixed 全屏、z-index 0，在所有内容之下
+   ── 两套主题都是夜空：浅色=蓝调时刻，深色=深空午夜
+   ── 容器自己铺页面底色（body 已透明，否则会盖住星空）
    ══════════════════════════════════════════ */
 .g-pixel-stars {
   position: fixed;
   inset: 0;
-  /* 用 0 而不是 -1：星空在 #root 内，-1 会掉到 #root 背景之下被裁掉。
-     0 让它成为 #root 层叠上下文里最底的一层，内容元素自然叠在上面。 */
   z-index: 0;
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background-color: var(--g-stars-bg, var(--g-bg));
   pointer-events: none;
+  /* 夜空渐变：由深到更深的垂直过渡，比纯色底更像真实夜空 */
+  background-color: var(--g-stars-bg, var(--g-bg));
+  background-image:
+    radial-gradient(120% 80% at 50% 0%, rgb(255 255 255 / 0.06) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 0%, rgb(0 0 0 / 0.35) 100%);
 }
 
 /* canvas 填满容器；内容本身是像素方块。
@@ -113,6 +115,13 @@
   height: 100%;
   image-rendering: pixelated;
   opacity: var(--g-stars-opacity, 1);
+}
+
+/* 深色主题：夜空更深，上下渐变更明显 */
+[data-theme='dark'] .g-pixel-stars {
+  background-image:
+    radial-gradient(120% 80% at 50% 0%, rgb(110 208 255 / 0.07) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 0%, rgb(0 0 0 / 0.5) 100%);
 }
 
 /* ══════════════════════════════════════════

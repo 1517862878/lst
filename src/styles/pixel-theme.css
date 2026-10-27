@@ -1398,20 +1398,20 @@
   flex-shrink: 0;
 }
 
-/* 前三名：金银铜，像素风实心块 */
+/* 前三名：金银铜，像素风实心块（文字用深色保证对比度） */
 .g-rank-badge-1 {
-  background: #d4a017;
-  color: #1a1611;
+  background: #ffd75e;
+  color: #1b1405;
 }
 
 .g-rank-badge-2 {
-  background: #a8b0b8;
-  color: #1a1611;
+  background: #c8d2dc;
+  color: #0d1218;
 }
 
 .g-rank-badge-3 {
-  background: #b87333;
-  color: #1a1611;
+  background: #d08b4a;
+  color: #170d04;
 }
 
 .g-ranking-thumb {

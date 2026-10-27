@@ -20,11 +20,18 @@ export interface PhotoThumbProps {
   className?: string
 }
 
-/** 由 photo.id 确定性生成占位色（保证同一作品永远同色） */
+/**
+ * 由 photo.id 确定性生成占位色（保证同一作品永远同色）。
+ *
+ * 色相限制在「夜空色系」180°–280°（青 → 蓝 → 紫罗兰），
+ * 不再取全色域 —— 原来会生成粉/黄/橙的色块，在深蓝星空底上非常突兀。
+ * 饱和度也压低（28%），与像素风的低饱和调性一致。
+ */
 function hueOf(id: string): number {
   let h = 0
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360
-  return h
+  // 映射到 180–280 区间（100 度的夜空色带）
+  return 180 + (h % 100)
 }
 
 export function PhotoThumb({ photo, size = 'thumb', priority = false, className }: PhotoThumbProps) {
@@ -32,8 +39,9 @@ export function PhotoThumb({ photo, size = 'thumb', priority = false, className 
   const { url } = usePhotoImage(key)
 
   const hue = hueOf(photo.id)
-  const light = `hsl(${hue} 45% 88%)`
-  const dark = `hsl(${hue} 45% 62%)`
+  // 占位色块：夜空色系 + 低饱和，深浅两端都在蓝紫范围内
+  const light = `hsl(${hue} 38% 72%)`
+  const dark = `hsl(${hue} 42% 46%)`
 
   return (
     <div

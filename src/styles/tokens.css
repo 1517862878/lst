@@ -22,35 +22,38 @@
 
 :root,
 [data-theme='light'] {
-  /* ── 色板：16 色调色板风（低饱和、高对比） ── */
-  --g-bg: #e8e0d0; /* 米黄纸底，像老游戏卡带说明书 */
-  --g-bg-grid: #d8cfbc; /* 网格线 */
-  --g-surface: #f5f0e4; /* 卡片底 */
-  --g-surface-2: #e0d7c4; /* 次级底 */
-  --g-surface-3: #cfc4ac; /* 按下态 */
+  /* ── 色板：夜空蓝（浅色主题 = "蓝调时刻"） ──
+     为什么浅色也做成暗色底：像素星空背景是整个界面的基调，
+     米黄纸底上撒星点只会像印刷网点，不像星空。
+     所以两套主题都用夜空底，靠"蓝调时刻"与"深空夜"区分明暗。 */
+  --g-bg: #1b2a45; /* 夜空蓝：像日落后 20 分钟的蓝调时刻 */
+  --g-bg-grid: #24344f; /* 网格线（比底色略亮） */
+  --g-surface: #243553; /* 卡片底 */
+  --g-surface-2: #2d4066; /* 次级底 */
+  --g-surface-3: #384d77; /* 按下态 */
 
-  --g-ink: #1a1611; /* 主文字：近黑棕 */
-  --g-ink-2: #4a4033; /* 次级文字 */
-  --g-ink-3: #8a7c66; /* 弱文字 */
+  --g-ink: #e8ecf5; /* 主文字：冷白 */
+  --g-ink-2: #a8b6cc; /* 次级文字 */
+  --g-ink-3: #6d7f9c; /* 弱文字 */
 
-  --g-line: #1a1611; /* 描边：与文字同色，形成强边框 */
-  --g-line-soft: #b8ac94; /* 弱分隔线 */
+  --g-line: #0c1524; /* 描边：近黑蓝，形成强边框 */
+  --g-line-soft: #3a4d6e; /* 弱分隔线 */
 
-  --g-brand: #c8452f; /* 主色：砖红（像 FC 玛丽奥的帽子） */
-  --g-brand-ink: #fff8ec;
-  --g-brand-soft: #f0c4b8;
+  --g-brand: #ffb347; /* 主色：星光金（在夜空蓝上最跳） */
+  --g-brand-ink: #1b2a45;
+  --g-brand-soft: #4a3a22;
 
-  --g-accent-2: #2f6c8c; /* 次强调：青蓝 */
-  --g-success: #3d7a3d;
-  --g-warning: #b8802a;
-  --g-danger: #a3281b;
-  --g-focus: #1a1611;
+  --g-accent-2: #5ac8fa; /* 次强调：星蓝 */
+  --g-success: #5fd35f;
+  --g-warning: #ffb347;
+  --g-danger: #ff6b5a;
+  --g-focus: #ffb347;
 
-  /* 像素阴影：实心偏移，绝不模糊 */
+  /* 像素阴影：实心偏移，绝不模糊（夜空下用更深的蓝黑） */
   --g-shadow-sm: 2px 2px 0 var(--g-line);
   --g-shadow-md: 4px 4px 0 var(--g-line);
   --g-shadow-lg: 6px 6px 0 var(--g-line);
-  --g-shadow-inset: inset 2px 2px 0 rgb(0 0 0 / 0.18);
+  --g-shadow-inset: inset 2px 2px 0 rgb(0 0 0 / 0.28);
 
   /* ── 字阶：像素字体按整数倍缩放最清晰（12 → 24 → 36）──
      12px 是字体的原生设计尺寸；再大就走 2× / 3×，避免非整数缩放导致字形模糊。
@@ -99,58 +102,56 @@
   --g-ease: steps(2, end);
 
   /* ── 像素星空背景（来自 PR #1，适配像素风） ──
-     明暗两套主题都显示星空：
-       浅色 = 「白天的星图」—— 褐灰星点在米黄纸底上，像星图册的印刷网点
-       深色 = 「夜晚的星空」—— 暖米白星点，砖红点缀 */
+     两套主题都是夜空，靠深浅区分：
+       浅色 = 「蓝调时刻」—— 夜空蓝底 + 冷白星点 + 金色点缀
+       深色 = 「深空午夜」—— 近黑蓝底 + 更亮的星点 */
   --g-stars-visible: 1;
-  /* 浅色下星点要比底色明显一点（太接近会看不见） */
-  --g-stars-base: #6b5d45;
-  --g-stars-accent: #c8452f;
-  --g-stars-head: #8a7c66;
+  --g-stars-base: #e8ecf5; /* 冷白星点，在夜空蓝上清晰 */
+  --g-stars-accent: #ffb347; /* 金色点缀星，呼应 --g-brand */
+  --g-stars-head: #ffffff;
   /* 星空容器负责铺页面底色（body 已透明） */
-  --g-stars-bg: #e8e0d0;
-  /* 浅色下压低整体透明度，避免抢内容；0.45 太淡，实际看不清，调到 0.7 */
-  --g-stars-opacity: 0.7;
+  --g-stars-bg: #1b2a45;
+  /* 夜空底上星点本来就看得清，不需要压透明度 */
+  --g-stars-opacity: 1;
 }
 
 [data-theme='dark'] {
-  --g-bg: #1c1a17; /* 深棕黑，像 CRT 关屏 */
-  --g-bg-grid: #26231f;
-  --g-surface: #2a2721;
-  --g-surface-2: #35312a;
-  --g-surface-3: #403b32;
+  /* ── 深空午夜：比浅色更深的近黑蓝，星点更突出 ── */
+  --g-bg: #070b14;
+  --g-bg-grid: #101828;
+  --g-surface: #111827;
+  --g-surface-2: #1a2438;
+  --g-surface-3: #233047;
 
-  --g-ink: #e8e0d0;
-  --g-ink-2: #b8ac94;
-  --g-ink-3: #7a6f5c;
+  --g-ink: #eef2fa;
+  --g-ink-2: #97a6be;
+  --g-ink-3: #5d6e88;
 
-  --g-line: #0a0806; /* 深色下描边更黑，保持轮廓 */
-  --g-line-soft: #4a4438;
+  --g-line: #03060c; /* 极深描边，保持像素轮廓 */
+  --g-line-soft: #26334a;
 
-  --g-brand: #e0603f;
-  --g-brand-ink: #1a1611;
-  --g-brand-soft: #5a2a20;
+  --g-brand: #ffc56b;
+  --g-brand-ink: #070b14;
+  --g-brand-soft: #3d2f16;
 
-  --g-accent-2: #4a9cc0;
-  --g-success: #6fb86f;
-  --g-warning: #e0a040;
-  --g-danger: #e05545;
-  --g-focus: #e8e0d0;
+  --g-accent-2: #6ed0ff;
+  --g-success: #6ee06e;
+  --g-warning: #ffc56b;
+  --g-danger: #ff7a68;
+  --g-focus: #ffc56b;
 
-  --g-shadow-sm: 2px 2px 0 #0a0806;
-  --g-shadow-md: 4px 4px 0 #0a0806;
-  --g-shadow-lg: 6px 6px 0 #0a0806;
-  --g-shadow-inset: inset 2px 2px 0 rgb(0 0 0 / 0.5);
+  --g-shadow-sm: 2px 2px 0 #03060c;
+  --g-shadow-md: 4px 4px 0 #03060c;
+  --g-shadow-lg: 6px 6px 0 #03060c;
+  --g-shadow-inset: inset 2px 2px 0 rgb(0 0 0 / 0.55);
 
-  /* ── 像素星空：夜晚版 ──
-     星星用暖米白（呼应 --g-ink）+ 砖红点缀（呼应 --g-brand），
-     不用 PR 的鎏金，避免与像素风调色板冲突。 */
+  /* ── 像素星空：午夜版 ──
+     底色更黑，星点更白更亮，金色点缀更显眼。 */
   --g-stars-visible: 1;
-  --g-stars-base: #e8e0d0;
-  --g-stars-accent: #e0603f;
-  --g-stars-head: #fff8ec;
-  --g-stars-bg: #1c1a17;
-  /* 深色下星点可以更亮更清楚，不需要压透明度 */
+  --g-stars-base: #f0f4ff;
+  --g-stars-accent: #ffc56b;
+  --g-stars-head: #ffffff;
+  --g-stars-bg: #070b14;
   --g-stars-opacity: 1;
 }
 

@@ -5,6 +5,10 @@ coverage/
 playwright-report/
 test-results/
 
+# 后端构建产物与本地图片
+server/dist/
+/uploads/
+
 # 本地包缓存与临时目录（含构建用 TMP）
 .pnpm-store/
 .tmp/

@@ -60,11 +60,11 @@ export const mockPhotoRepository: PhotoRepository = {
     return photo
   },
 
-  async create(input: PhotoCreateInput): Promise<Photo> {
+  async create(input: PhotoCreateInput, id = crypto.randomUUID()): Promise<Photo> {
     const db = await getDb()
     const now = new Date().toISOString()
     const photo: Photo = {
-      id: crypto.randomUUID(),
+      id,
       ...input,
       status: 'draft',
       likeCount: 0,

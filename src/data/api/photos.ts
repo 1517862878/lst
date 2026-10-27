@@ -31,8 +31,8 @@ export const apiPhotoRepository: PhotoRepository = {
     return request<Photo>(`/api/photos/${encodeURIComponent(id)}`)
   },
 
-  async create(input: PhotoCreateInput): Promise<Photo> {
-    return request<Photo>('/api/photos', { method: 'POST', body: input })
+  async create(input: PhotoCreateInput, id = crypto.randomUUID()): Promise<Photo> {
+    return request<Photo>('/api/photos', { method: 'POST', body: { id, ...input } })
   },
 
   async publish(id: string): Promise<Photo> {

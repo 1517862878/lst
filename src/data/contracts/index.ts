@@ -79,7 +79,7 @@ export interface PhotoRepository {
   list(query: PhotoListQuery): Promise<Page<Photo>>
   get(id: string): Promise<Photo>
   /** 创建草稿（status=draft）；发布由 publish 方法处理 */
-  create(input: PhotoCreateInput): Promise<Photo>
+  create(input: PhotoCreateInput, id?: string): Promise<Photo>
   /** 草稿转发布：置 published 并写 publishedAt */
   publish(id: string): Promise<Photo>
   update(id: string, patch: PhotoPatch): Promise<Photo>

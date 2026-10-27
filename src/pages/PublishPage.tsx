@@ -178,7 +178,7 @@ function PublishInner() {
         blurhash: null,
         license,
         credit: null,
-      })
+      }, photoId)
       await repos.photos.publish(photo.id)
 
       localStorage.removeItem(DRAFT_KEY)

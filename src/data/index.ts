@@ -26,10 +26,8 @@ import { apiRankingRepository } from './api/rankings'
 import { apiAuthRepository } from './api/auth'
 import { apiSearchRepository } from './api/search'
 import { apiStorageRepository } from './api/storage'
-import {
-  apiCommentRepository,
-  apiInteractionRepository,
-} from './api/pending'
+import { apiCommentRepository } from './api/comments'
+import { apiInteractionRepository } from './api/interactions'
 
 let cached: Repositories | null = null
 

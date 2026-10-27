@@ -62,6 +62,12 @@ export function translateDbError(err: unknown): ApiError | null {
   if (!(err instanceof Error)) return null
   const e = err as Error & { code?: string; constraint?: string; detail?: string }
 
+  // 迁移里的写入函数用 P0002 表示「目标资源不存在或当前状态不允许」。
+  // 不能让它落到 500：对客户端而言这是稳定、可处理的资源状态错误。
+  if (e.code === 'P0002') {
+    return new ApiError('NOT_FOUND', e.message || '资源不存在或当前状态不允许')
+  }
+
   switch (e.code) {
     case '42501': // insufficient_privilege：RLS 拦截
       return new ApiError('FORBIDDEN', '无权执行该操作（被行级安全策略拒绝）')

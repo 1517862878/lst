@@ -24,7 +24,7 @@ export function SearchPage() {
     setInput(q)
   }, [q])
 
-  const { data: photos, isLoading, isError, error, refetch } = useSearch(
+  const { data: photos, isLoading, isFetching, isError, error, refetch } = useSearch(
     categorySlug ? { text: q, categorySlug } : { text: q },
   )
 
@@ -42,7 +42,12 @@ export function SearchPage() {
     <Container>
       <PageHeader title="搜索" description="按标题、心得、地点、标签查找作品" />
 
-      <form className="g-search-bar" onSubmit={handleSubmit} role="search">
+      <form
+        className="g-search-bar"
+        onSubmit={handleSubmit}
+        role="search"
+        aria-busy={isFetching}
+      >
         <Input
           label="关键词"
           value={input}
@@ -50,8 +55,16 @@ export function SearchPage() {
           placeholder="如：星空、长曝、街头…"
           aria-label="搜索关键词"
         />
-        <Button type="submit">搜索</Button>
+        <Button type="submit" loading={isFetching}>
+          搜索
+        </Button>
       </form>
+
+      {isFetching && (
+        <p className="g-search-result-count" role="status" aria-live="polite">
+          正在搜索…
+        </p>
+      )}
 
       {categorySlug && (
         <div className="g-search-filters" role="status">
@@ -72,7 +85,7 @@ export function SearchPage() {
       {isError ? (
         <ErrorState title="搜索失败" error={error} onRetry={() => void refetch()} />
       ) : q && photos ? (
-        <SearchResultList photos={photos} terms={q.split(/\s+/).filter(Boolean)} />
+        <SearchResultList photos={photos} terms={q.split(/\s+/u).filter(Boolean)} />
       ) : (
         !isLoading && (
           <p className="g-placeholder-text">输入关键词开始搜索。</p>

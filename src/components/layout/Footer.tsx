@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { dataSource } from '@/data'
 import { Container } from './Container'
 
 const footerLinks = [
@@ -11,16 +12,19 @@ const footerLinks = [
   { label: '社区规范', to: '/community' },
 ]
 
-/**
- * 页脚：法律页链接 + 演示模式常驻声明。
- * ROADMAP 5.5 演示模式 UI 规范第 1 条：页脚固定一行演示声明。
- */
+/** 页脚：法律页链接 + 当前数据模式的准确说明。 */
 export function Footer() {
+  const isApi = dataSource() === 'api'
+
   return (
     <footer className="g-footer">
       <Container>
         <p className="g-demo-note" role="note">
-          <strong>演示模式</strong>：所有数据仅保存在你的浏览器，清除浏览数据即丢失。
+          {isApi ? (
+            <><strong>在线模式</strong>：账号与公开内容由服务器保存。</>
+          ) : (
+            <><strong>演示模式</strong>：所有数据仅保存在你的浏览器，清除浏览数据即丢失。</>
+          )}
         </p>
         <nav className="g-footer-links" aria-label="页脚导航">
           {footerLinks.map((l) => (

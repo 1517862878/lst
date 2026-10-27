@@ -4,6 +4,7 @@
  */
 import { Link } from 'react-router'
 import { Container } from '@/components/layout/Container'
+import { dataSource } from '@/data'
 import { Section } from '@/components/layout/Section'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -13,6 +14,7 @@ import { usePhotos, usePhoto } from '@/hooks/usePhotos'
 import { currentIsoWeek } from '@/lib/time'
 
 export function HomePage() {
+  const isApi = dataSource() === 'api'
   const featuredQuery = usePhotos({ sort: 'popular', limit: 6 })
   const rankingQuery = useWeeklyRanking(currentIsoWeek(), 'live')
   const articlesQuery = useArticles({ limit: 3 })
@@ -26,7 +28,9 @@ export function HomePage() {
         <h1 className="g-hero-title">工科影展</h1>
         <p className="g-hero-subtitle">分享你的拍摄作品、拍摄地点与心得</p>
         <p className="g-hero-note" role="note">
-          演示模式：所有数据仅保存在你的浏览器，清除浏览数据即丢失。
+          {isApi
+            ? '在线模式：账号与公开内容由服务器保存。'
+            : '演示模式：所有数据仅保存在你的浏览器，清除浏览数据即丢失。'}
         </p>
         <div className="g-hero-actions">
           <Link to="/gallery" className="g-btn g-btn-primary">

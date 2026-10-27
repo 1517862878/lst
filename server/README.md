@@ -1,6 +1,6 @@
 # 工科影展 · 后端 API
 
-> Fastify 5 + PostgreSQL 17.6 · 第 1 步：只读接口
+> Fastify 5 + PostgreSQL 17.6 · 只读、鉴权、搜索与本地图片上传 API
 
 ---
 
@@ -102,7 +102,7 @@ node node_modules/tsx/dist/cli.mjs src/index.ts
 
 ---
 
-## 4. 接口清单（第 1 步）
+## 4. 接口清单
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
@@ -117,6 +117,8 @@ node node_modules/tsx/dist/cli.mjs src/index.ts
 | GET | `/api/article-topics` | 教程主题（4 个） |
 | GET | `/api/rankings/:isoWeek?kind=live\|final` | 周榜 |
 | GET | `/api/rankings` | 有数据的周列表 |
+| GET | `/api/search?q=&categorySlug=&sort=latest\|popular&limit=` | 作品中文模糊搜索 |
+| PUT | `/api/storage/photos/{userId}/{photoId}/(display\|thumb).webp` | 登录用户上传本人目录 WebP（≤10 MiB） |
 | GET | `/images/*` | 图片静态资源 |
 
 ### 游标分页说明

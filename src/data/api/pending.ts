@@ -8,7 +8,7 @@
  *
  * 第 2 步已完成鉴权（实现见 ./auth.ts）；剩下的写入、上传、搜索在这里逐个替换。
  */
-import { AppError, type CommentRepository, type InteractionRepository, type SearchRepository, type StorageRepository } from '@/data/contracts'
+import { AppError, type CommentRepository, type InteractionRepository } from '@/data/contracts'
 
 const notImplemented = (feature: string) =>
   new AppError('STORAGE', `该功能尚未接入后端：${feature}（下一步实现）`)
@@ -49,20 +49,5 @@ export const apiCommentRepository: CommentRepository = {
   },
   async softRemove() {
     throw notImplemented('删除评论')
-  },
-}
-
-export const apiSearchRepository: SearchRepository = {
-  async search() {
-    throw notImplemented('搜索')
-  },
-}
-
-export const apiStorageRepository: StorageRepository = {
-  async put() {
-    throw notImplemented('上传文件')
-  },
-  async get() {
-    throw notImplemented('读取文件')
   },
 }

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/useToast'
 import { RequireAuth } from '@/components/layout/guards'
 import { useSession } from '@/hooks/useSession'
-import { createRepositories } from '@/data'
+import { createRepositories, dataSource } from '@/data'
 import { CATEGORIES } from '@/domain/constants'
 import type { PhotoLicense } from '@/domain/types'
 import { compressImage, validateImageFile } from '@/lib/image/compress'
@@ -46,6 +46,7 @@ export function PublishPage() {
 }
 
 function PublishInner() {
+  const isApi = dataSource() === 'api'
   const { data: session } = useSession()
   const navigate = useNavigate()
   const toast = useToast()
@@ -303,7 +304,9 @@ function PublishInner() {
           </Button>
         </div>
         <p className="g-publish-hint">
-          演示模式：图片仅存于你的浏览器（IndexedDB），换设备不可见。
+          {isApi
+            ? '在线模式：图片与作品资料将上传至本站服务器。'
+            : '演示模式：图片仅存于你的浏览器（IndexedDB），换设备不可见。'}
         </p>
       </form>
     </Container>

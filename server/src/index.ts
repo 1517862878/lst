@@ -13,6 +13,7 @@ import { resolve } from 'node:path'
 import { healthCheck } from './lib/db.js'
 import { ApiError, translateDbError } from './lib/errors.js'
 import { registerRoutes } from './routes/index.js'
+import { registerStorageRoutes } from './routes/storage.js'
 
 const PORT = Number(process.env.PORT ?? 3001)
 const HOST = process.env.HOST ?? '127.0.0.1'
@@ -119,6 +120,7 @@ export async function buildApp() {
   })
 
   // ---- 业务路由 ----
+  await registerStorageRoutes(app, imageRoot)
   await registerRoutes(app)
 
   return app

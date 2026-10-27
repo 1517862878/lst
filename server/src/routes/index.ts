@@ -21,6 +21,7 @@ import {
 } from '../repositories/rankings.js'
 import { registerAuthRoutes } from './auth.js'
 import { registerProfileRoutes } from './profiles.js'
+import { searchPhotos } from '../repositories/search.js'
 
 export async function registerRoutes(app: FastifyInstance) {
   // ==========================================================================
@@ -57,6 +58,26 @@ export async function registerRoutes(app: FastifyInstance) {
     // 用带身份的上下文：作者本人能看自己的草稿，他人看不到（RLS 保证）。
     const user = await currentUser(req)
     return withRls(user?.userId ?? null, (c) => getPhoto(c, req.params.id))
+  })
+
+  app.get<{
+    Querystring: { q?: string; categorySlug?: string; sort?: string; limit?: string }
+  }>('/api/search', async (req) => {
+    const text = req.query.q?.trim() ?? ''
+    if (!text) throw validation('q 不能为空')
+    if (text.length > 120) throw validation('q 不能超过 120 个字符')
+    const limit = req.query.limit ? Number(req.query.limit) : undefined
+    if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
+      throw validation('limit 必须是正整数')
+    }
+    return withAnonymous((c) =>
+      searchPhotos(c, {
+        text,
+        sort: req.query.sort === 'popular' ? 'popular' : 'latest',
+        ...(req.query.categorySlug ? { categorySlug: req.query.categorySlug } : {}),
+        ...(limit === undefined ? {} : { limit }),
+      }),
+    )
   })
 
   app.get<{ Params: { id: string }; Querystring: { limit?: string } }>(

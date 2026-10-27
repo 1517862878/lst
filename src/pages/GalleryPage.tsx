@@ -9,8 +9,10 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { PhotoGrid } from '@/features/photos/PhotoGrid'
 import { usePhotos } from '@/hooks/usePhotos'
+import { dataSource } from '@/data'
 
 export function GalleryPage() {
+  const isApi = dataSource() === 'api'
   const [searchParams, setSearchParams] = useSearchParams()
   const sort = searchParams.get('sort') === 'popular' ? 'popular' : 'latest'
   const [view, setView] = useState<'grid' | 'masonry'>('grid')
@@ -29,7 +31,7 @@ export function GalleryPage() {
 
   return (
     <Container>
-      <PageHeader title="作品墙" description="浏览全部公开作品（演示数据）">
+      <PageHeader title="作品墙" description={isApi ? '浏览服务器上的公开作品' : '浏览本机演示数据'}>
         <div className="g-toolbar">
           <div className="g-toolbar-group">
             <Button

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/useToast'
 import { useSignIn } from '@/hooks/useSession'
+import { dataSource } from '@/data'
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from '@/domain/constants'
 
 export interface LoginFormProps {
@@ -16,6 +17,7 @@ export interface LoginFormProps {
 }
 
 export function LoginForm({ next = '/' }: LoginFormProps) {
+  const isApi = dataSource() === 'api'
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -59,7 +61,7 @@ export function LoginForm({ next = '/' }: LoginFormProps) {
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        placeholder="演示密码 demo1234"
+        placeholder={isApi ? '输入密码' : '演示密码 demo1234'}
         autoComplete="current-password"
         required
       />
@@ -72,17 +74,19 @@ export function LoginForm({ next = '/' }: LoginFormProps) {
         登录
       </Button>
 
-      <div className="g-demo-picker" aria-label="演示账号一键填入">
-        <p className="g-demo-picker-title">演示账号（点击一键填入）：</p>
-        <div className="g-demo-picker-row">
-          {DEMO_ACCOUNTS.map((a) => (
-            <Button key={a.username} variant="ghost" size="sm" onClick={() => fillDemo(a.username)}>
-              {a.displayName}（{a.username}）
-            </Button>
-          ))}
+      {!isApi && (
+        <div className="g-demo-picker" aria-label="演示账号一键填入">
+          <p className="g-demo-picker-title">演示账号（点击一键填入）：</p>
+          <div className="g-demo-picker-row">
+            {DEMO_ACCOUNTS.map((a) => (
+              <Button key={a.username} variant="ghost" size="sm" onClick={() => fillDemo(a.username)}>
+                {a.displayName}（{a.username}）
+              </Button>
+            ))}
+          </div>
+          <p className="g-demo-picker-note">演示模式：密码不具安全性，请勿使用真实密码。</p>
         </div>
-        <p className="g-demo-picker-note">演示模式：密码不具安全性，请勿使用真实密码。</p>
-      </div>
+      )}
     </form>
   )
 }

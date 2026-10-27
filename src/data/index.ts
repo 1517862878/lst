@@ -24,11 +24,11 @@ import { apiCategoryRepository } from './api/categories'
 import { apiArticleRepository } from './api/articles'
 import { apiRankingRepository } from './api/rankings'
 import { apiAuthRepository } from './api/auth'
+import { apiSearchRepository } from './api/search'
+import { apiStorageRepository } from './api/storage'
 import {
   apiCommentRepository,
   apiInteractionRepository,
-  apiSearchRepository,
-  apiStorageRepository,
 } from './api/pending'
 
 let cached: Repositories | null = null

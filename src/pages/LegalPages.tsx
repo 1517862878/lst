@@ -4,8 +4,10 @@
  */
 import { Link } from 'react-router'
 import { LegalDocument, LegalSection } from '@/features/legal/LegalDocument'
+import { dataSource } from '@/data'
 
 export function AboutPage() {
+  const isApi = dataSource() === 'api'
   return (
     <LegalDocument title="关于本站" version="1.0" effectiveAt="2026-10-26">
       <LegalSection title="工科影展是什么">
@@ -16,8 +18,11 @@ export function AboutPage() {
       </LegalSection>
       <LegalSection title="当前状态">
         <p>
-          本网站目前处于<strong>演示模式</strong>（静态前端）：所有数据仅保存在你的浏览器
-          （IndexedDB），清除浏览数据即丢失。正式版本上线后数据将存储在服务器。
+          {isApi ? (
+            <>本网站当前处于<strong>在线测试阶段</strong>：账号与公开内容由本站服务器保存，部分写入功能仍在完善。</>
+          ) : (
+            <>本网站当前处于<strong>本地演示模式</strong>：所有数据仅保存在你的浏览器（IndexedDB），清除浏览数据即丢失。</>
+          )}
         </p>
       </LegalSection>
       <LegalSection title="开源">
@@ -31,6 +36,7 @@ export function AboutPage() {
 }
 
 export function TermsPage() {
+  const isApi = dataSource() === 'api'
   return (
     <LegalDocument title="用户协议" version="1.0" effectiveAt="2026-10-26">
       <LegalSection title="1. 服务说明">
@@ -38,8 +44,9 @@ export function TermsPage() {
       </LegalSection>
       <LegalSection title="2. 账号">
         <p>
-          你需要注册账号才能发布作品与评论。请勿使用真实密码——演示模式不提供任何安全保证
-          （详见隐私政策）。
+          {isApi
+            ? '你需要注册账号才能发布作品与评论。请为本站设置独立密码，不要与其他网站共用。'
+            : '你需要注册账号才能发布作品与评论。本地演示不会提供正式账号安全保证，请勿使用真实密码。'}
         </p>
       </LegalSection>
       <LegalSection title="3. 内容规范">
@@ -58,30 +65,37 @@ export function TermsPage() {
         </ul>
       </LegalSection>
       <LegalSection title="5. 免责声明">
-        <p>演示模式数据存于本地，平台不对数据丢失承担责任。</p>
+        <p>
+          {isApi
+            ? '本站仍处于在线测试阶段，服务可能调整或中断；请自行保留上传作品的原始文件。'
+            : '本地演示数据只存于浏览器，平台不对清除浏览数据等原因导致的数据丢失承担责任。'}
+        </p>
       </LegalSection>
     </LegalDocument>
   )
 }
 
 export function PrivacyPage() {
+  const isApi = dataSource() === 'api'
   return (
-    <LegalDocument title="隐私政策" version="1.0" effectiveAt="2026-10-26">
-      <LegalSection title="演示模式下的数据">
-        <p>
-          当前版本（静态演示）不收集、不上传任何数据。所有信息只存于你的浏览器：
-        </p>
-        <ul>
-          <li><code>gy:session</code> —— 登录会话（localStorage）</li>
-          <li><code>gy:prefs</code> —— 界面偏好（localStorage）</li>
-          <li><code>gy-db</code> —— 作品/互动/评论等实体数据（IndexedDB）</li>
-          <li><code>gy-assets</code> —— 你上传的图片（IndexedDB）</li>
-        </ul>
-        <p>清除浏览器数据即可完全删除上述信息。</p>
-      </LegalSection>
-      <LegalSection title="未来正式版">
-        <p>正式版上线后，将明确收集范围（账号邮箱等）并更新本政策。</p>
-      </LegalSection>
+    <LegalDocument title="隐私政策" version="1.1" effectiveAt="2026-10-27">
+      {isApi ? (
+        <LegalSection title="在线测试阶段的数据">
+          <p>为提供账号与内容服务，本站服务器会处理你主动提交的账号资料、公开作品资料与登录会话令牌。</p>
+          <p>浏览器会在 localStorage 中保存登录令牌与界面偏好；退出登录会移除登录令牌。</p>
+        </LegalSection>
+      ) : (
+        <LegalSection title="本地演示数据">
+          <p>本地演示不会上传数据，以下信息只存于你的浏览器：</p>
+          <ul>
+            <li><code>gy:session</code> —— 登录会话（localStorage）</li>
+            <li><code>gy:prefs</code> —— 界面偏好（localStorage）</li>
+            <li><code>gy-db</code> —— 作品/互动/评论等实体数据（IndexedDB）</li>
+            <li><code>gy-assets</code> —— 你上传的图片（IndexedDB）</li>
+          </ul>
+          <p>清除浏览器数据即可完全删除上述信息。</p>
+        </LegalSection>
+      )}
       <LegalSection title="图片 EXIF 隐私">
         <p>
           上传图片时，我们只提取 7 项拍摄参数（机身/镜头/光圈/快门/ISO/焦距/时间），

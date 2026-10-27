@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { useToast } from '@/components/ui/useToast'
 import { useSignUp } from '@/hooks/useSession'
+import { dataSource } from '@/data'
 
 export function RegisterForm() {
+  const isApi = dataSource() === 'api'
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
@@ -72,7 +74,7 @@ export function RegisterForm() {
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        placeholder="至少 6 位（演示模式不具安全性）"
+        placeholder={isApi ? '至少 6 位，请勿与其他网站共用' : '至少 6 位（演示模式不具安全性）'}
         autoComplete="new-password"
         required
       />

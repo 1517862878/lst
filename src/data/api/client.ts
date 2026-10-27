@@ -74,6 +74,9 @@ function fallbackCodeOf(status: number): ErrorCodeValue {
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   body?: unknown
+  /** 非 JSON 请求体（目前用于 WebP 图片上传）；与 body 互斥 */
+  rawBody?: BodyInit
+  contentType?: string
   /** 是否附带登录令牌（默认附带） */
   auth?: boolean
   signal?: AbortSignal
@@ -84,10 +87,14 @@ export interface RequestOptions {
  * @throws AppError 网络或业务错误统一转成 AppError
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, auth = true, signal } = options
+  const { method = 'GET', body, rawBody, contentType, auth = true, signal } = options
+  if (body !== undefined && rawBody !== undefined) {
+    throw new AppError('VALIDATION', '请求不能同时包含 JSON 与二进制请求体')
+  }
 
   const headers: Record<string, string> = { accept: 'application/json' }
   if (body !== undefined) headers['content-type'] = 'application/json'
+  else if (rawBody !== undefined && contentType) headers['content-type'] = contentType
 
   if (auth) {
     const token = getToken()
@@ -101,7 +108,11 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     const init: RequestInit = {
       method,
       headers,
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      ...(body !== undefined
+        ? { body: JSON.stringify(body) }
+        : rawBody !== undefined
+          ? { body: rawBody }
+          : {}),
       ...(signal ? { signal } : {}),
     }
     res = await fetch(API_BASE + path, init)

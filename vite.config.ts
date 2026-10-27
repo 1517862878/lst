@@ -77,6 +77,35 @@ export default defineConfig(({ command, mode }) => {
     },
     build: {
       target: 'es2022',
+      rollupOptions: {
+        output: {
+          /**
+           * ⚠️ 这份分包规则同时是一个「Windows 构建能不能跑起来」的硬约束，别删。
+           *
+           * esbuild 的 JS API 在单次输入 **超过 1 MiB**（实测 1,048,576 B 通过、
+           * 1,048,577 B 失败）时，会改为把内容写进 %TEMP%\esbuild-<hash> 临时文件
+           * 而不是走 stdio；随后它删除该文件时被系统拒绝（`remove ...: Access is denied`），
+           * 整个 esbuild 调用抛错。Vite 有两处会把 chunk 交给 esbuild：按 build.target
+           * 降级语法、以及用 esbuild 压缩。这里的分包把**每个 chunk 都压到 1 MiB 以下**，
+           * 两处都不会再触发临时文件，构建就不再中断。
+           * （Linux/CI 上不受影响，所以现象是「本地 Windows 构建挂、GitHub Pages 照常发」。）
+           *
+           * 顺带的好处：react / 路由 / 数据层 各自独立成 chunk，改业务代码只作废
+           * 那个几十 KB 的 index chunk，不再让用户重复下载整个 400 KB 主包。
+           *
+           * 反例：如果哪天往主 chunk 里塞回大依赖，或者单个 chunk 又涨过 1 MiB，
+           * `pnpm build` 会重新出现同样的 `[vite:esbuild-transpile] remove ...: Access is denied`。
+           * 见到这个报错，先看是不是某个 chunk 又超标了，而不是去查权限/杀毒软件。
+           */
+          manualChunks(id: string) {
+            if (!id.includes('node_modules')) return
+            if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'vendor-react'
+            if (/[\\/]node_modules[\\/]react-router/.test(id)) return 'vendor-router'
+            if (/[\\/]node_modules[\\/]@tanstack[\\/]/.test(id)) return 'vendor-query'
+            return 'vendor'
+          },
+        },
+      },
     },
     test: {
       environment: 'jsdom',

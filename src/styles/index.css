@@ -87,6 +87,35 @@
 }
 
 /* ══════════════════════════════════════════
+   像素星空背景（来自 PR #1，适配像素风）
+   ── fixed 全屏、z-index -1，在所有内容之下
+   ── 只在深色主题显示（浅色主题下整块 display:none）
+   ══════════════════════════════════════════ */
+.g-pixel-stars {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background-color: var(--g-stars-bg, transparent);
+  pointer-events: none;
+  display: none;
+}
+
+[data-theme='dark'] .g-pixel-stars {
+  display: block;
+}
+
+/* canvas 填满容器；内容本身是像素方块 */
+.g-pixel-stars-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* ══════════════════════════════════════════
    站点外壳 Shell
    ══════════════════════════════════════════ */
 .g-shell {

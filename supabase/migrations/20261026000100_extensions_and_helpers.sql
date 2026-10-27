@@ -29,30 +29,11 @@ comment on function public.set_updated_at() is '通用 updated_at 触发器：UP
 -- ----------------------------------------------------------------------------
 -- 角色判定助手（供 RLS 策略复用）
 -- 为什么用 security definer：避免在 profiles 的 RLS 策略里查 profiles 造成无限递归
+--
+-- ⚠ 位置说明（本地真机执行后修正）：
+--   这两个函数引用 public.profiles，但 profiles 表在 0003 才创建。
+--   PostgreSQL 对 language sql 函数会在 CREATE 时校验函数体里的表引用，
+--   因此若把函数留在本文件（0001），迁移会直接报
+--   "关系 public.profiles 不存在"。
+--   实际定义已移到 20261026000310_role_helpers.sql（紧随 profiles 之后）。
 -- ----------------------------------------------------------------------------
-create or replace function public.current_role_name()
-returns text
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select coalesce(
-    (select role from public.profiles where id = auth.uid()),
-    'anonymous'
-  );
-$$;
-
-comment on function public.current_role_name() is '当前登录用户的角色；未登录返回 anonymous';
-
-create or replace function public.is_editor_or_admin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select public.current_role_name() in ('editor', 'admin');
-$$;
-
-comment on function public.is_editor_or_admin() is '是否为编辑或管理员（内容治理用）';

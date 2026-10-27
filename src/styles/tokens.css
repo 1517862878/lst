@@ -97,6 +97,14 @@
   --g-dur-fast: 60ms;
   --g-dur-base: 120ms;
   --g-ease: steps(2, end);
+
+  /* ── 像素星空背景（来自 PR #1，已适配像素风配色） ──
+     浅色主题下不显示：米黄纸底配星空会显得脏，且像素风的白天场景不需要。 */
+  --g-stars-visible: 0;
+  --g-stars-base: #8a7c66;
+  --g-stars-accent: #c8452f;
+  --g-stars-head: #fff8ec;
+  --g-stars-bg: transparent;
 }
 
 [data-theme='dark'] {
@@ -127,6 +135,15 @@
   --g-shadow-md: 4px 4px 0 #0a0806;
   --g-shadow-lg: 6px 6px 0 #0a0806;
   --g-shadow-inset: inset 2px 2px 0 rgb(0 0 0 / 0.5);
+
+  /* ── 像素星空：深色主题下启用 ──
+     星星用暖米白（呼应 --g-ink）+ 砖红点缀（呼应 --g-brand），
+     不用 PR 的鎏金，避免与像素风调色板冲突。 */
+  --g-stars-visible: 1;
+  --g-stars-base: #e8e0d0;
+  --g-stars-accent: #e0603f;
+  --g-stars-head: #fff8ec;
+  --g-stars-bg: #1c1a17;
 }
 
 /* ══════════════════════════════════════════
@@ -161,6 +178,15 @@ body {
     linear-gradient(90deg, var(--g-bg-grid) 1px, transparent 1px);
   background-size: 8px 8px;
   image-rendering: pixelated;
+}
+
+/*
+ * 深色主题下 body 底色透明，让 fixed 的像素星空 canvas 透出来。
+ * 网格仍保留：它叠在星空之上形成「网格 + 星点」的层次，
+ * 这也是像素风该有的质感（像老游戏的背景图 + 扫描线）。
+ */
+[data-theme='dark'] body {
+  background-color: transparent;
 }
 
 #root {

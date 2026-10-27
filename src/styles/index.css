@@ -89,30 +89,30 @@
 /* ══════════════════════════════════════════
    像素星空背景（来自 PR #1，适配像素风）
    ── fixed 全屏、z-index -1，在所有内容之下
-   ── 只在深色主题显示（浅色主题下整块 display:none）
+   ── 明暗两套主题都显示；浅色下用 --g-stars-opacity 压低星点强度
+   ── 容器自己铺页面底色（body 已设为透明，否则会把星空盖住）
    ══════════════════════════════════════════ */
 .g-pixel-stars {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  /* 用 0 而不是 -1：星空在 #root 内，-1 会掉到 #root 背景之下被裁掉。
+     0 让它成为 #root 层叠上下文里最底的一层，内容元素自然叠在上面。 */
+  z-index: 0;
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background-color: var(--g-stars-bg, transparent);
+  background-color: var(--g-stars-bg, var(--g-bg));
   pointer-events: none;
-  display: none;
 }
 
-[data-theme='dark'] .g-pixel-stars {
-  display: block;
-}
-
-/* canvas 填满容器；内容本身是像素方块 */
+/* canvas 填满容器；内容本身是像素方块。
+   透明度只作用在 canvas 上（不是容器），这样底色保持不透明、星点可淡。 */
 .g-pixel-stars-canvas {
   display: block;
   width: 100%;
   height: 100%;
   image-rendering: pixelated;
+  opacity: var(--g-stars-opacity, 1);
 }
 
 /* ══════════════════════════════════════════

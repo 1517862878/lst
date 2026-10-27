@@ -98,13 +98,19 @@
   --g-dur-base: 120ms;
   --g-ease: steps(2, end);
 
-  /* ── 像素星空背景（来自 PR #1，已适配像素风配色） ──
-     浅色主题下不显示：米黄纸底配星空会显得脏，且像素风的白天场景不需要。 */
-  --g-stars-visible: 0;
-  --g-stars-base: #8a7c66;
+  /* ── 像素星空背景（来自 PR #1，适配像素风） ──
+     明暗两套主题都显示星空：
+       浅色 = 「白天的星图」—— 褐灰星点在米黄纸底上，像星图册的印刷网点
+       深色 = 「夜晚的星空」—— 暖米白星点，砖红点缀 */
+  --g-stars-visible: 1;
+  /* 浅色下星点要比底色明显一点（太接近会看不见） */
+  --g-stars-base: #6b5d45;
   --g-stars-accent: #c8452f;
-  --g-stars-head: #fff8ec;
-  --g-stars-bg: transparent;
+  --g-stars-head: #8a7c66;
+  /* 星空容器负责铺页面底色（body 已透明） */
+  --g-stars-bg: #e8e0d0;
+  /* 浅色下压低整体透明度，避免抢内容；0.45 太淡，实际看不清，调到 0.7 */
+  --g-stars-opacity: 0.7;
 }
 
 [data-theme='dark'] {
@@ -136,7 +142,7 @@
   --g-shadow-lg: 6px 6px 0 #0a0806;
   --g-shadow-inset: inset 2px 2px 0 rgb(0 0 0 / 0.5);
 
-  /* ── 像素星空：深色主题下启用 ──
+  /* ── 像素星空：夜晚版 ──
      星星用暖米白（呼应 --g-ink）+ 砖红点缀（呼应 --g-brand），
      不用 PR 的鎏金，避免与像素风调色板冲突。 */
   --g-stars-visible: 1;
@@ -144,6 +150,8 @@
   --g-stars-accent: #e0603f;
   --g-stars-head: #fff8ec;
   --g-stars-bg: #1c1a17;
+  /* 深色下星点可以更亮更清楚，不需要压透明度 */
+  --g-stars-opacity: 1;
 }
 
 /* ══════════════════════════════════════════
@@ -181,11 +189,14 @@ body {
 }
 
 /*
- * 深色主题下 body 底色透明，让 fixed 的像素星空 canvas 透出来。
+ * body 底色透明，让 fixed 的星空 canvas 透出来（明暗两套都这样）。
  * 网格仍保留：它叠在星空之上形成「网格 + 星点」的层次，
  * 这也是像素风该有的质感（像老游戏的背景图 + 扫描线）。
+ *
+ * 为什么两个主题都透明：星空容器自己带 --g-stars-bg 底色，
+ * 所以页面底色由它负责，body 再铺一层会把它盖住、星点就看不见了。
  */
-[data-theme='dark'] body {
+body {
   background-color: transparent;
 }
 
@@ -193,10 +204,23 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  /* 建立层叠上下文：让 #root 里的内容盖在 z-index:-1 的星空之上，
+     否则星空会被绘制在内容的上层（父元素无定位时 z-index 无效）。 */
+  position: relative;
+  z-index: 1;
 }
 
 main {
   flex: 1;
+  /* 主内容叠在星空之上（星空 z-index:0，内容 1） */
+  position: relative;
+  z-index: 1;
+}
+
+/* 页脚在星空之上；页头的层级由它自己的 sticky 规则负责，这里不碰 */
+.g-footer {
+  position: relative;
+  z-index: 2;
 }
 
 a {

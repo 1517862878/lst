@@ -78,18 +78,19 @@ export function PixelStarsBackground() {
 
     const rand = (min: number, max: number) => min + Math.random() * (max - min)
 
-    /** 星点按 2px 网格对齐，保持 8-bit 质感 */
+    /** 星点按 2px 网格对齐，保持 8-bit 质感；尺寸放大到 3/4px，小屏也看得见 */
     function seedStars() {
-      const count = Math.round((width * height) / 9000)
+      // 密度：每 6000px² 一颗（早先 9000 太稀，1440 宽屏上只有 ~140 颗，几乎看不见）
+      const count = Math.round((width * height) / 6000)
       stars = Array.from({ length: count }, () => ({
         x: Math.floor(rand(0, width) / 2) * 2,
         y: Math.floor(rand(0, height) / 2) * 2,
-        size: Math.random() < 0.85 ? 2 : 3,
+        size: Math.random() < 0.8 ? 3 : 4,
         phase: rand(0, Math.PI * 2),
         speed: rand(0.6, 2.2),
-        base: rand(0.25, 0.6),
+        base: rand(0.35, 0.7),
         amp: rand(0.2, 0.4),
-        // 12% 的星用强调色（砖红），其余用米白
+        // 12% 的星用强调色（砖红），其余用主星色
         accent: Math.random() < 0.12,
       }))
     }
@@ -143,7 +144,8 @@ export function PixelStarsBackground() {
           const fade = (1 - i / tail) * (1 - m.life / m.maxLife)
           ctx.globalAlpha = Math.max(0, fade * 0.9)
           ctx.fillStyle = i === 0 ? theme.head : theme.accent
-          ctx.fillRect(px, py, 2, 2)
+          // 头部略大（4px），拖尾 3px
+          ctx.fillRect(px, py, i === 0 ? 4 : 3, i === 0 ? 4 : 3)
         }
       }
       ctx.globalAlpha = 1

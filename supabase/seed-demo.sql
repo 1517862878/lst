@@ -18,7 +18,7 @@ select id, username, phone from public.profiles where username = '小何';
 -- 作品：20 条，分散在不同分类与时间
 insert into public.photos (
   author_id, title, description, category_slug, tags, location_name,
-  location_precision, image_key, thumb_key, width, height,
+  location_precision, image_key, thumb_key, width, height, exif,
   license, credit, status, published_at
 )
 select
@@ -33,8 +33,21 @@ select
   'photos/xiaohe/' || t.n || '/thumb.webp',
   1200,
   800,
+  -- 拍摄参数：与 src/data/mock/seed.ts 用同一组键（只取 EXIF 白名单内的键，绝不含 GPS）。
+  -- 早先这里留空，导致 API 模式下作品详情页的「拍摄参数」面板永远不显示。
+  -- 用 t.n 决定性地挑值：Make 与 Model 取同一个下标，机身与品牌才对得上。
+  jsonb_build_object(
+    'Make',         (array['Canon', 'Nikon', 'Sony', 'Fujifilm'])[1 + (t.n % 4)],
+    'Model',        (array['EOS R5', 'Z6 II', 'A7 IV', 'X-T5'])[1 + (t.n % 4)],
+    'FNumber',      (array[1.8, 2.8, 4, 5.6, 8, 11])[1 + (t.n % 6)],
+    'ExposureTime', (array['1/125', '1/250', '1/500', '1/1000', '2s'])[1 + (t.n % 5)],
+    'ISO',          (array[100, 200, 400, 800])[1 + (t.n % 4)],
+    'FocalLength',  (array[24, 35, 50, 85, 200])[1 + (t.n % 5)]
+  ),
   'all_rights_reserved',
-  null,
+  -- 与 mock 种子一致：演示素材要打「示例」角标，否则 API 模式下这几张演示图
+  -- 看起来像用户真实上传的作品。
+  '示例素材',
   'published',
   now() - (t.n || ' hours')::interval
 from (

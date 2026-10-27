@@ -322,11 +322,11 @@
   gap: var(--g-space-5);
 }
 
-@media (min-width: 768px) {
-  .g-work-detail {
-    grid-template-columns: 3fr 2fr;
-  }
-}
+/* 作品详情的栏数由 pixel-theme.css 统一决定（≥901px 两栏，≤900px 单栏）。
+   这里曾有一条 @media (min-width: 768px) 的两栏规则，但它从未生效：
+   pixel-theme.css 在样式表来源顺序里更靠后且特异性相同，会覆盖它。
+   它与 pixel-theme.css 的意图也是矛盾的 —— 768–900px 下排两栏会把右栏压到
+   320px 最小宽度以下，正是 pixel-theme.css 那里要避免的情况。已删除。 */
 
 .g-work-media {
   border-radius: var(--g-radius-lg);

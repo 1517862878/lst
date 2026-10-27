@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router'
 import { Camera, Menu, X } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { IconButton } from '@/components/ui/IconButton'
+import { dataSource } from '@/data'
 import { cn } from '@/lib/cn'
 
 export interface HeaderProps {
@@ -13,18 +14,35 @@ export interface HeaderProps {
   sessionUser: { username: string; displayName: string } | null
 }
 
-const navItems = [
-  { label: '首页', to: '/', match: true },
-  { label: '作品墙', to: '/gallery' },
-  { label: '分类', to: '/categories' },
-  { label: '周榜', to: '/rankings/weekly' },
-  { label: '学习', to: '/learn' },
-]
+interface NavItem {
+  label: string
+  to: string
+  /** 是否精确匹配。只给首页用：否则 "/" 在所有路由上都算激活 */
+  match?: boolean
+}
+
+/**
+ * 主导航项。
+ * 「搜索」只在 mock（演示 / 静态预览）模式下出现 —— API 模式的搜索后端还没接，
+ * src/data/api/pending.ts 里的 apiSearchRepository 仍是占位实现，点进去只会看到
+ * 错误页。后端接上后，把这个 dataSource 判断删掉、留下「搜索」那一条即可。
+ */
+function navItemsFor(source: 'mock' | 'api'): NavItem[] {
+  return [
+    { label: '首页', to: '/', match: true },
+    { label: '作品墙', to: '/gallery' },
+    { label: '分类', to: '/categories' },
+    { label: '周榜', to: '/rankings/weekly' },
+    { label: '学习', to: '/learn' },
+    ...(source === 'mock' ? [{ label: '搜索', to: '/search' }] : []),
+  ]
+}
 
 /** 全站页头：Logo + 主导航 + 登录态/头像（FRONTEND-WORK §3.2 Header） */
 export function Header({ sessionUser }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
+  const navItems = navItemsFor(dataSource())
 
   // 路由变化后收起：点菜单里的链接、浏览器前进后退都不会把菜单留在展开态
   useEffect(() => {
@@ -94,6 +112,9 @@ export function Header({ sessionUser }: HeaderProps) {
               to={item.to}
               end={item.match ?? false}
               className={({ isActive }) => cn('g-nav-link', isActive && 'g-nav-link-active')}
+              // 点链接就收起。只看 location 变化不够：点「当前所在页」的链接时路由不变，
+              // 菜单会留在展开态挡住页面。
+              onClick={() => setMenuOpen(false)}
             >
               {item.label}
             </NavLink>

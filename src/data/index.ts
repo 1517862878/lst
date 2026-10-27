@@ -1,6 +1,12 @@
 /**
  * 数据源工厂（ROADMAP D-01 / FRONTEND-WORK §0.2）。
- * 页面与 hooks 只通过 createRepositories() 取仓储；这里做 mock/supabase 切换。
+ *
+ * 页面与 hooks 只通过 createRepositories() 取仓储，
+ * 具体用哪个实现由此处决定，页面代码零改动。
+ *
+ * 切换方式（.env.local）：
+ *   VITE_DATA_SOURCE=mock   ← 默认，数据在浏览器 IndexedDB
+ *   VITE_DATA_SOURCE=api    ← 连后端，数据在 PostgreSQL
  */
 import type { Repositories } from './contracts'
 import { mockAuthRepository } from './mock/repositories/auth'
@@ -13,14 +19,42 @@ import { mockRankingRepository } from './mock/repositories/rankings'
 import { mockSearchRepository } from './mock/repositories/search'
 import { mockStorageRepository } from './mock/repositories/storage'
 
+import { apiPhotoRepository } from './api/photos'
+import { apiCategoryRepository } from './api/categories'
+import { apiArticleRepository } from './api/articles'
+import { apiRankingRepository } from './api/rankings'
+import {
+  apiAuthRepository,
+  apiCommentRepository,
+  apiInteractionRepository,
+  apiSearchRepository,
+  apiStorageRepository,
+} from './api/pending'
+
 let cached: Repositories | null = null
 
-/** 获取仓储集合（惰性单例）。数据源切换只改这里（VITE_DATA_SOURCE 动态期启用） */
+/** 当前数据源（供界面显示"演示模式 / 在线模式"） */
+export function dataSource(): 'mock' | 'api' {
+  return import.meta.env.VITE_DATA_SOURCE === 'api' ? 'api' : 'mock'
+}
+
+/** 获取仓储集合（惰性单例） */
 export function createRepositories(): Repositories {
   if (cached) return cached
-  const source = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 
-  if (source === 'mock') {
+  if (dataSource() === 'api') {
+    cached = {
+      photos: apiPhotoRepository,
+      interactions: apiInteractionRepository,
+      comments: apiCommentRepository,
+      rankings: apiRankingRepository,
+      articles: apiArticleRepository,
+      categories: apiCategoryRepository,
+      auth: apiAuthRepository,
+      storage: apiStorageRepository,
+      search: apiSearchRepository,
+    }
+  } else {
     cached = {
       photos: mockPhotoRepository,
       interactions: mockInteractionRepository,
@@ -32,11 +66,14 @@ export function createRepositories(): Repositories {
       storage: mockStorageRepository,
       search: mockSearchRepository,
     }
-    return cached
   }
 
-  // 动态期：supabase 实现（S2 阶段尚未提供）
-  throw new Error(`未知数据源：${source}（动态期 Supabase 适配器将在 D2 阶段实现）`)
+  return cached
+}
+
+/** 测试或切换数据源后重置单例 */
+export function resetRepositories(): void {
+  cached = null
 }
 
 export * from './contracts'

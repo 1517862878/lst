@@ -54,8 +54,11 @@ export const loginSchema = z.object({
 export const registerSchema = z.object({
   username: usernameSchema,
   displayName: z.string().min(1, '请填写昵称').max(30, '昵称最多 30 字'),
+  phone: z.string().regex(/^1\d{10}$/, '请输入有效的 11 位手机号'),
+  code: z.string().regex(/^\d{6}$/, '验证码为 6 位数字'),
   password: passwordSchema,
-  agreeTerms: z.literal(true, { errorMap: () => ({ message: '必须同意用户协议' }) }),
+  termsAccepted: z.literal(true, { errorMap: () => ({ message: '必须同意用户协议' }) }),
+  privacyAccepted: z.literal(true, { errorMap: () => ({ message: '必须同意隐私政策' }) }),
 })
 
 export const photoPublishSchema = z.object({

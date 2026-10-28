@@ -8,10 +8,14 @@
  */
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import cookie from '@fastify/cookie'
+import rateLimit from '@fastify/rate-limit'
 import fastifyStatic from '@fastify/static'
 import { resolve } from 'node:path'
 import { healthCheck } from './lib/db.js'
-import { ApiError, translateDbError } from './lib/errors.js'
+import { ApiError, forbidden, translateDbError } from './lib/errors.js'
+import { TRUSTED_ORIGINS, TRUST_PROXY } from './lib/config.js'
+import { registerRequestSecurity } from './lib/request-security.js'
 import { registerRoutes } from './routes/index.js'
 import { registerStorageRoutes } from './routes/storage.js'
 
@@ -32,13 +36,26 @@ export async function buildApp() {
     },
     // 请求体上限：图片走独立上传接口，这里只处理 JSON
     bodyLimit: 1 * 1024 * 1024,
+    trustProxy: TRUST_PROXY,
   })
 
-  // 开发期允许前端 5173/4173 直接跨域访问
+  await app.register(cookie)
+  await app.register(rateLimit, {
+    global: false,
+    errorResponseBuilder: (_req, context) => ({
+      code: 'RATE_LIMIT',
+      message: '操作过于频繁，请稍后重试',
+      details: { retryAfterSeconds: Math.ceil(context.ttl / 1000) },
+    }),
+  })
   await app.register(cors, {
-    origin: true,
+    origin(origin, cb) {
+      if (!origin || TRUSTED_ORIGINS.has(origin)) return cb(null, true)
+      return cb(forbidden('请求来源不受信任'), false)
+    },
     credentials: true,
   })
+  registerRequestSecurity(app)
 
   // ---- 统一错误处理 ----
   app.setErrorHandler((err, req, reply) => {

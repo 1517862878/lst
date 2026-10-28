@@ -4,8 +4,8 @@
  * 设计要点：
  *   1) 统一把后端的 { code, message } 转成前端 AppError
  *      —— 这样 hooks 里 catch 到的错误类型与 mock 实现一致，页面无需区分数据源
- *   2) 自动附带 Authorization（登录态由 auth 模块写入 localStorage）
- *   3) 对 401 做统一处理（清会话，让守卫跳登录）
+ *   2) 所有请求携带 HttpOnly 会话 cookie
+ *   3) 非安全方法附带双提交 CSRF cookie（gy_csrf）
  */
 import { AppError, ErrorCodes } from '@/data/contracts'
 
@@ -25,24 +25,16 @@ type ErrorCodeValue = (typeof ErrorCodes)[keyof typeof ErrorCodes]
  */
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '').trim().replace(/\/+$/, '')
 
-/** 会话令牌存储键（与 auth 模块共用） */
-export const TOKEN_STORAGE_KEY = 'gy:token'
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
-export function getToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_STORAGE_KEY)
-  } catch {
-    return null
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  const prefix = `${encodeURIComponent(name)}=`
+  for (const part of document.cookie.split(';')) {
+    const cookie = part.trim()
+    if (cookie.startsWith(prefix)) return decodeURIComponent(cookie.slice(prefix.length))
   }
-}
-
-export function setToken(token: string | null): void {
-  try {
-    if (token) localStorage.setItem(TOKEN_STORAGE_KEY, token)
-    else localStorage.removeItem(TOKEN_STORAGE_KEY)
-  } catch {
-    // 隐私模式下 localStorage 可能不可用，忽略
-  }
+  return null
 }
 
 interface ApiErrorBody {
@@ -77,8 +69,6 @@ export interface RequestOptions {
   /** 非 JSON 请求体（目前用于 WebP 图片上传）；与 body 互斥 */
   rawBody?: BodyInit
   contentType?: string
-  /** 是否附带登录令牌（默认附带） */
-  auth?: boolean
   signal?: AbortSignal
 }
 
@@ -87,7 +77,7 @@ export interface RequestOptions {
  * @throws AppError 网络或业务错误统一转成 AppError
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, rawBody, contentType, auth = true, signal } = options
+  const { method = 'GET', body, rawBody, contentType, signal } = options
   if (body !== undefined && rawBody !== undefined) {
     throw new AppError('VALIDATION', '请求不能同时包含 JSON 与二进制请求体')
   }
@@ -96,9 +86,9 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   if (body !== undefined) headers['content-type'] = 'application/json'
   else if (rawBody !== undefined && contentType) headers['content-type'] = contentType
 
-  if (auth) {
-    const token = getToken()
-    if (token) headers.authorization = `Bearer ${token}`
+  if (!SAFE_METHODS.has(method)) {
+    const csrfToken = readCookie('gy_csrf')
+    if (csrfToken) headers['X-CSRF-Token'] = csrfToken
   }
 
   let res: Response
@@ -108,6 +98,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     const init: RequestInit = {
       method,
       headers,
+      credentials: 'include',
       ...(body !== undefined
         ? { body: JSON.stringify(body) }
         : rawBody !== undefined
@@ -136,8 +127,6 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   if (!res.ok) {
-    // 401 统一清理会话，让路由守卫接管跳登录
-    if (res.status === 401) setToken(null)
     throw toAppError(res.status, parsed as ApiErrorBody | null, `请求失败（${res.status}）`)
   }
 

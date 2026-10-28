@@ -2,7 +2,7 @@
  * 登录表单（FRONTEND-WORK §3.3 LoginForm）。
  * 演示模式：一键填入演示账号 + 错误提示。
  */
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/useToast'
 import { useSignIn } from '@/hooks/useSession'
 import { dataSource } from '@/data'
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from '@/domain/constants'
+import { TurnstileWidget } from './TurnstileWidget'
 
 export interface LoginFormProps {
   /** 登录成功后跳转（?next= 参数） */
@@ -22,6 +23,10 @@ export function LoginForm({ next = '/' }: LoginFormProps) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const turnstileEnabled = Boolean((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim())
+  const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), [])
+  const handleTurnstileError = useCallback((message: string) => setError(message), [])
   const { signIn } = useSignIn()
   const navigate = useNavigate()
   const toast = useToast()
@@ -31,7 +36,8 @@ export function LoginForm({ next = '/' }: LoginFormProps) {
     setError('')
     setSubmitting(true)
     try {
-      await signIn(username.trim(), password)
+      if (isApi && turnstileEnabled && !turnstileToken) throw new Error('请先完成人机验证')
+      await signIn(username.trim(), password, turnstileToken || undefined)
       toast.show('success', '登录成功')
       navigate(next, { replace: true })
     } catch (err) {
@@ -65,6 +71,7 @@ export function LoginForm({ next = '/' }: LoginFormProps) {
         autoComplete="current-password"
         required
       />
+      {isApi && <TurnstileWidget action="login" onToken={handleTurnstileToken} onError={handleTurnstileError} />}
       {error && (
         <p className="g-auth-error" role="alert">
           {error}

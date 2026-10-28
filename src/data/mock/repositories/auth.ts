@@ -2,7 +2,7 @@
  * Mock 鉴权仓储（伪造会话，ROADMAP §5.1）。
  * 安全边界：演示模式，密码不加密、不假装安全；会话存 localStorage。
  */
-import { AppError, ErrorCodes, type AuthRepository } from '@/data/contracts'
+import { AppError, ErrorCodes, type AuthRepository, type SignUpInput } from '@/data/contracts'
 import type { Profile, Session } from '@/domain/types'
 import { DEMO_PASSWORD } from '@/domain/constants'
 import { getDb } from '../db'
@@ -33,7 +33,7 @@ export const mockAuthRepository: AuthRepository = {
     return loadSession()
   },
 
-  async signIn(username: string, password: string): Promise<Session> {
+  async signIn(username: string, password: string, _turnstileToken?: string): Promise<Session> {
     // 演示模式：密码固定 demo1234；明确不做加密假装安全（ROADMAP §5.1）
     if (password !== DEMO_PASSWORD) {
       throw new AppError(ErrorCodes.UNAUTHORIZED, '密码错误（演示模式密码为 demo1234）')
@@ -46,14 +46,17 @@ export const mockAuthRepository: AuthRepository = {
       userId: profile.id,
       username: profile.username,
       displayName: profile.displayName,
-      token: `mock.${crypto.randomUUID()}`,
       expiresAt: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
     }
     saveSession(session)
     return session
   },
 
-  async signUp(input: { username: string; displayName: string; password: string }): Promise<Session> {
+  async requestRegistrationCode(_phone: string, _turnstileToken?: string): Promise<void> {
+    // Mock 模式不发送短信；保留异步契约供 UI 无缝切换数据源。
+  },
+
+  async signUp(input: SignUpInput): Promise<Session> {
     // 与 usernameSchema、数据库 ck_profiles_username_format 保持一致（2–20 位，支持中文）
     if (!/^[a-zA-Z0-9_\-\u4e00-\u9fa5]{2,20}$/u.test(input.username)) {
       throw new AppError(ErrorCodes.VALIDATION, '用户名需 2–20 位，可用中文、字母、数字、下划线、连字符')
@@ -82,7 +85,6 @@ export const mockAuthRepository: AuthRepository = {
       userId: profile.id,
       username: profile.username,
       displayName: profile.displayName,
-      token: `mock.${crypto.randomUUID()}`,
       expiresAt: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
     }
     saveSession(session)

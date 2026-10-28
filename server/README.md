@@ -1,6 +1,6 @@
 # 工科影展 · 后端 API
 
-> Fastify 5 + PostgreSQL 17.6 · 只读、鉴权、搜索与本地图片上传 API
+> Fastify 5 + PostgreSQL 17.6 · Cookie 会话、内容写入、搜索、图片上传与运营审核 API
 
 ---
 
@@ -99,6 +99,15 @@ node node_modules/tsx/dist/cli.mjs src/index.ts
 | `PGPASSWORD` | — | 密码 |
 | `PORT` | `3001` | API 端口 |
 | `IMAGE_ROOT` | `E:\lst-测试图片` | 图片根目录 |
+| `TRUSTED_ORIGINS` | 本地开发地址 | 允许携带 Cookie 写请求的源；生产必填 |
+| `TRUST_PROXY` | `false` | 位于 Caddy/Nginx 后时设为 `true` |
+| `COOKIE_SECURE` | 生产自动开启 | 会话 Cookie 仅 HTTPS |
+| `SESSION_COOKIE_NAME` | 生产 `__Host-gk_session` | HttpOnly 会话 Cookie 名 |
+| `IP_HASH_SECRET` | 开发自动生成 | IP 哈希密钥；生产至少 32 字符 |
+| `SMS_PROVIDER` | `console` | 生产必须为 `aliyun` |
+| `TURNSTILE_PROVIDER` | 生产 `cloudflare` | 注册/登录人机验证 |
+
+生产环境完整模板见 `server/.env.production.example`；同源 HTTPS 代理模板见 `deploy/Caddyfile`。
 
 ---
 
@@ -107,6 +116,14 @@ node node_modules/tsx/dist/cli.mjs src/index.ts
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/api/health` | 健康检查（含数据库角色） |
+| POST | `/api/auth/register/request-code` | 发送注册短信验证码（限流 + Turnstile） |
+| POST | `/api/auth/register` | 验证手机号、记录协议同意、创建 HttpOnly Cookie 会话 |
+| POST | `/api/auth/login` / `/api/auth/logout` | 登录 / 撤销当前会话 |
+| GET | `/api/auth/session` | 获取当前 Cookie 会话 |
+| POST | `/api/reports` | 登录用户举报作品、评论或账号 |
+| GET/POST | `/api/admin/reports/*` | 审核员认领、处理举报 |
+| POST | `/api/admin/moderation/visibility` | 审核员隐藏/恢复内容 |
+| POST | `/api/admin/sanctions/*` | 管理员处罚/撤销处罚账号 |
 | GET | `/api/photos?sort=latest\|popular&categorySlug=&cursor=&limit=` | 作品列表（keyset 游标） |
 | GET | `/api/photos/:id` | 作品详情 |
 | GET | `/api/photos/:id/related` | 相关作品 |
@@ -203,8 +220,9 @@ server/
 | 步骤 | 内容 | 状态 |
 |---|---|---|
 | **第 1 步** | 骨架 + 只读接口 | ✅ **已完成** |
-| 第 2 步 | 鉴权 + 写入接口 | ⬜ 待做 |
-| 第 3 步 | 图片上传 + 搜索 | ⬜ 待做 |
+| 第 2 步 | 鉴权 + 写入接口 | ✅ **已完成** |
+| 第 3 步 | 图片上传 + 搜索 | ✅ **已完成** |
+| 第 4 步 | Cookie 会话、短信验证、限流、人机验证与内容审核 | ✅ **已完成** |
 
 ### 第 2 步要做的
 

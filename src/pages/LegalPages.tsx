@@ -38,7 +38,7 @@ export function AboutPage() {
 export function TermsPage() {
   const isApi = dataSource() === 'api'
   return (
-    <LegalDocument title="用户协议" version="1.0" effectiveAt="2026-10-26">
+    <LegalDocument title="用户协议" version="2026-10-28" effectiveAt="2026-10-28">
       <LegalSection title="1. 服务说明">
         <p>工科影展提供摄影作品展示、评论、点赞、收藏、排行榜与学习教程服务。</p>
       </LegalSection>
@@ -64,7 +64,10 @@ export function TermsPage() {
           <li>权利保证：你保证拥有著作权与必要的肖像权授权。</li>
         </ul>
       </LegalSection>
-      <LegalSection title="5. 免责声明">
+      <LegalSection title="5. 账号与社区治理">
+        <p>平台可对违法违规、侵权、骚扰、垃圾信息或破坏公平的内容采取隐藏、删除等措施，并可对相关账号警告、限制发布、临时停用或封禁。处理会保留审计记录；用户可通过侵权投诉页面说明异议。</p>
+      </LegalSection>
+      <LegalSection title="6. 服务变更与免责声明">
         <p>
           {isApi
             ? '本站仍处于在线测试阶段，服务可能调整或中断；请自行保留上传作品的原始文件。'
@@ -78,11 +81,12 @@ export function TermsPage() {
 export function PrivacyPage() {
   const isApi = dataSource() === 'api'
   return (
-    <LegalDocument title="隐私政策" version="1.1" effectiveAt="2026-10-27">
+    <LegalDocument title="隐私政策" version="2026-10-28" effectiveAt="2026-10-28">
       {isApi ? (
-        <LegalSection title="在线测试阶段的数据">
-          <p>为提供账号与内容服务，本站服务器会处理你主动提交的账号资料、公开作品资料与登录会话令牌。</p>
-          <p>浏览器会在 localStorage 中保存登录令牌与界面偏好；退出登录会移除登录令牌。</p>
+        <LegalSection title="在线服务处理的数据">
+          <p>为提供账号、短信验证、内容发布和社区治理，本站服务器会处理你主动提交的用户名、昵称、手机号、公开作品资料、评论、举报及协议同意记录。</p>
+          <p>登录凭证保存在 Secure、HttpOnly、SameSite=Lax Cookie 中，浏览器脚本无法读取；另有可读 CSRF Cookie 仅用于校验同源写请求，不含登录密钥。界面偏好可保存在 localStorage。</p>
+          <p>为防滥用与安全审计，服务器会短期处理并以密钥哈希方式记录来源 IP、User-Agent、验证码请求和审核操作；不会在公开资料中展示手机号。</p>
         </LegalSection>
       ) : (
         <LegalSection title="本地演示数据">
@@ -96,6 +100,12 @@ export function PrivacyPage() {
           <p>清除浏览器数据即可完全删除上述信息。</p>
         </LegalSection>
       )}
+      <LegalSection title="保存期限与权利">
+        <p>账号和内容在提供服务所需期间保存；验证码按短期有效期处理；会话可随时登出撤销；审核记录按安全与争议处理所需期限保存。你可以更正公开资料、删除本人内容，并通过站内联系方式申请注销账号或查询、更正、删除个人信息。</p>
+      </LegalSection>
+      <LegalSection title="第三方处理与跨境">
+        <p>短信由阿里云短信服务发送，人机验证由 Cloudflare Turnstile 提供；两者仅接收完成对应服务所需的数据。上线前运营方应根据实际服务器地域与备案主体补充联系方式和跨境说明。</p>
+      </LegalSection>
       <LegalSection title="图片 EXIF 隐私">
         <p>
           上传图片时，我们只提取 7 项拍摄参数（机身/镜头/光圈/快门/ISO/焦距/时间），
@@ -170,7 +180,7 @@ export function LicensesPage() {
 
 export function CommunityPage() {
   return (
-    <LegalDocument title="社区规范" version="1.0" effectiveAt="2026-10-26">
+    <LegalDocument title="社区规范" version="2026-10-28" effectiveAt="2026-10-28">
       <LegalSection title="我们鼓励">
         <ul>
           <li>分享真实的拍摄经验与技巧</li>
@@ -183,8 +193,11 @@ export function CommunityPage() {
           <li>人身攻击、歧视与骚扰</li>
           <li>发布他人作品冒充自己</li>
           <li>刷赞、刷榜等破坏公平的行为</li>
-          <li>广告与垃圾信息</li>
+          <li>违法、露骨、广告与垃圾信息</li>
         </ul>
+      </LegalSection>
+      <LegalSection title="举报与处理">
+        <p>登录用户可举报作品、评论或账号。审核员会认领并复核举报，对违规内容隐藏或恢复；管理员可进一步警告、限制发布、临时停用或封禁账号。每次操作都写入审计日志，避免无记录处置。</p>
       </LegalSection>
     </LegalDocument>
   )

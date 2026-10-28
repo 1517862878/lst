@@ -158,11 +158,22 @@ export interface CategoryRepository {
   get(slug: string): Promise<Category>
 }
 
+export interface SignUpInput {
+  username: string
+  displayName: string
+  password: string
+  phone: string
+  code: string
+  termsAccepted: boolean
+  privacyAccepted: boolean
+}
+
 export interface AuthRepository {
   /** 读取当前会话（无会话返回 null） */
   getSession(): Promise<Session | null>
-  signIn(username: string, password: string): Promise<Session>
-  signUp(input: { username: string; displayName: string; password: string }): Promise<Session>
+  signIn(username: string, password: string, turnstileToken?: string): Promise<Session>
+  requestRegistrationCode(phone: string, turnstileToken?: string): Promise<void>
+  signUp(input: SignUpInput): Promise<Session>
   signOut(): Promise<void>
   /** 按 id 取资料 */
   getProfile(id: string): Promise<Profile>

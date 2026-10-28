@@ -1,0 +1,29 @@
+# 工科影展 HTTPS 反向代理模板
+# 使用前把 example.com 替换为已解析到本机公网 IP 的域名。
+example.com {
+  encode zstd gzip
+
+  # 前端产物：先运行 pnpm build
+  root * E:/项目一 网站开发/dist
+
+  # API、图片和上传均同源，避免第三方 Cookie 兼容问题。
+  handle /api/* {
+    reverse_proxy 127.0.0.1:3001
+  }
+  handle /images/* {
+    reverse_proxy 127.0.0.1:3001
+  }
+
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options nosniff
+    Referrer-Policy strict-origin-when-cross-origin
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-src https://challenges.cloudflare.com"
+  }
+}

@@ -24,6 +24,7 @@ import {
 } from '../repositories/rankings.js'
 import { registerAuthRoutes } from './auth.js'
 import { registerProfileRoutes } from './profiles.js'
+import { registerModerationRoutes } from './moderation.js'
 import { searchPhotos } from '../repositories/search.js'
 
 export async function registerRoutes(app: FastifyInstance) {
@@ -32,6 +33,7 @@ export async function registerRoutes(app: FastifyInstance) {
   // ==========================================================================
   await registerAuthRoutes(app)
   await registerProfileRoutes(app)
+  await registerModerationRoutes(app)
 
   // ==========================================================================
   // 作品

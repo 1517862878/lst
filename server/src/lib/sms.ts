@@ -1,17 +1,7 @@
-/**
- * 短信发送（可插拔）。
- *
- * 当前阶段（用户已确认"方案一"）：SMS_PROVIDER 未设或为 console 时，
- * 验证码只打到服务端日志，不接真实短信通道，避免在没有短信资质时阻塞开发。
- * 上云后换阿里云：实现 SmsSender + 设 SMS_PROVIDER=aliyun，业务代码零改动。
- *
- * 职责边界：本模块只负责"发出去"。
- * 验证码的哈希、过期、尝试次数、冷却全部由数据库（phone_verifications + 0013 的函数）负责，
- * 因为那些是安全属性，必须落在服务端权威存储上，不能交给无状态的 Node 进程。
- */
+import { createHmac, randomUUID } from 'node:crypto'
+
 export interface SmsSendInput {
   phone: string
-  /** 明文验证码（只在内存里短暂存在，数据库只存哈希） */
   code: string
   purpose: string
   ttlSeconds: number
@@ -25,22 +15,42 @@ export interface SmsSender {
 const consoleSender: SmsSender = {
   name: 'console',
   async send({ phone, code, purpose, ttlSeconds }) {
-    // 开发期唯一可见渠道，故意打得显眼
-    console.info(
-      `[sms:console] 验证码 ${code} → ${phone}（用途 ${purpose}，${ttlSeconds} 秒内有效）`,
-    )
+    console.info(`[sms:console] 验证码 ${code} → ${phone}（用途 ${purpose}，${ttlSeconds} 秒内有效）`)
   },
+}
+
+function percentEncode(value: string): string {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+}
+function utcTimestamp(): string {
+  return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
 }
 
 const aliyunSender: SmsSender = {
   name: 'aliyun',
-  async send() {
-    throw new Error(
-      '阿里云短信通道尚未接入：请实现 SmsSender 并配置 AccessKey / 签名 / 模板 ID',
-    )
+  async send({ phone, code, purpose, ttlSeconds }) {
+    const keyId=process.env.ALIYUN_SMS_ACCESS_KEY_ID?.trim() ?? ''
+    const keySecret=process.env.ALIYUN_SMS_ACCESS_KEY_SECRET?.trim() ?? ''
+    const signName=process.env.ALIYUN_SMS_SIGN_NAME?.trim() ?? ''
+    const templateCode=process.env.ALIYUN_SMS_TEMPLATE_CODE?.trim() ?? ''
+    if (!keyId || !keySecret || !signName || !templateCode) throw new Error('阿里云短信环境变量不完整')
+    const params: Record<string,string> = {
+      AccessKeyId:keyId, Action:'SendSms', Format:'JSON', PhoneNumbers:phone,
+      SignatureMethod:'HMAC-SHA1', SignatureNonce:randomUUID(), SignatureVersion:'1.0',
+      SignName:signName, TemplateCode:templateCode,
+      TemplateParam:JSON.stringify({ code, purpose, ttl:Math.ceil(ttlSeconds/60) }),
+      Timestamp:utcTimestamp(), Version:'2017-05-25',
+    }
+    const canonical=Object.entries(params).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>`${percentEncode(k)}=${percentEncode(v)}`).join('&')
+    const stringToSign=`GET&%2F&${percentEncode(canonical)}`
+    params.Signature=createHmac('sha1',`${keySecret}&`).update(stringToSign).digest('base64')
+    const query=Object.entries(params).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>`${percentEncode(k)}=${percentEncode(v)}`).join('&')
+    const response=await fetch(`https://dysmsapi.aliyuncs.com/?${query}`,{signal:AbortSignal.timeout(5000)})
+    const result=(await response.json()) as { Code?:string; Message?:string }
+    if (!response.ok || result.Code!=='OK') throw new Error(`阿里云短信发送失败：${result.Code ?? response.status} ${result.Message ?? ''}`.trim())
   },
 }
 
-/** 由环境变量选择通道；默认 console（开发友好，且不会意外产生短信费用） */
-export const smsSender: SmsSender =
-  process.env.SMS_PROVIDER === 'aliyun' ? aliyunSender : consoleSender
+const provider=process.env.SMS_PROVIDER?.trim() || 'console'
+if (process.env.NODE_ENV==='production' && provider!=='aliyun') throw new Error('生产环境必须设置 SMS_PROVIDER=aliyun')
+export const smsSender: SmsSender = provider==='aliyun' ? aliyunSender : consoleSender

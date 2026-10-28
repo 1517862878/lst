@@ -202,8 +202,6 @@ export interface Session {
   userId: string
   username: string
   displayName: string
-  /** 会话令牌：mock 模式是 mock.* 伪令牌，api 模式是后端签发的 JWT */
-  token: string
   expiresAt: IsoDate
 }
 

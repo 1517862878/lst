@@ -220,3 +220,78 @@ export async function finishPhoneCode(codeId: string, matched: boolean): Promise
     return { attempts: row?.attempts ?? 0, locked: row?.locked ?? false }
   })
 }
+
+export async function createSession(input: {
+  userId: string
+  tokenHash: string
+  expiresAt: Date
+  userAgent: string | null
+  ipHash: string | null
+}): Promise<{ sessionId: string; familyId: string; expiresAt: Date }> {
+  return withRls(null, async (c) => {
+    const r = await c.query<{ session_id: string; family_id: string; expires_at: Date }>(
+      'select session_id,family_id,expires_at from public.api_create_session($1,$2,$3,$4,$5)',
+      [input.userId, input.tokenHash, input.expiresAt, input.userAgent, input.ipHash],
+    )
+    const row = r.rows[0]
+    if (!row) throw new Error('api_create_session 未返回会话')
+    return { sessionId: row.session_id, familyId: row.family_id, expiresAt: new Date(row.expires_at) }
+  })
+}
+
+export async function getSessionForAuth(sessionId: string): Promise<{
+  sessionId: string
+  userId: string
+  tokenHash: string
+  expiresAt: Date
+} | null> {
+  return withRls(null, async (c) => {
+    const r = await c.query<{ session_id: string; user_id: string; refresh_token_hash: string; expires_at: Date }>(
+      'select session_id,user_id,refresh_token_hash,expires_at from public.api_get_session_for_auth($1)',
+      [sessionId],
+    )
+    const row = r.rows[0]
+    return row ? { sessionId: row.session_id, userId: row.user_id, tokenHash: row.refresh_token_hash, expiresAt: new Date(row.expires_at) } : null
+  })
+}
+
+export async function sessionIsActive(sessionId: string, userId: string): Promise<boolean> {
+  return withRls(null, async (c) => {
+    const r = await c.query<{ active: boolean }>('select public.api_session_is_active($1,$2) as active', [sessionId, userId])
+    return r.rows[0]?.active ?? false
+  })
+}
+
+export async function revokeSession(sessionId: string, userId: string): Promise<void> {
+  await withRls(null, (c) => c.query('select public.api_revoke_session($1,$2)', [sessionId, userId]))
+}
+
+export interface VerifiedRegistrationInput {
+  username: string
+  displayName: string
+  passwordHash: string
+  phone: string
+  codeId: string
+  codeHash: string
+  termsVersion: string
+  privacyVersion: string
+  ipHash: string
+  userAgent: string | null
+}
+
+export async function registerVerifiedAccount(input: VerifiedRegistrationInput): Promise<
+  | { ok: true; account: RegisteredAccount }
+  | { ok: false; reason: string }
+> {
+  return withRls(null, async (c) => {
+    const r = await c.query<RegisterRow & { ok: boolean; reason: string | null }>(
+      `select ok,reason,user_id,user_name,display_name,user_role,phone
+         from public.api_register_verified_account($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [input.username,input.displayName,input.passwordHash,input.phone,input.codeId,input.codeHash,
+       input.termsVersion,input.privacyVersion,input.ipHash,input.userAgent],
+    )
+    const row = r.rows[0]
+    if (!row?.ok) return { ok: false, reason: row?.reason ?? 'invalid_code' }
+    return { ok: true, account: { userId: row.user_id, username: row.user_name, displayName: row.display_name, role: row.user_role, phone: row.phone } }
+  })
+}

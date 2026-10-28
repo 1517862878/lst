@@ -4,6 +4,7 @@
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createRepositories } from '@/data'
+import type { SignUpInput } from '@/data/contracts'
 import type { Session } from '@/domain/types'
 import { queryKeys } from './queryKeys'
 
@@ -39,8 +40,8 @@ export function useProfile(id: string) {
 export function useSignIn() {
   const queryClient = useQueryClient()
   return {
-    async signIn(username: string, password: string): Promise<Session> {
-      const session = await repos().auth.signIn(username, password)
+    async signIn(username: string, password: string, turnstileToken?: string): Promise<Session> {
+      const session = await repos().auth.signIn(username, password, turnstileToken)
       queryClient.setQueryData(queryKeys.session(), session)
       return session
     },
@@ -62,7 +63,10 @@ export function useSignOut() {
 export function useSignUp() {
   const queryClient = useQueryClient()
   return {
-    async signUp(input: { username: string; displayName: string; password: string }): Promise<Session> {
+    async requestRegistrationCode(phone: string, turnstileToken?: string): Promise<void> {
+      await repos().auth.requestRegistrationCode(phone, turnstileToken)
+    },
+    async signUp(input: SignUpInput): Promise<Session> {
       const session = await repos().auth.signUp(input)
       queryClient.setQueryData(queryKeys.session(), session)
       return session

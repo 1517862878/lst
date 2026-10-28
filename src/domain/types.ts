@@ -57,6 +57,13 @@ export interface Profile {
   createdAt: IsoDate
   updatedAt: IsoDate
   deletedAt: IsoDate | null
+  /**
+   * 当前访客与该用户之间是否存在拉黑（任一方向为 true）。
+   *
+   * 可选：mock 侧按需填充，api 侧由公开资料接口返回；「本人」与「匿名」
+   * 都可能拿不到这个字段，所以页面必须容忍 undefined。
+   */
+  isBlocked?: boolean
 }
 
 export interface Photo {
@@ -120,6 +127,34 @@ export interface Follow {
 export interface FollowCounts {
   followers: number
   following: number
+}
+
+/**
+ * 用户搜索结果里的一行（二期「用户搜索」）。
+ *
+ * 刻意不复用 Profile：搜索结果不返回 UUID、不需要 links/role 等字段，
+ * 且必须带上「我是否已关注」——它在列表里就要能直接点关注按钮。
+ */
+export interface UserHit {
+  username: string
+  displayName: string
+  avatarKey: string | null
+  bio: string
+  followerCount: number
+  isFollowing: boolean
+}
+
+/**
+ * 我拉黑的一个人（设置中心「黑名单」页）。
+ *
+ * 只保留展示与解除拉黑所需的字段；后端不返回被拉黑者的 UUID。
+ */
+export interface BlockedUser {
+  username: string
+  displayName: string
+  avatarKey: string | null
+  bio: string
+  blockedAt: IsoDate
 }
 
 /** 通知类型：点赞 / 评论 / 关注 / 系统 */

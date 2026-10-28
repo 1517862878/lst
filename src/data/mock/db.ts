@@ -19,7 +19,7 @@ import type {
 } from '@/domain/types'
 
 export const DB_NAME = 'gy-db'
-export const DB_VERSION = 2
+export const DB_VERSION = 3
 
 /**
  * 通知的存储行。
@@ -30,6 +30,13 @@ export const DB_VERSION = 2
  * userId 只存在于存储层，出库前一律剥掉（见 mock/repositories/social.ts）。
  */
 export type NotificationRow = AppNotification & { userId: string }
+
+/** 拉黑关系（有向存储；读取权限时任一方向都生效） */
+export interface BlockRow {
+  blockerId: string
+  blockedId: string
+  createdAt: string
+}
 
 export interface GyDBSchema extends DBSchema {
   profiles: { key: string; value: Profile; indexes: { username: string } }
@@ -58,6 +65,11 @@ export interface GyDBSchema extends DBSchema {
   follows: { key: [string, string]; value: Follow; indexes: { followingId: string; followerId: string } }
   /** 通知（见 NotificationRow：存储层多一个 userId） */
   notifications: { key: string; value: NotificationRow; indexes: { userId: string } }
+  blocks: {
+    key: [string, string]
+    value: BlockRow
+    indexes: { blockerId: string; blockedId: string }
+  }
   _meta: { key: string; value: { key: string; value: unknown } }
 }
 
@@ -91,6 +103,12 @@ export const MIGRATIONS: Array<(db: Db) => void> = [
     follows.createIndex('followerId', 'followerId')
     const notifications = db.createObjectStore('notifications', { keyPath: 'id' })
     notifications.createIndex('userId', 'userId')
+  },
+  // v2 → v3：用户拉黑
+  (db) => {
+    const blocks = db.createObjectStore('blocks', { keyPath: ['blockerId', 'blockedId'] })
+    blocks.createIndex('blockerId', 'blockerId')
+    blocks.createIndex('blockedId', 'blockedId')
   },
 ]
 

@@ -30,6 +30,7 @@ export const queryKeys = {
   article: (slug: string) => ['article', slug] as const,
   topics: () => ['topics'] as const,
   search: (query: SearchQuery) => ['search', query] as const,
+  userSearch: (query: string) => ['search', 'users', query] as const,
   session: () => ['session'] as const,
   profile: (id: string) => ['profile', id] as const,
   profileByUsername: (username: string) => ['profileByUsername', username] as const,
@@ -41,6 +42,7 @@ export const queryKeys = {
   feed: () => ['social', 'feed'] as const,
   notifications: () => ['social', 'notifications'] as const,
   unreadCount: () => ['social', 'unread-count'] as const,
+  blockedUsers: () => ['social', 'blocked-users'] as const,
 }
 
 export type FollowListKind = 'followers' | 'following'

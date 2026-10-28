@@ -9,6 +9,7 @@ import { AppError, ErrorCodes } from '@/data/contracts'
 import { PhotoGrid } from '@/features/photos/PhotoGrid'
 import { FollowButton } from '@/features/social/FollowButton'
 import { FollowStats } from '@/features/social/FollowStats'
+import { ProfileMoreMenu } from '@/features/social/ProfileMoreMenu'
 import { usePhotosByUsername } from '@/hooks/usePhotos'
 import { useProfileByUsername, useSession } from '@/hooks/useSession'
 import { accountImageUrl } from '@/lib/account'
@@ -25,6 +26,7 @@ type ExtendedProfile = NonNullable<ReturnType<typeof useProfileByUsername>['data
 export function ProfilePage() {
   const { username = '' } = useParams()
   const [tab, setTab] = useState<ProfileTab>('works')
+  const [blockNotice, setBlockNotice] = useState(false)
   const { data: session } = useSession()
   const profileQuery = useProfileByUsername(username)
   const profile = profileQuery.data as ExtendedProfile | undefined
@@ -78,7 +80,7 @@ export function ProfilePage() {
   const socialRow = (
     <FollowStats
       username={profile.username}
-      leading={isOwner ? null : <FollowButton username={profile.username} />}
+      leading={isOwner ? null : <><FollowButton username={profile.username} /><ProfileMoreMenu username={profile.username} onBlocked={() => { setBlockNotice(true); void profileQuery.refetch() }} /></>}
     />
   )
 
@@ -104,6 +106,7 @@ export function ProfilePage() {
         <div className="g-profile-header-info">
           <h1 className="g-page-title">{profile.displayName || profile.username}</h1>
           <p className="g-page-subtitle">@{profile.username}{profile.bio && ` · ${profile.bio}`}</p>
+          {blockNotice && <p className="g-profile-notice" role="status">你已拉黑该用户，对方无法关注你、也无法与你互动</p>}
           {profile.discoverable === false && isOwner && <p className="g-profile-notice" role="status">你的账号当前不可被搜索和推荐发现；直接访问主页仍然有效。</p>}
           {profile.links?.length > 0 && <ul className="g-profile-links" aria-label="主页链接">{profile.links.map((link, index) => <li key={`${link.url}-${index}`}><a href={link.url} target="_blank" rel="noreferrer">{link.label}</a></li>)}</ul>}
           {isOwner && <Link className="g-login-link" to="/settings/profile">编辑资料与隐私</Link>}

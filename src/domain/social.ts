@@ -9,12 +9,25 @@
  *
  * 无 React、无仓储、无副作用。
  */
-import type { AppNotification, Follow, FollowCounts, Photo, Profile } from './types'
+import type { AppNotification, BlockedUser, Follow, FollowCounts, Photo, Profile, UserHit } from './types'
+
+/** domain 层只依赖该最小形状，避免反向依赖 data/mock。 */
+export interface BlockRelation {
+  blockerId: string
+  blockedId: string
+  createdAt: string
+}
 
 /** 列表默认页长（关注列表 / 关注动态） */
 export const SOCIAL_PAGE_SIZE = 24
 /** 通知默认页长 */
 export const NOTIFICATION_PAGE_SIZE = 20
+/** 拉黑列表默认页长（与后端 api_list_blocks 的默认 limit=20 对齐） */
+export const BLOCK_PAGE_SIZE = 20
+/** 用户搜索默认条数（与后端 api_search_users 的默认 limit=20 对齐） */
+export const USER_SEARCH_PAGE_SIZE = 20
+/** 搜索关键词长度上限（1–30，与 0024 的 api_search_users 逐字一致） */
+export const SEARCH_QUERY_MAX_LENGTH = 30
 
 /** 游标分页返回（与契约一致：items + nextCursor，不带 total） */
 export interface CursorPage<T> {
@@ -133,6 +146,121 @@ export function isFollowingUsername(
 export function findProfileByUsername(profiles: readonly Profile[], username: string): Profile | undefined {
   const needle = username.trim().toLowerCase()
   return profiles.find((p) => p.username.toLowerCase() === needle)
+}
+
+// ===== 拉黑与用户搜索 =====
+
+/** 任一方向有拉黑即视为两人之间不可见。 */
+export function isBlockedBetween(
+  blocks: readonly BlockRelation[],
+  firstUserId: string,
+  secondUserId: string,
+): boolean {
+  return blocks.some(
+    (block) =>
+      (block.blockerId === firstUserId && block.blockedId === secondUserId) ||
+      (block.blockerId === secondUserId && block.blockedId === firstUserId),
+  )
+}
+
+/** 当前用户不可见的所有用户 id（双方任一方向拉黑）。 */
+export function blockedUserIdsOf(blocks: readonly BlockRelation[], userId: string): Set<string> {
+  const ids = new Set<string>()
+  for (const block of blocks) {
+    if (block.blockerId === userId) ids.add(block.blockedId)
+    if (block.blockedId === userId) ids.add(block.blockerId)
+  }
+  return ids
+}
+
+/** 拉黑时移除两人之间双向关注，返回新列表与实际移除条数。 */
+export function removeFollowsBetween(
+  follows: readonly Follow[],
+  firstUserId: string,
+  secondUserId: string,
+): { follows: Follow[]; removed: number } {
+  const kept = follows.filter(
+    (follow) =>
+      !(
+        (follow.followerId === firstUserId && follow.followingId === secondUserId) ||
+        (follow.followerId === secondUserId && follow.followingId === firstUserId)
+      ),
+  )
+  return { follows: kept, removed: follows.length - kept.length }
+}
+
+/** 按冻结排序规则搜索用户，并排除与查看者任一方向拉黑的用户。 */
+export function searchUserHits(
+  profiles: readonly Profile[],
+  follows: readonly Follow[],
+  blocks: readonly BlockRelation[],
+  viewerId: string | null,
+  query: string,
+  limit = USER_SEARCH_PAGE_SIZE,
+): UserHit[] {
+  const needle = query.trim().toLowerCase().slice(0, SEARCH_QUERY_MAX_LENGTH)
+  if (!needle) return []
+  const excluded = viewerId ? blockedUserIdsOf(blocks, viewerId) : new Set<string>()
+  const size = Math.min(50, Math.max(1, limit))
+
+  return profiles
+    .filter(
+      (profile) =>
+        profile.deletedAt === null &&
+        !excluded.has(profile.id) &&
+        (profile.username.toLowerCase().includes(needle) || profile.displayName.toLowerCase().includes(needle)),
+    )
+    .map((profile) => ({
+      profile,
+      prefix:
+        profile.username.toLowerCase().startsWith(needle) || profile.displayName.toLowerCase().startsWith(needle),
+      followerCount: followCounts(follows, profile.id).followers,
+    }))
+    .sort((a, b) => {
+      if (a.prefix !== b.prefix) return a.prefix ? -1 : 1
+      if (a.followerCount !== b.followerCount) return b.followerCount - a.followerCount
+      return a.profile.username.localeCompare(b.profile.username)
+    })
+    .slice(0, size)
+    .map(({ profile, followerCount }) => ({
+      username: profile.username,
+      displayName: profile.displayName,
+      avatarKey: profile.avatarKey,
+      bio: profile.bio,
+      followerCount,
+      isFollowing: viewerId
+        ? follows.some((follow) => follow.followerId === viewerId && follow.followingId === profile.id)
+        : false,
+    }))
+}
+
+/** 我主动拉黑的用户，按 (createdAt, blockedId) 倒序映射为公开投影。 */
+export function blockedUsers(
+  blocks: readonly BlockRelation[],
+  profiles: readonly Profile[],
+  blockerId: string,
+): Array<BlockedUser & { blockedId: string; createdAt: string }> {
+  const profilesById = new Map(profiles.map((profile) => [profile.id, profile]))
+  return blocks
+    .filter((block) => block.blockerId === blockerId)
+    .sort((a, b) => {
+      if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? 1 : -1
+      return a.blockedId < b.blockedId ? 1 : a.blockedId > b.blockedId ? -1 : 0
+    })
+    .flatMap((block) => {
+      const profile = profilesById.get(block.blockedId)
+      return profile
+        ? [{
+            username: profile.username,
+            displayName: profile.displayName,
+            avatarKey: profile.avatarKey,
+            bio: profile.bio,
+            blockedAt: block.createdAt,
+            blockedId: block.blockedId,
+            createdAt: block.createdAt,
+          }]
+        : []
+    })
 }
 
 // ===== 关注动态（feed） =====

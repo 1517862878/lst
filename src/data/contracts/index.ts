@@ -6,6 +6,7 @@ import type {
   AppNotification,
   Article,
   ArticleTopic,
+  BlockedUser,
   Category,
   Comment,
   FollowCounts,
@@ -19,9 +20,10 @@ import type {
   RankingSnapshot,
   RankingEntry,
   Session,
+  UserHit,
 } from '@/domain/types'
 
-export type { FollowCounts, Page }
+export type { BlockedUser, FollowCounts, Page, UserHit }
 
 // ===== 通用错误（跨适配器一致的错误模型）=====
 
@@ -215,6 +217,13 @@ export interface StorageRepository {
 
 export interface SearchRepository {
   search(query: SearchQuery): Promise<Page<Photo>>
+  /**
+   * 搜用户（二期「用户搜索」）：按用户名或昵称模糊匹配。
+   *
+   * 返回 UserHit[] 而不是 Page<UserHit>：后端只回 items+total，
+   * 这里连 total 都不暴露——搜索页是「前 N 条」语义，不是可翻页列表。
+   */
+  searchUsers(query: string, options?: { limit?: number }): Promise<UserHit[]>
 }
 
 // ===== 社交（二期：关注 / 关注动态 / 通知）=====
@@ -253,6 +262,18 @@ export interface SocialRepository {
   unreadCount(): Promise<number>
   /** 标记已读；不传 ids = 全部标记为已读 */
   markRead(ids?: string[]): Promise<void>
+  /**
+   * 拉黑某人（幂等）。
+   *
+   * 语义（后端为准）：有向存储、对称生效——建立时删掉两人之间双向的关注关系，
+   * 之后互相不能关注、不能点赞/收藏/评论对方的作品、不产生通知、列表互相不可见。
+   * 返回 removedFollows 供 UI 提示「已解除 N 个关注关系」。
+   */
+  blockUser(username: string): Promise<{ removedFollows: number }>
+  /** 解除拉黑（幂等：没拉黑过也当成功，不抛错） */
+  unblockUser(username: string): Promise<void>
+  /** 我拉黑的用户列表（游标分页，按拉黑时间倒序） */
+  listBlocked(params?: { cursor?: string; limit?: number }): Promise<Page<BlockedUser>>
 }
 
 /** 所有仓储的集合（data/index.ts 工厂产出） */

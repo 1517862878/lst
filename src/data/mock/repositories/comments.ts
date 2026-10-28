@@ -4,6 +4,7 @@
  */
 import { AppError, ErrorCodes, type CommentListQuery, type CommentRepository } from '@/data/contracts'
 import type { Comment } from '@/domain/types'
+import { isBlockedBetween } from '@/domain/social'
 import { getDb, bumpDataVersion } from '../db'
 
 function encodeCursor(key: string): string {
@@ -39,6 +40,12 @@ export const mockCommentRepository: CommentRepository = {
     const db = await getDb()
     const photo = await db.get('photos', input.photoId)
     if (!photo) throw new AppError(ErrorCodes.NOT_FOUND, `作品不存在：${input.photoId}`)
+    if (
+      input.authorId !== photo.authorId &&
+      isBlockedBetween(await db.getAll('blocks'), input.authorId, photo.authorId)
+    ) {
+      throw new AppError(ErrorCodes.FORBIDDEN, '你无法评论该用户的作品')
+    }
     const now = new Date().toISOString()
     const comment: Comment = {
       id: crypto.randomUUID(),

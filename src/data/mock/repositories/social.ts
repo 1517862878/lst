@@ -4,11 +4,13 @@
  * 行为必须与 api 实现一致（同一份契约、同一套纯函数），差异只在数据落地位置：
  * 这里落在 IndexedDB，api 那边落在 PostgreSQL。
  */
-import { AppError, ErrorCodes, type CursorListPage, type SocialRepository } from '@/data/contracts'
-import type { AppNotification, Follow, Photo, Profile } from '@/domain/types'
+import { AppError, ErrorCodes, type CursorListPage, type Page, type SocialRepository } from '@/data/contracts'
+import type { AppNotification, BlockedUser, Follow, Photo, Profile } from '@/domain/types'
 import {
+  BLOCK_PAGE_SIZE,
   NOTIFICATION_PAGE_SIZE,
   SOCIAL_PAGE_SIZE,
+  blockedUserIdsOf,
   feedPhotos,
   findProfileByUsername,
   followCounts,
@@ -17,6 +19,8 @@ import {
   paginateByCursor,
   sortByCreatedAtDesc,
   unreadNotificationCount,
+  blockedUsers,
+  isBlockedBetween,
 } from '@/domain/social'
 import { bumpDataVersion, getDb, type NotificationRow } from '../db'
 import { mockAuthRepository } from './auth'
@@ -50,6 +54,53 @@ async function requireProfile(username: string): Promise<Profile> {
 }
 
 export const mockSocialRepository: SocialRepository = {
+  async blockUser(username: string): Promise<{ removedFollows: number }> {
+    const session = await requireSession()
+    const target = await requireProfile(username)
+    if (target.id === session.userId) throw new AppError(ErrorCodes.VALIDATION, '不能拉黑自己')
+    const db = await getDb()
+    const existingBlock = await db.get('blocks', [session.userId, target.id])
+    if (!existingBlock) {
+      await db.put('blocks', { blockerId: session.userId, blockedId: target.id, createdAt: new Date().toISOString() })
+    }
+    let removedFollows = 0
+    const followKeys: [string, string][] = [
+      [session.userId, target.id],
+      [target.id, session.userId],
+    ]
+    for (const key of followKeys) {
+      if (await db.get('follows', key)) {
+        await db.delete('follows', key)
+        removedFollows += 1
+      }
+    }
+    if (!existingBlock || removedFollows > 0) await bumpDataVersion()
+    return { removedFollows }
+  },
+
+  async unblockUser(username: string): Promise<void> {
+    const session = await requireSession()
+    const target = await requireProfile(username)
+    const db = await getDb()
+    if (await db.get('blocks', [session.userId, target.id])) {
+      await db.delete('blocks', [session.userId, target.id])
+      await bumpDataVersion()
+    }
+  },
+
+  async listBlocked(params?: { cursor?: string; limit?: number }): Promise<Page<BlockedUser>> {
+    const session = await requireSession()
+    const db = await getDb()
+    const ordered = blockedUsers(await db.getAll('blocks'), await db.getAll('profiles'), session.userId)
+    const limit = Math.min(50, Math.max(1, params?.limit ?? BLOCK_PAGE_SIZE))
+    const page = paginateByCursor(ordered, params?.cursor, limit, (item) => item.blockedId)
+    return {
+      items: page.items.map(({ blockedId: _blockedId, createdAt: _createdAt, ...item }) => item),
+      nextCursor: page.nextCursor,
+      total: ordered.length,
+    }
+  },
+
   async follow(username: string): Promise<void> {
     const session = await requireSession()
     const target = await requireProfile(username)
@@ -58,6 +109,9 @@ export const mockSocialRepository: SocialRepository = {
     }
 
     const db = await getDb()
+    if (isBlockedBetween(await db.getAll('blocks'), session.userId, target.id)) {
+      throw new AppError(ErrorCodes.FORBIDDEN, '对方不可关注')
+    }
     const existing = await db.get('follows', [session.userId, target.id])
     if (existing) return // 幂等：重复关注不报错、不重复计数
 
@@ -116,13 +170,17 @@ export const mockSocialRepository: SocialRepository = {
   async listFollowers(username: string, cursor?: string): Promise<CursorListPage<Profile>> {
     const target = await requireProfile(username)
     const db = await getDb()
-    const rows = (await db.getAll('follows')).filter((f) => f.followingId === target.id)
-    const ordered = sortByCreatedAtDesc(rows, (f) => f.followerId)
-    const page = paginateByCursor(ordered, cursor, SOCIAL_PAGE_SIZE, (f) => f.followerId)
+    const session = await mockAuthRepository.getSession()
+    const hidden = session ? blockedUserIdsOf(await db.getAll('blocks'), session.userId) : new Set<string>()
+    const rows = (await db.getAll('follows')).filter(
+      (follow) => follow.followingId === target.id && !hidden.has(follow.followerId),
+    )
+    const ordered = sortByCreatedAtDesc(rows, (follow) => follow.followerId)
+    const page = paginateByCursor(ordered, cursor, SOCIAL_PAGE_SIZE, (follow) => follow.followerId)
     const profiles = await db.getAll('profiles')
-    const byId = new Map(profiles.map((p) => [p.id, p]))
+    const byId = new Map(profiles.map((profile) => [profile.id, profile]))
     return {
-      items: page.items.map((f) => byId.get(f.followerId)).filter((p): p is Profile => Boolean(p)),
+      items: page.items.map((follow) => byId.get(follow.followerId)).filter((profile): profile is Profile => Boolean(profile)),
       nextCursor: page.nextCursor,
     }
   },
@@ -130,13 +188,17 @@ export const mockSocialRepository: SocialRepository = {
   async listFollowing(username: string, cursor?: string): Promise<CursorListPage<Profile>> {
     const target = await requireProfile(username)
     const db = await getDb()
-    const rows = (await db.getAll('follows')).filter((f) => f.followerId === target.id)
-    const ordered = sortByCreatedAtDesc(rows, (f) => f.followingId)
-    const page = paginateByCursor(ordered, cursor, SOCIAL_PAGE_SIZE, (f) => f.followingId)
+    const session = await mockAuthRepository.getSession()
+    const hidden = session ? blockedUserIdsOf(await db.getAll('blocks'), session.userId) : new Set<string>()
+    const rows = (await db.getAll('follows')).filter(
+      (follow) => follow.followerId === target.id && !hidden.has(follow.followingId),
+    )
+    const ordered = sortByCreatedAtDesc(rows, (follow) => follow.followingId)
+    const page = paginateByCursor(ordered, cursor, SOCIAL_PAGE_SIZE, (follow) => follow.followingId)
     const profiles = await db.getAll('profiles')
-    const byId = new Map(profiles.map((p) => [p.id, p]))
+    const byId = new Map(profiles.map((profile) => [profile.id, profile]))
     return {
-      items: page.items.map((f) => byId.get(f.followingId)).filter((p): p is Profile => Boolean(p)),
+      items: page.items.map((follow) => byId.get(follow.followingId)).filter((profile): profile is Profile => Boolean(profile)),
       nextCursor: page.nextCursor,
     }
   },
@@ -145,6 +207,8 @@ export const mockSocialRepository: SocialRepository = {
     const session = await requireSession()
     const db = await getDb()
     const following = followingIdsOf(await db.getAll('follows'), session.userId)
+    const hidden = blockedUserIdsOf(await db.getAll('blocks'), session.userId)
+    for (const userId of hidden) following.delete(userId)
     const items = feedPhotos(await db.getAll('photos'), following)
     return paginateByCursor(items, cursor, SOCIAL_PAGE_SIZE, (p) => p.id)
   },
@@ -152,7 +216,10 @@ export const mockSocialRepository: SocialRepository = {
   async notifications(cursor?: string): Promise<CursorListPage<AppNotification>> {
     const session = await requireSession()
     const db = await getDb()
-    const mine = (await db.getAll('notifications')).filter((n) => n.userId === session.userId)
+    const hidden = blockedUserIdsOf(await db.getAll('blocks'), session.userId)
+    const mine = (await db.getAll('notifications')).filter(
+      (n) => n.userId === session.userId && (!n.actor || !hidden.has(n.actor.id)),
+    )
     const ordered = sortByCreatedAtDesc(mine, (n) => n.id)
     const page = paginateByCursor(ordered, cursor, NOTIFICATION_PAGE_SIZE, (n) => n.id)
     return { items: page.items.map(toNotification), nextCursor: page.nextCursor }
@@ -161,7 +228,11 @@ export const mockSocialRepository: SocialRepository = {
   async unreadCount(): Promise<number> {
     const session = await requireSession()
     const db = await getDb()
-    const mine = (await db.getAll('notifications')).filter((n) => n.userId === session.userId)
+    const hidden = blockedUserIdsOf(await db.getAll('blocks'), session.userId)
+    const mine = (await db.getAll('notifications')).filter(
+      (notification) =>
+        notification.userId === session.userId && (!notification.actor || !hidden.has(notification.actor.id)),
+    )
     return unreadNotificationCount(mine)
   },
 

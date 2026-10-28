@@ -142,12 +142,22 @@ button.g-search-result-tag {
   font: inherit;
 }
 
+.g-user-search-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--g-line); background: var(--g-surface); }
+.g-user-search-item { display: flex; align-items: center; justify-content: space-between; gap: var(--g-space-3); min-width: 0; padding: var(--g-space-3) var(--g-space-4); border-bottom: 1px solid var(--g-line); }
+.g-user-search-item:last-child { border-bottom: 0; }
+.g-user-search-main { display: flex; align-items: center; gap: var(--g-space-3); min-width: 0; flex: 1; color: var(--g-ink); text-decoration: none; }
+.g-user-search-copy { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.g-user-search-copy > span,.g-user-search-copy small { color: var(--g-ink-2); }
+
 @media (max-width: 760px) {
   .g-search-filter-panel { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 480px) {
   .g-search-filter-panel { grid-template-columns: 1fr; }
+  .g-search-bar { align-items: stretch; flex-direction: column; }
+  .g-user-search-item { align-items: flex-start; padding-inline: var(--g-space-3); }
+  .g-user-search-item .g-follow-btn { min-width: auto; flex-shrink: 0; }
 }
 
 /* 榜单 */

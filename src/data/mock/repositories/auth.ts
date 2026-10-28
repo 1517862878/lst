@@ -5,6 +5,7 @@
 import { AppError, ErrorCodes, type AuthRepository, type SignUpInput } from '@/data/contracts'
 import type { Profile, Session } from '@/domain/types'
 import { DEMO_PASSWORD } from '@/domain/constants'
+import { isBlockedBetween } from '@/domain/social'
 import { getDb } from '../db'
 
 const SESSION_KEY = 'gy:session'
@@ -109,8 +110,12 @@ export const mockAuthRepository: AuthRepository = {
   async getProfileByUsername(username: string): Promise<Profile> {
     const db = await getDb()
     const all = await db.getAll('profiles')
-    const profile = all.find((p) => p.username === username)
+    const profile = all.find((p) => p.username.toLowerCase() === username.trim().toLowerCase())
     if (!profile) throw new AppError(ErrorCodes.NOT_FOUND, `用户不存在：${username}`)
+    const session = loadSession()
+    if (session && isBlockedBetween(await db.getAll('blocks'), session.userId, profile.id)) {
+      throw new AppError(ErrorCodes.NOT_FOUND, `用户不存在：${username}`)
+    }
     return profile
   },
 }

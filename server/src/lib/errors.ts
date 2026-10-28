@@ -53,6 +53,27 @@ export const conflict = (msg: string) => new ApiError('CONFLICT', msg)
 export const rateLimited = (msg = '操作过于频繁') => new ApiError('RATE_LIMIT', msg)
 
 /**
+ * 0024 的「拉黑阻断」标记：数据库用 42501 抛拉黑导致的禁止，
+ * 消息形如 `BLOCKED_BY_RELATION:对方不可关注`。
+ *
+ * 为什么要标记，而不是直接透传 42501 的消息：42501 同时是 RLS 的拒绝码，
+ * 那种消息是 PostgreSQL 的英文样板（"new row violates row-level security
+ * policy for table ..."），不该出现在面向用户的中文界面里。只有带标记的消息
+ * 才是 0024 有意写给用户看的业务原因（契约 §1.1 要求前端能显示
+ * 「对方不可关注」这类可操作文案，而「你无权操作」等于什么都没说）。
+ */
+export const BLOCKED_BY_RELATION_PREFIX = 'BLOCKED_BY_RELATION:'
+
+/** 是 0024 的拉黑阻断吗？是则返回去掉标记的业务文案，否则返回 null。 */
+export function blockedByRelationMessage(err: unknown): string | null {
+  if (!(err instanceof Error)) return null
+  if ((err as { code?: string }).code !== '42501') return null
+  return err.message.startsWith(BLOCKED_BY_RELATION_PREFIX)
+    ? err.message.slice(BLOCKED_BY_RELATION_PREFIX.length)
+    : null
+}
+
+/**
  * 把数据库错误翻译成业务错误。
  *
  * 为什么需要：RLS 拒绝在数据库层表现为 42501（权限不足），
@@ -69,8 +90,13 @@ export function translateDbError(err: unknown): ApiError | null {
   }
 
   switch (e.code) {
-    case '42501': // insufficient_privilege：RLS 拦截
-      return new ApiError('FORBIDDEN', '无权执行该操作（被行级安全策略拒绝）')
+    case '42501': // insufficient_privilege：RLS 拦截，或 0024 的拉黑阻断
+      // 带标记的才是 0024 有意写给用户的业务文案，其余仍是 RLS 的英文样板。
+      return new ApiError(
+        'FORBIDDEN',
+        blockedByRelationMessage(e) ?? '无权执行该操作（被行级安全策略拒绝）',
+        e.detail,
+      )
     case '23505': // unique_violation
       return new ApiError('CONFLICT', '数据已存在（唯一约束冲突）', e.detail)
     case '23503': // foreign_key_violation

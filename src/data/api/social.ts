@@ -18,8 +18,8 @@
  *                  即**下界估计**：宁可少报，也不编一个看起来精确的假数字。
  *   · isFollowing —— 从「我的关注列表」里有界扫描（最多 3 页 × 100 条）找对方。
  */
-import type { AppNotification, FollowCounts, Photo, Profile } from '@/domain/types'
-import type { CursorListPage, SocialRepository } from '@/data/contracts'
+import type { AppNotification, BlockedUser, FollowCounts, Photo, Profile } from '@/domain/types'
+import type { CursorListPage, Page, SocialRepository } from '@/data/contracts'
 import { apiAuthRepository } from './auth'
 import { qs, request } from './client'
 
@@ -46,6 +46,22 @@ function following(username: string, cursor?: string): Promise<RemoteList<Profil
 }
 
 export const apiSocialRepository: SocialRepository = {
+  async blockUser(username: string): Promise<{ removedFollows: number }> {
+    const data = await request<{ blocked: boolean; removedFollows: number }>(`${profilePath(username)}/block`, { method: 'PUT' })
+    return { removedFollows: data.removedFollows }
+  },
+
+  async unblockUser(username: string): Promise<void> {
+    await request(`${profilePath(username)}/block`, { method: 'DELETE' })
+  },
+
+  async listBlocked(params?: { cursor?: string; limit?: number }): Promise<Page<BlockedUser>> {
+    const data = await request<{ items: BlockedUser[]; total: number; nextCursor: string | null }>(
+      `/api/me/blocks${qs({ cursor: params?.cursor, limit: params?.limit })}`,
+    )
+    return { items: data.items, total: data.total, nextCursor: data.nextCursor }
+  },
+
   async follow(username: string): Promise<void> {
     await request<void>(`${profilePath(username)}/follow`, { method: 'PUT' })
   },

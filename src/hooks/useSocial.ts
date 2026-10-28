@@ -69,6 +69,41 @@ export function useToggleFollow(username: string) {
 }
 
 /** 关注动态（游标分页） */
+export function useBlockUser(username: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => repos().social.blockUser(username),
+    onSuccess: () => {
+      queryClient.setQueryData(queryKeys.followState(username), false)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profileByUsername(username) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followCounts(username) })
+      void queryClient.invalidateQueries({ queryKey: ['social'] })
+      void queryClient.invalidateQueries({ queryKey: ['search'] })
+    },
+  })
+}
+
+export function useBlockedUsers() {
+  return useInfiniteQuery({
+    queryKey: queryKeys.blockedUsers(),
+    queryFn: ({ pageParam }) => repos().social.listBlocked(pageParam ? { cursor: pageParam } : undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  })
+}
+
+export function useUnblockUser() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (username: string) => repos().social.unblockUser(username),
+    onSuccess: (_data, username) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.blockedUsers() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profileByUsername(username) })
+      void queryClient.invalidateQueries({ queryKey: ['search'] })
+    },
+  })
+}
+
 export function useFeed() {
   return useInfiniteQuery({
     queryKey: queryKeys.feed(),

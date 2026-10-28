@@ -55,6 +55,7 @@ vi.mock('@/hooks/useSocial', () => ({
   useFollowCounts: () => ({ data: { followers: 0, following: 0 }, isLoading: false }),
   useFollowState: () => ({ data: false }),
   useToggleFollow: () => ({ mutate: vi.fn(), isPending: false, variables: undefined }),
+  useBlockUser: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 
 /** API 模式公开资料的真实形状：**没有 id** */

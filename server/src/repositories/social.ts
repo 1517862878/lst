@@ -406,3 +406,190 @@ export async function markNotificationsRead(
   )
   return Number(rows[0]?.marked_count ?? 0)
 }
+
+// ============================================================================
+// 拉黑（0024）
+// ============================================================================
+
+/** 我拉黑的一个人。刻意没有 id：契约 §3 的 BlockedUser 只有这五个字段。 */
+export interface BlockedUserEntry {
+  username: string
+  displayName: string
+  avatarKey: string | null
+  bio: string
+  blockedAt: string
+}
+
+/** 用户搜索的一行（契约 §3 的 UserHit）。 */
+export interface UserHitEntry {
+  username: string
+  displayName: string
+  avatarKey: string | null
+  bio: string
+  followerCount: number
+  isFollowing: boolean
+}
+
+/**
+ * 拉黑列表的游标：base64url(`<blocked_at>|<blocked_id>`)。
+ *
+ * 为什么不用上面 feed / 关注列表那个 encodeCursor（base64url(JSON 数组)）：
+ * 契约 §3 把这里的格式写死了 ——「沿用 src/domain/social.ts 里游标工具的同构格式」，
+ * 而 src/domain/social.ts 的 encodeCursor 就是把一个字符串键 base64url。
+ * 前端 mock 侧会按同一格式编码，所以这边跟它对齐，不要「顺手统一」成 JSON 数组：
+ * 那会让 mock 与 api 两条实现的游标不再同构（虽然对客户端都是不透明字符串）。
+ */
+function encodeBlockCursor(row: { blockedAt: string; blockedId: string }): string {
+  return Buffer.from(`${row.blockedAt}|${row.blockedId}`, 'utf8').toString('base64url')
+}
+
+/**
+ * 解析拉黑列表游标。base64url 解码本身不会失败（垃圾输入只会解出乱码），
+ * 所以真正的校验是「解出来必须能切成时间戳与 id 两段」；
+ * 非法游标报 400 而不是静默从头开始 —— 静默会让用户翻页时看到重复数据。
+ */
+function parseBlockCursor(cursor: string | undefined): [string, string] | null {
+  if (!cursor) return null
+  if (cursor.length > 200) throw validation('无效的拉黑列表游标')
+  const raw = Buffer.from(cursor, 'base64url').toString('utf8')
+  const at = raw.indexOf('|')
+  if (at <= 0 || at === raw.length - 1) throw validation('无效的拉黑列表游标')
+  return [raw.slice(0, at), raw.slice(at + 1)]
+}
+
+/**
+ * 拉黑：写 blocks + 删两人之间双向的 follows，返回被删掉的关注条数。
+ * 幂等（重复拉黑不报错，removedFollows 只会是第一次的真实条数）。
+ * 自拉黑在数据库里抛 23514 → translateDbError 翻成 400。
+ */
+export async function blockUser(
+  client: PoolClient,
+  input: { blockerId: string; username: string },
+): Promise<{ blocked: boolean; removedFollows: number }> {
+  return asProfileNotFound(async () => {
+    const { rows } = await client.query<{ blocked: boolean; removed_follows: number }>(
+      'select * from public.api_block_user($1::uuid, $2::citext)',
+      [input.blockerId, input.username],
+    )
+    const row = rows[0]
+    return {
+      blocked: row?.blocked === true,
+      removedFollows: Number(row?.removed_follows ?? 0),
+    }
+  })
+}
+
+/**
+ * 解除拉黑：没拉黑过也返回成功（数据库返回 false，这里不再区分 —— 契约 §3 的
+ * 响应固定是 `{ blocked: false }`，「现在不再拉黑他」这个结论两种情况都成立）。
+ */
+export async function unblockUser(
+  client: PoolClient,
+  input: { blockerId: string; username: string },
+): Promise<boolean> {
+  return asProfileNotFound(async () => {
+    const { rows } = await client.query<{ api_unblock_user: boolean }>(
+      'select * from public.api_unblock_user($1::uuid, $2::citext)',
+      [input.blockerId, input.username],
+    )
+    return rows[0]?.api_unblock_user === true
+  })
+}
+
+interface BlockRow {
+  username: string
+  display_name: string
+  avatar_key: string | null
+  bio: string
+  blocked_at: unknown
+  blocked_id: string
+}
+
+function mapBlockRow(row: BlockRow): BlockedUserEntry {
+  // 显式白名单：blocked_id 只用来编下一页游标，绝不进响应
+  //（前端有 UserHit/Profile 的 id，但 BlockedUser 没有 —— 拉黑列表不需要按 id 跳转）。
+  return {
+    username: row.username,
+    displayName: row.display_name,
+    avatarKey: row.avatar_key,
+    bio: row.bio,
+    blockedAt: iso(row.blocked_at),
+  }
+}
+
+async function countBlockedUsers(client: PoolClient, blockerId: string): Promise<number> {
+  const { rows } = await client.query<{ api_count_blocks: number }>(
+    'select * from public.api_count_blocks($1::uuid)',
+    [blockerId],
+  )
+  return Number(rows[0]?.api_count_blocks ?? 0)
+}
+
+/** 我拉黑的用户（最新在前，游标分页）。total 与 items 用同一套过滤条件。 */
+export async function listBlockedUsers(
+  client: PoolClient,
+  input: { blockerId: string; cursor?: string; limit?: number },
+): Promise<{ items: BlockedUserEntry[]; total: number; nextCursor: string | null }> {
+  const limit = Math.min(Math.max(input.limit ?? 20, 1), MAX_PAGE_SIZE)
+  const cursor = parseBlockCursor(input.cursor)
+  const { rows } = await client.query<BlockRow>(
+    'select * from public.api_list_blocks($1::uuid, $2::integer, $3::timestamptz, $4::uuid)',
+    [input.blockerId, limit + 1, cursor?.[0] ?? null, cursor?.[1] ?? null],
+  )
+  // 多取一行只用于判断 hasMore（与 feed / 关注列表同一套做法）。
+  const hasMore = rows.length > limit
+  const pageRows = hasMore ? rows.slice(0, limit) : rows
+  const last = pageRows[pageRows.length - 1]
+  return {
+    items: pageRows.map(mapBlockRow),
+    total: await countBlockedUsers(client, input.blockerId),
+    nextCursor:
+      hasMore && last
+        ? encodeBlockCursor({ blockedAt: iso(last.blocked_at), blockedId: last.blocked_id })
+        : null,
+  }
+}
+
+interface UserHitRow {
+  username: string
+  display_name: string
+  avatar_key: string | null
+  bio: string
+  follower_count: number
+  is_following: boolean
+}
+
+/**
+ * 用户搜索（单页，没有游标）。
+ *
+ * 关键词的 trim / 长度 1–30 / discoverable / 拉黑过滤 / 排序全部在 SQL 里做，
+ * 仓库层只把 snake_case 换成前端 UserHit：过滤规则写在数据库只有一个好处，
+ * 但很关键 —— 「搜索里看不到拉黑我的人」这条不变量不会被别的查询路径绕过。
+ * viewerId 为 null（匿名）时数据库只按 discoverable / 未注销过滤。
+ */
+export async function searchUsers(
+  client: PoolClient,
+  input: { viewerId: string | null; query: string; limit?: number },
+): Promise<{ items: UserHitEntry[]; total: number }> {
+  const limit = Math.min(Math.max(input.limit ?? 20, 1), MAX_PAGE_SIZE)
+  const { rows } = await client.query<UserHitRow>(
+    'select * from public.api_search_users($1::uuid, $2::text, $3::integer)',
+    [input.viewerId, input.query, limit],
+  )
+  // 搜索是单页返回，total 必须来自独立的计数函数（过滤条件与列表逐条对齐）。
+  const { rows: countRows } = await client.query<{ api_count_search_users: number }>(
+    'select * from public.api_count_search_users($1::uuid, $2::text)',
+    [input.viewerId, input.query],
+  )
+  return {
+    items: rows.map((row) => ({
+      username: row.username,
+      displayName: row.display_name,
+      avatarKey: row.avatar_key,
+      bio: row.bio,
+      followerCount: Number(row.follower_count ?? 0),
+      isFollowing: row.is_following === true,
+    })),
+    total: Number(countRows[0]?.api_count_search_users ?? 0),
+  }
+}

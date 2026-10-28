@@ -25,6 +25,7 @@ const h = vi.hoisted(() => {
     photos: 'id',
     notifications: 'id',
     follows: ['followerId', 'followingId'],
+    blocks: ['blockerId', 'blockedId'],
   }
 
   function keyOf(store: string, value: Row): string {

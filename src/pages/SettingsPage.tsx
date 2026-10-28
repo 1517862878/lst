@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 import { Container } from '@/components/layout/Container'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { Avatar } from '@/components/ui/Avatar'
 import { RequireAuth } from '@/components/layout/guards'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -20,13 +21,15 @@ import {
   useUpdatePreferences,
 } from '@/hooks/useAccount'
 import { useSignOut } from '@/hooks/useSession'
-import { errorMessage, isSafeProfileLink } from '@/lib/account'
+import { useBlockedUsers, useUnblockUser } from '@/hooks/useSocial'
+import { accountImageUrl, errorMessage, isSafeProfileLink } from '@/lib/account'
 import { cn } from '@/lib/cn'
 
 const SETTINGS_TABS = [
   { slug: 'profile', label: '个人资料' },
   { slug: 'privacy', label: '隐私与通知' },
   { slug: 'security', label: '账号安全' },
+  { slug: 'blocks', label: '黑名单' },
 ] as const
 
 type SettingsTab = (typeof SETTINGS_TABS)[number]['slug']
@@ -66,6 +69,7 @@ function SettingsInner() {
           {activeTab === 'profile' && <ProfileSettings account={account.data} />}
           {activeTab === 'privacy' && <PrivacySettings account={account.data} />}
           {activeTab === 'security' && <SecuritySettings onDeleted={() => navigate('/', { replace: true })} />}
+          {activeTab === 'blocks' && <BlockedUsersSettings />}
         </main>
       </div>
     </Container>
@@ -193,6 +197,38 @@ function PrivacySettings({ account }: { account: NonNullable<ReturnType<typeof u
         <label className="g-settings-check"><input type="checkbox" checked={productUpdates} onChange={(event) => setProductUpdates(event.target.checked)} /><span><strong>产品动态</strong><small>接收功能更新和社区活动消息。</small></span></label>
       </fieldset>
       <Button onClick={() => void save()} loading={update.isPending}>保存隐私与通知</Button>
+    </section>
+  )
+}
+
+function BlockedUsersSettings() {
+  const blocked = useBlockedUsers()
+  const unblock = useUnblockUser()
+  const toast = useToast()
+  const [unblocking, setUnblocking] = useState<string | null>(null)
+  const users = blocked.data?.pages.flatMap((page) => page.items) ?? []
+
+  const remove = async (username: string) => {
+    setUnblocking(username)
+    try {
+      await unblock.mutateAsync(username)
+      toast.show('success', `已解除对 @${username} 的拉黑`)
+    } catch (error) {
+      toast.show('error', errorMessage(error))
+    } finally {
+      setUnblocking(null)
+    }
+  }
+
+  return (
+    <section className="g-settings-panel">
+      <h2 id="settings-blocks-title">黑名单</h2>
+      <p className="g-settings-intro">已拉黑的用户无法关注你，也无法与你互动。</p>
+      {blocked.isLoading && <p className="g-placeholder-text" role="status">正在加载黑名单…</p>}
+      {blocked.isError && <ErrorState title="黑名单加载失败" error={blocked.error} onRetry={() => void blocked.refetch()} />}
+      {!blocked.isLoading && !blocked.isError && users.length === 0 && <div className="g-social-empty"><p>黑名单为空</p><p>你还没有拉黑任何用户。</p></div>}
+      {users.length > 0 && <ul className="g-block-list">{users.map((user) => <li className="g-block-item" key={user.username}><div className="g-block-user"><Avatar src={accountImageUrl(user.avatarKey)} name={user.displayName || user.username} size={48} /><span><strong>{user.displayName || user.username}</strong><small>@{user.username}</small>{user.bio && <small>{user.bio}</small>}</span></div><Button variant="secondary" size="sm" loading={unblocking === user.username} disabled={unblock.isPending && unblocking !== user.username} onClick={() => void remove(user.username)}>解除拉黑</Button></li>)}</ul>}
+      {blocked.hasNextPage && <div className="g-follow-panel-foot"><Button variant="secondary" loading={blocked.isFetchingNextPage} onClick={() => void blocked.fetchNextPage()}>加载更多</Button></div>}
     </section>
   )
 }

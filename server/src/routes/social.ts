@@ -14,25 +14,37 @@ import { currentUser, requireUser } from '../lib/auth.js'
 import { withRls } from '../lib/db.js'
 import { validation } from '../lib/errors.js'
 import {
+  blockUser,
   followUser,
   getUnreadNotificationCount,
+  listBlockedUsers,
   listFeed,
   listFollowers,
   listFollowing,
   listNotifications,
   markNotificationsRead,
   MAX_PAGE_SIZE,
+  searchUsers,
   unfollowUser,
+  unblockUser,
 } from '../repositories/social.js'
 
 const FOLLOW_RATE_LIMIT = { max: 60, timeWindow: '1 minute' } as const
 const NOTIFICATION_RATE_LIMIT = { max: 60, timeWindow: '1 minute' } as const
+/** 拉黑/解除：比关注更少的操作频次，门槛压低一点防脚本批量探测。 */
+const BLOCK_RATE_LIMIT = { max: 30, timeWindow: '1 minute' } as const
 
 /** profiles.username 的库内约束：^[a-z0-9_-]{3,20}$（citext，大小写不敏感）。 */
 const USERNAME_PATTERN = /^[a-z0-9_-]{3,20}$/i
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 /** 一次最多标记多少条通知为已读：防止一个超长数组把 SQL 拖成全表更新。 */
 const MAX_MARK_READ_IDS = 200
+/**
+ * 搜索关键词的防滥用上限。
+ * 业务规则（1–30 之外返回空集）由 0024 的 api_search_users 决定，
+ * 这里只拦明显异常的输入，避免超长字符串白跑一次 ilike。
+ */
+const MAX_SEARCH_QUERY_LENGTH = 200
 
 function parseUsername(raw: string | undefined): string {
   const username = (raw ?? '').trim()
@@ -194,4 +206,78 @@ export async function registerSocialRoutes(app: FastifyInstance): Promise<void> 
       })
     },
   )
+
+  // ==========================================================================
+  // 拉黑（0024）
+  // ==========================================================================
+
+  /**
+   * 拉黑。写 blocks + 删两人之间双向的 follows（数据库函数里一次事务完成，
+   * 计数由 0022 的触发器维护），返回被删掉的关注条数。
+   * 幂等：重复拉黑不报错；removedFollows 只在第一次是真实条数。
+   * 目标不存在 → 404；拉黑自己 → 400（数据库 23514）；
+   * 被对方拉黑/我拉黑了对方都不影响这个写操作本身（拉黑永远允许）。
+   */
+  app.put<{ Params: { username: string } }>(
+    '/api/profiles/:username/block',
+    { config: { rateLimit: BLOCK_RATE_LIMIT } },
+    async (req) => {
+      const user = await requireUser(req)
+      const username = parseUsername(req.params.username)
+      return withRls(user.userId, (c) => blockUser(c, { blockerId: user.userId, username }))
+    },
+  )
+
+  /**
+   * 解除拉黑。响应固定 `{ blocked: false }`（「现在不再拉黑他」这个结论，
+   * 对「本来就没拉黑」同样成立），所以不把数据库返回的 false 透出成错误。
+   */
+  app.delete<{ Params: { username: string } }>(
+    '/api/profiles/:username/block',
+    { config: { rateLimit: BLOCK_RATE_LIMIT } },
+    async (req) => {
+      const user = await requireUser(req)
+      const username = parseUsername(req.params.username)
+      await withRls(user.userId, (c) => unblockUser(c, { blockerId: user.userId, username }))
+      return { blocked: false }
+    },
+  )
+
+  /**
+   * 我拉黑的用户列表（最新在前，游标分页）。
+   * 要登录：这个列表只对自己有意义，游客没有「我」。
+   * 已注销的账号不进列表（与粉丝/关注列表一致），total 用同一套过滤条件。
+   */
+  app.get<{ Querystring: { cursor?: string; limit?: string } }>('/api/me/blocks', async (req) => {
+    const user = await requireUser(req)
+    const paging = parsePaging(req.query)
+    return withRls(user.userId, (c) => listBlockedUsers(c, { blockerId: user.userId, ...paging }))
+  })
+
+  // ==========================================================================
+  // 用户搜索（0024）
+  // ==========================================================================
+
+  /**
+   * 用户搜索。
+   * 匿名可用（契约 §3）：游客没有「我」，数据库侧只按 discoverable / 未注销过滤，
+   * 拿不到 isFollowing 的真实值（恒 false）。
+   * 空关键词返回空集而不是 400 —— 搜索框清空不是错误输入，与 SQL 侧一致。
+   * 关键词长度 > 30 时数据库已返回空集，这里只挡一个更宽的滥用上限，
+   * 不重复实现 1–30 的业务规则（那会让两条实现不一致时更难判断以谁为准）。
+   */
+  app.get<{ Querystring: { q?: string; limit?: string } }>('/api/users/search', async (req) => {
+    const viewer = await currentUser(req)
+    const query = (req.query.q ?? '').trim()
+    if (query.length > MAX_SEARCH_QUERY_LENGTH) {
+      throw validation(`搜索关键词最长 ${MAX_SEARCH_QUERY_LENGTH} 个字符`)
+    }
+    const limit = req.query.limit === undefined ? 20 : Number(req.query.limit)
+    if (!Number.isInteger(limit) || limit < 1) throw validation('limit 必须是正整数')
+
+    const viewerId = viewer?.userId ?? null
+    return withRls(viewerId, (c) =>
+      searchUsers(c, { viewerId, query, limit: Math.min(limit, MAX_PAGE_SIZE) }),
+    )
+  })
 }

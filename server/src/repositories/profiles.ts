@@ -29,6 +29,13 @@ export interface PublicProfile {
   discoverable: boolean
   createdAt: string
   isOwner: boolean
+  /**
+   * 0024：查看者与目标之间是否存在任一方向的拉黑。
+   * 「被对方拉黑」不会走到这里（数据库抛 P0002 ⇒ 本函数返回 null ⇒ 404，
+   * 与「用户不存在」不可区分），所以 true 实际只可能是「我拉黑了对方」。
+   * 前端据此把主页切换成「你已拉黑该用户」并提供就地解除。
+   */
+  isBlocked: boolean
 }
 
 function iso(value: unknown): string {
@@ -77,7 +84,7 @@ export async function getProfileByUsername(
   viewerId: string | null,
 ): Promise<PublicProfile | null> {
   return withRls(viewerId, async (c: pg.PoolClient) => {
-    const r = await c.query<{
+    let r: pg.QueryResult<{
       username: string
       display_name: string
       avatar_key: string | null
@@ -91,7 +98,20 @@ export async function getProfileByUsername(
       discoverable: boolean
       created_at: unknown
       is_owner: boolean
-    }>('select * from public.api_get_profile_by_username($1)', [username])
+      is_blocked: boolean
+    }>
+    try {
+      r = await c.query(
+        'select * from public.api_get_profile_by_username($1)',
+        [username],
+      )
+    } catch (err) {
+      // 0024：被目标拉黑时数据库抛 P0002（契约 §1.4：与「用户不存在」不可区分）。
+      // 在这里翻成 null，路由的既有 404 分支就顺带把它处理掉了，
+      // 不必给「被拉黑」单开一条错误分支 —— 开了反而会让人以为两者可区分。
+      if ((err as { code?: string } | null)?.code === 'P0002') return null
+      throw err
+    }
     const row = r.rows[0]
     if (!row) return null
     return {
@@ -108,6 +128,7 @@ export async function getProfileByUsername(
       discoverable: row.discoverable,
       createdAt: iso(row.created_at),
       isOwner: row.is_owner,
+      isBlocked: row.is_blocked === true,
     }
   })
 }

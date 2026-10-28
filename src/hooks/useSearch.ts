@@ -7,7 +7,16 @@ import { createRepositories } from '@/data'
 import { invalidateIndex } from '@/lib/search'
 import { queryKeys } from './queryKeys'
 import type { SearchQuery } from '@/data/contracts'
-import type { Page, Photo } from '@/domain/types'
+import type { Page, Photo, UserHit } from '@/domain/types'
+
+export function useUserSearch(query: string) {
+  const normalized = query.trim()
+  return useQuery<UserHit[]>({
+    queryKey: queryKeys.userSearch(normalized),
+    queryFn: () => createRepositories().search.searchUsers(normalized, { limit: 50 }),
+    enabled: Boolean(normalized),
+  })
+}
 
 export function useSearch(query: SearchQuery) {
   const hasFilters = Boolean(

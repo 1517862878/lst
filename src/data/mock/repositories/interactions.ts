@@ -4,7 +4,7 @@
  */
 import { AppError, ErrorCodes, type CursorListPage, type InteractionRepository } from '@/data/contracts'
 import type { Interaction, Photo } from '@/domain/types'
-import { findProfileByUsername, paginateByCursor } from '@/domain/social'
+import { findProfileByUsername, isBlockedBetween, paginateByCursor } from '@/domain/social'
 import { getDb, bumpDataVersion } from '../db'
 
 /** 未显式传 limit 时的页长（与关注列表同量级；个人主页 hook 会显式传值） */
@@ -25,17 +25,32 @@ async function recount(db: Awaited<ReturnType<typeof getDb>>, photoId: string): 
  * 某人互动过的**已发布**作品，按发布时间倒序（likes / favorites 共用）。
  * 互动记录指向的作品可能已被软撤回，撤回件不进公开列表。
  */
+async function assertCanInteract(
+  db: Awaited<ReturnType<typeof getDb>>,
+  userId: string,
+  photo: Photo,
+): Promise<void> {
+  if (userId !== photo.authorId && isBlockedBetween(await db.getAll('blocks'), userId, photo.authorId)) {
+    throw new AppError(ErrorCodes.FORBIDDEN, '你无法与该用户的作品互动')
+  }
+}
+
 async function photosInteractedBy(
   db: Awaited<ReturnType<typeof getDb>>,
   table: 'likes' | 'favorites',
   userId: string,
+  viewerId?: string,
 ): Promise<Photo[]> {
   const rows = await db.getAll(table)
   const ids = rows.filter((r) => r.userId === userId).map((r) => r.photoId)
   const photos: Photo[] = []
   for (const id of ids) {
     const p = await db.get('photos', id)
-    if (p && p.status === 'published') photos.push(p)
+    if (
+      p &&
+      p.status === 'published' &&
+      (!viewerId || !isBlockedBetween(await db.getAll('blocks'), viewerId, p.authorId))
+    ) photos.push(p)
   }
   return photos.sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
 }
@@ -81,6 +96,7 @@ export const mockInteractionRepository: InteractionRepository = {
     const db = await getDb()
     const photo = await db.get('photos', photoId)
     if (!photo) throw new AppError(ErrorCodes.NOT_FOUND, `作品不存在：${photoId}`)
+    await assertCanInteract(db, userId, photo)
     const existing = await db.get('likes', [userId, photoId])
     if (existing) {
       await db.delete('likes', [userId, photoId])
@@ -97,6 +113,7 @@ export const mockInteractionRepository: InteractionRepository = {
     const db = await getDb()
     const photo = await db.get('photos', photoId)
     if (!photo) throw new AppError(ErrorCodes.NOT_FOUND, `作品不存在：${photoId}`)
+    await assertCanInteract(db, userId, photo)
     const existing = await db.get('favorites', [userId, photoId])
     if (existing) {
       await db.delete('favorites', [userId, photoId])

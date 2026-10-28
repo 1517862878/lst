@@ -5,9 +5,11 @@
  * 本实现是 S2 的临时占位，接口已定，实现可原地替换。
  */
 import type { Page, PhotoRepository, SearchQuery, SearchRepository } from '@/data/contracts'
-import type { Photo } from '@/domain/types'
+import type { Photo, UserHit } from '@/domain/types'
 import { getDb } from '../db'
 import { normalizeSearchText, normalizeTag } from '@/lib/search/normalize'
+import { searchUserHits } from '@/domain/social'
+import { mockAuthRepository } from './auth'
 
 export const mockSearchRepository: SearchRepository = {
   async search(query: SearchQuery): Promise<Page<Photo>> {
@@ -41,6 +43,17 @@ export const mockSearchRepository: SearchRepository = {
     }
     const limit = query.limit ?? 24
     return { items: matched.slice(0, limit), nextCursor: null, total: matched.length }
+  },
+
+  async searchUsers(query: string, options?: { limit?: number }): Promise<UserHit[]> {
+    const db = await getDb()
+    const session = await mockAuthRepository.getSession()
+    const [profiles, follows, blocks] = await Promise.all([
+      db.getAll('profiles'),
+      db.getAll('follows'),
+      db.getAll('blocks'),
+    ])
+    return searchUserHits(profiles, follows, blocks, session?.userId ?? null, query, options?.limit)
   },
 }
 

@@ -35,7 +35,16 @@ import { registerAuthRoutes } from './auth.js'
 import { registerProfileRoutes } from './profiles.js'
 import { registerAccountCenterRoutes } from './account-center.js'
 import { registerModerationRoutes } from './moderation.js'
+import { registerSocialRoutes } from './social.js'
 import { searchPhotos } from '../repositories/search.js'
+
+/**
+ * authorUsername 的输入护栏。
+ *
+ * profiles.username 的约束是 3～20 字符（0003），这里放宽到 64：只挡病态输入，
+ * 形状不合法但长度正常的用户名照常走「数据库查不到 ⇒ 空列表」，不额外制造 400 分支。
+ */
+const MAX_USERNAME_INPUT = 64
 
 export const PHOTO_LICENSES = [
   'all_rights_reserved',
@@ -137,11 +146,22 @@ export async function registerRoutes(app: FastifyInstance) {
   await registerModerationRoutes(app)
 
   // ==========================================================================
+  // 社交关系闭环（0022）：关注 / 粉丝、关注动态流、通知中心
+  // ==========================================================================
+  await registerSocialRoutes(app)
+
+  // ==========================================================================
   // 作品
   // ==========================================================================
 
   app.get<{
-    Querystring: { sort?: string; categorySlug?: string; cursor?: string; limit?: string }
+    Querystring: {
+      sort?: string
+      categorySlug?: string
+      cursor?: string
+      limit?: string
+      authorUsername?: string
+    }
   }>('/api/photos', async (req) => {
     const sort = req.query.sort === 'popular' ? 'popular' : 'latest'
     const limit = req.query.limit ? Number(req.query.limit) : undefined
@@ -149,10 +169,19 @@ export async function registerRoutes(app: FastifyInstance) {
       throw validation('limit 必须是正整数')
     }
 
+    // authorUsername：个人主页按用户名拉作品（0018 之后前端已拿不到 user UUID）。
+    // 只做长度护栏，不做形状校验 —— 用户名形状不合法 = 数据库里查不到 = 空列表，
+    // 这正是需求要的语义（用户名不存在返回空 items，而不是 500/400）。
+    const authorUsername = req.query.authorUsername?.trim()
+    if (authorUsername !== undefined && authorUsername.length > MAX_USERNAME_INPUT) {
+      throw validation('authorUsername 过长')
+    }
+
     return withAnonymous((c) =>
       listPhotos(c, {
         sort,
         categorySlug: req.query.categorySlug,
+        authorUsername,
         cursor: req.query.cursor,
         limit,
       }),

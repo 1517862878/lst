@@ -21,6 +21,7 @@ export const apiPhotoRepository: PhotoRepository = {
         qs({
           sort: query.sort,
           categorySlug: query.categorySlug,
+          authorUsername: query.authorUsername,
           cursor: query.cursor,
           limit: query.limit,
         }),

@@ -1,8 +1,9 @@
-import type { InteractionRepository } from '@/data/contracts'
+import type { CursorListPage, InteractionRepository } from '@/data/contracts'
 import type { Interaction, Photo } from '@/domain/types'
 import { qs, request } from './client'
 
 const photoPath = (photoId: string) => `/api/photos/${encodeURIComponent(photoId)}`
+const profilePath = (username: string) => `/api/profiles/${encodeURIComponent(username)}`
 
 export const apiInteractionRepository: InteractionRepository = {
   listLikesByUser(userId: string): Promise<Photo[]> {
@@ -10,6 +11,17 @@ export const apiInteractionRepository: InteractionRepository = {
   },
   listFavoritesByUser(userId: string): Promise<Photo[]> {
     return request('/api/interactions' + qs({ userId, kind: 'favorites' }))
+  },
+  listByUsername(
+    username: string,
+    kind: 'likes' | 'favorites',
+    cursor?: string,
+    limit?: number,
+  ): Promise<CursorListPage<Photo>> {
+    // 账号级隐私由服务端判定（私密账号 / 关闭「展示喜欢」时返回空页），前端不复制这套规则。
+    return request<CursorListPage<Photo>>(
+      `${profilePath(username)}/interactions` + qs({ kind, cursor, limit }),
+    )
   },
   async getLikeState(userId: string, photoId: string): Promise<boolean> {
     const result = await request<{ active: boolean }>(

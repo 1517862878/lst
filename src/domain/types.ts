@@ -106,6 +106,44 @@ export interface Interaction {
   createdAt: IsoDate
 }
 
+/**
+ * 关注关系（follower 关注 following）。
+ * 主键是 (followerId, followingId) —— 同一对用户只有一行，重复关注是幂等的。
+ */
+export interface Follow {
+  followerId: string
+  followingId: string
+  createdAt: IsoDate
+}
+
+/** 某用户的关注数（粉丝数 / 关注数） */
+export interface FollowCounts {
+  followers: number
+  following: number
+}
+
+/** 通知类型：点赞 / 评论 / 关注 / 系统 */
+export type NotificationKind = 'like' | 'comment' | 'follow' | 'system'
+
+/**
+ * 站内通知（DATA-MODEL 二期）。
+ *
+ * 注意：契约里**没有** userId 字段 —— 后端只返回「当前登录用户」的通知，
+ * 「这条通知属于谁」由会话决定，不在数据里。actor 直接内联资料对象，
+ * 列表页因此不需要再按 id 批量取用户（避免 N+1）。
+ */
+export interface AppNotification {
+  id: string
+  kind: NotificationKind
+  /** 触发者；系统通知为 null */
+  actor: Profile | null
+  photoId: string | null
+  commentId: string | null
+  /** null = 未读 */
+  readAt: IsoDate | null
+  createdAt: IsoDate
+}
+
 export interface Comment {
   id: string
   photoId: string

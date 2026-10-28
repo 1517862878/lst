@@ -256,6 +256,13 @@ try {
     },
   })
 
+  // 下面启动的是编译产物 server/dist/index.js，不是 src。必须在启动前重新编译一次：
+  // 否则新增的路由只存在于 src，套件会对着旧产物跑出一堆 404 —— 这种失败看起来像代码问题，
+  // 实际是构建陈旧（本项目真的踩过：社交关注接口 404，而集成测试 10/10 全过）。
+  await run(process.execPath, [resolve(ROOT, 'node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json'], {
+    cwd: resolve(ROOT, 'server'),
+  })
+
   await mkdir(resolve(ROOT, '.tmp/api-e2e-images'), { recursive: true })
   start(process.execPath, ['dist/index.js'], {
     cwd: resolve(ROOT, 'server'),

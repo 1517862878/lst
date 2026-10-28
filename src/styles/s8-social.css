@@ -1,0 +1,296 @@
+/* ══════════════════════════════════════════════════════════
+   S8 · 社交关系闭环（关注 / 关注动态 / 站内通知）
+   ── 只使用 tokens.css 里的令牌，不引入新颜色与新间距
+   ── 所有列表项都按「头像 + 会换行的文字 + 尾部动作」排布：
+      文字块 min-width:0 + overflow-wrap:anywhere，390px 下不产生横向溢出
+   ══════════════════════════════════════════════════════════ */
+
+/* ── 页头通知铃铛 ── */
+.g-header-bell {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+  color: var(--g-ink);
+  padding: 4px 6px;
+  cursor: pointer;
+  box-shadow: var(--g-shadow-sm);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.g-header-bell:hover,
+.g-header-bell:focus-visible {
+  background: var(--g-brand);
+  color: var(--g-brand-ink);
+}
+
+.g-header-bell svg {
+  width: 18px;
+  height: 18px;
+  shape-rendering: crispEdges;
+}
+
+/* 未读红点：数字角标，右上角压住边框 */
+.g-header-bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding-inline: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--g-danger);
+  color: var(--g-bg);
+  border: 1px solid var(--g-line);
+  font-size: var(--g-text-xs);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 个人主页：关注按钮 + 粉丝/关注数 ── */
+.g-profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-3);
+  margin-top: var(--g-space-3);
+}
+
+.g-follow-btn {
+  min-width: 96px;
+  justify-content: center;
+}
+
+.g-profile-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--g-space-1);
+  padding: 4px 10px;
+  background: var(--g-surface-2);
+  border: var(--g-border) solid var(--g-line);
+  color: var(--g-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--g-text-base);
+  box-shadow: var(--g-shadow-sm);
+}
+
+.g-profile-stat:hover,
+.g-profile-stat:focus-visible {
+  background: var(--g-surface-3);
+}
+
+/* 展开列表时按钮反色，明确「当前看的就是这个 Tab」 */
+.g-profile-stat[aria-expanded='true'] {
+  background: var(--g-ink);
+  color: var(--g-bg);
+}
+
+.g-profile-stat-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.g-profile-stat-label {
+  color: inherit;
+  opacity: 0.85;
+}
+
+/* ── 粉丝 / 关注列表 ── */
+.g-follow-panel {
+  margin-top: var(--g-space-4);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+}
+
+.g-follow-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--g-space-3);
+  padding: var(--g-space-3) var(--g-space-4);
+  border-bottom: var(--g-border) solid var(--g-line);
+}
+
+.g-follow-panel-head h2 {
+  margin: 0;
+  font-size: var(--g-text-base);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.g-follow-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.g-follow-item {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-3);
+  min-width: 0;
+  padding: var(--g-space-3) var(--g-space-4);
+  border-bottom: 1px solid var(--g-line);
+}
+
+.g-follow-item-main {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-3);
+  min-width: 0;
+  flex: 1;
+  color: var(--g-ink);
+  text-decoration: none;
+}
+
+.g-follow-item-main:hover {
+  text-decoration: none;
+}
+
+.g-follow-item-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.g-follow-item-name {
+  overflow-wrap: anywhere;
+}
+
+.g-follow-item-username,
+.g-follow-item-bio {
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.g-follow-item-action {
+  flex-shrink: 0;
+}
+
+.g-follow-panel-foot {
+  display: flex;
+  justify-content: center;
+  padding: var(--g-space-3);
+}
+
+.g-follow-panel-empty,
+.g-social-empty {
+  margin: 0;
+  padding: var(--g-space-5) var(--g-space-4);
+  color: var(--g-ink-2);
+  text-align: center;
+}
+
+/* ── 通知中心 ── */
+.g-notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+}
+
+.g-notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--g-space-3);
+  min-width: 0;
+  padding: var(--g-space-3) var(--g-space-4);
+  border-bottom: 1px solid var(--g-line);
+}
+
+.g-notification-item:last-child {
+  border-bottom: 0;
+}
+
+/* 未读：左侧加一条主色竖条 + 淡底，不依赖颜色单通道（还能被读屏通过文案区分为「未读」） */
+.g-notification-item-unread {
+  background: var(--g-surface-2);
+  box-shadow: inset 4px 0 0 var(--g-brand);
+}
+
+/* 系统通知的占位图标：与 Avatar(size=48) 同尺寸同描边，列表左侧对齐 */
+.g-notification-system-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-3);
+  color: var(--g-ink-2);
+}
+
+.g-notification-system-icon svg {
+  width: 20px;
+  height: 20px;
+  shape-rendering: crispEdges;
+}
+
+.g-notification-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-1);
+}
+
+.g-notification-text {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.g-notification-text strong {
+  font-weight: 400;
+  color: var(--g-brand);
+}
+
+.g-notification-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+}
+
+.g-notification-tag {
+  border: 1px solid var(--g-line);
+  background: var(--g-surface-3);
+  color: var(--g-ink);
+  padding: 0 6px;
+  font-size: var(--g-text-xs);
+}
+
+.g-notification-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+  margin-top: var(--g-space-1);
+}
+
+.g-notification-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--g-space-3);
+}
+
+@media (max-width: 560px) {
+  .g-follow-list {
+    grid-template-columns: 1fr;
+  }
+
+  .g-follow-item,
+  .g-notification-item {
+    padding-inline: var(--g-space-3);
+  }
+}

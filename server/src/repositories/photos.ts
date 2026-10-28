@@ -58,6 +58,18 @@ function decodeCursor(raw: string): Cursor | null {
 export interface PhotoListQuery {
   sort: 'latest' | 'popular'
   categorySlug?: string
+  /**
+   * 按作者 username 过滤（大小写不敏感）。
+   *
+   * 为什么是 username 而不是 authorId：0018 之后公开资料接口不再返回稳定 user UUID，
+   * 前端个人主页手里只有 username，按 UUID 过滤等于没有入口。解析只发生在 SQL 的
+   * where 子句内（0023 的 api_profile_id_by_username，SECURITY DEFINER），
+   * 该函数自己从不返回 UUID，app_user 也没有拿到任何新的表权限。
+   * （作品载荷里的 authorId 是 /api/photos 既有行为，本参数不改变它。）
+   *
+   * 用户名不存在时子查询返回 null ⇒ `p.author_id = null` ⇒ 空列表，而不是报错。
+   */
+  authorUsername?: string
   cursor?: string
   limit?: number
 }
@@ -80,6 +92,14 @@ export async function listPhotos(
   if (query.categorySlug) {
     baseParams.push(query.categorySlug)
     baseWhere.push(`p.category_slug = $${baseParams.length}`)
+  }
+  if (query.authorUsername) {
+    // 走标量子查询：Postgres 把它当 InitPlan 只求值一次，不随行重复调用。
+    // 解析失败（用户名不存在/已注销）得到 null，比较结果恒为 null ⇒ 零行。
+    baseParams.push(query.authorUsername)
+    baseWhere.push(
+      `p.author_id = (select public.api_profile_id_by_username($${baseParams.length}::text))`,
+    )
   }
   const baseWhereSql = baseWhere.join(' and ')
 

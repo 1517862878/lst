@@ -5,10 +5,12 @@
  */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type {
+  AppNotification,
   Article,
   ArticleTopic,
   Category,
   Comment,
+  Follow,
   Interaction,
   Photo,
   Profile,
@@ -17,7 +19,17 @@ import type {
 } from '@/domain/types'
 
 export const DB_NAME = 'gy-db'
-export const DB_VERSION = 1
+export const DB_VERSION = 2
+
+/**
+ * 通知的存储行。
+ *
+ * 为什么多了 userId：契约里的 AppNotification **没有**归属字段——后端只返回
+ * 「当前登录用户」的通知，归属由会话决定。但本地库是所有用户共用的，
+ * 必须记下「这条是给谁的」，否则登录 bob 会看到 alice 的通知。
+ * userId 只存在于存储层，出库前一律剥掉（见 mock/repositories/social.ts）。
+ */
+export type NotificationRow = AppNotification & { userId: string }
 
 export interface GyDBSchema extends DBSchema {
   profiles: { key: string; value: Profile; indexes: { username: string } }
@@ -42,6 +54,10 @@ export interface GyDBSchema extends DBSchema {
     value: Article
     indexes: { slug: string; topicSlug: string; publishedAt: string }
   }
+  /** 关注关系；主键 (followerId, followingId)，按 followingId 建索引取粉丝、按 followerId 取关注 */
+  follows: { key: [string, string]; value: Follow; indexes: { followingId: string; followerId: string } }
+  /** 通知（见 NotificationRow：存储层多一个 userId） */
+  notifications: { key: string; value: NotificationRow; indexes: { userId: string } }
   _meta: { key: string; value: { key: string; value: unknown } }
 }
 
@@ -62,6 +78,19 @@ export const MIGRATIONS: Array<(db: Db) => void> = [
     db.createObjectStore('topics', { keyPath: 'slug' })
     db.createObjectStore('articles', { keyPath: 'id' })
     db.createObjectStore('_meta', { keyPath: 'key' })
+  },
+  // v1 → v2：二期社交（关注关系 + 站内通知）
+  //
+  // 老库升级时这两张表是空的：用户已有的 IndexedDB 不会重新播种
+  // （seedInit 只在库里没资料时跑）。所以升级后老用户看到的是
+  // 「关注 0 / 通知 0」而不是报错——这是可接受的降级，
+  // 想要示例数据需要清站点数据（README 已说明重置方式）。
+  (db) => {
+    const follows = db.createObjectStore('follows', { keyPath: ['followerId', 'followingId'] })
+    follows.createIndex('followingId', 'followingId')
+    follows.createIndex('followerId', 'followerId')
+    const notifications = db.createObjectStore('notifications', { keyPath: 'id' })
+    notifications.createIndex('userId', 'userId')
   },
 ]
 

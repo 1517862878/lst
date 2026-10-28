@@ -6,6 +6,7 @@ import { IconButton } from '@/components/ui/IconButton'
 import { useSignOut } from '@/hooks/useSession'
 import { accountImageUrl } from '@/lib/account'
 import { cn } from '@/lib/cn'
+import { NotificationBell } from './NotificationBell'
 
 export interface HeaderProps {
   sessionUser: { username: string; displayName: string; avatarKey: string | null } | null
@@ -24,6 +25,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: '周榜', to: '/rankings/weekly' },
   { label: '学习', to: '/learn' },
   { label: '搜索', to: '/search' },
+  { label: '关注', to: '/feed' },
+  { label: '通知', to: '/notifications' },
 ]
 
 export function Header({ sessionUser }: HeaderProps) {
@@ -116,6 +119,9 @@ export function Header({ sessionUser }: HeaderProps) {
           ))}
         </nav>
         <div className="g-header-right">
+          {/* 铃铛对游客也渲染：点进去由 RequireAuth 带到登录页并回跳，
+              与「未登录点关注」是同一条路径；游客不查未读数（见 enabled） */}
+          <NotificationBell enabled={Boolean(sessionUser)} />
           {sessionUser ? (
             <div className="g-account-menu" ref={accountRef}>
               <button

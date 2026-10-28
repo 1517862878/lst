@@ -58,6 +58,8 @@ const RankingPage = lazyNamed(() => import('@/pages/RankingPage'), 'RankingPage'
 const LearnHomePage = lazyNamed(() => import('@/pages/LearnHomePage'), 'LearnHomePage')
 const LearnTopicPage = lazyNamed(() => import('@/pages/LearnTopicPage'), 'LearnTopicPage')
 const ArticlePage = lazyNamed(() => import('@/pages/ArticlePage'), 'ArticlePage')
+const FeedPage = lazyNamed(() => import('@/pages/FeedPage'), 'FeedPage')
+const NotificationsPage = lazyNamed(() => import('@/pages/NotificationsPage'), 'NotificationsPage')
 
 // 法律页七合一打包（内容静态且相关，一次加载）
 const AboutPage = lazyNamed(() => import('@/pages/LegalPages'), 'AboutPage')
@@ -112,6 +114,8 @@ export const router = createRouter(
         { path: 'settings', element: <SettingsPage /> },
         { path: 'settings/:section', element: <SettingsPage /> },
         { path: 'me', element: <MePage /> },
+        { path: 'feed', element: <FeedPage /> },
+        { path: 'notifications', element: <NotificationsPage /> },
         { path: 'search', element: <SearchPage /> },
         { path: 'rankings/weekly', element: <RankingPage /> },
         { path: 'rankings/weekly/:isoWeek', element: <RankingPage /> },

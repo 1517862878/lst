@@ -20,6 +20,9 @@ export const apiInteractionRepository: InteractionRepository = {
   async listFavoritesByUser() {
     throw notImplemented('我的收藏列表')
   },
+  async listByUsername() {
+    throw notImplemented('个人主页的喜欢 / 收藏列表')
+  },
   async getLikeState() {
     throw notImplemented('点赞状态')
   },

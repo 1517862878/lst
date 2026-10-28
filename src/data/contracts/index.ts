@@ -3,10 +3,12 @@
  * 页面与 hooks 只能通过这里访问数据；mock 与 supabase 各实现一份，行为一致（契约测试同跑）。
  */
 import type {
+  AppNotification,
   Article,
   ArticleTopic,
   Category,
   Comment,
+  FollowCounts,
   Interaction,
   IsoDate,
   Page,
@@ -19,7 +21,7 @@ import type {
   Session,
 } from '@/domain/types'
 
-export type { Page }
+export type { FollowCounts, Page }
 
 // ===== 通用错误（跨适配器一致的错误模型）=====
 
@@ -46,6 +48,14 @@ export const ErrorCodes = {
 export interface PhotoListQuery {
   sort: 'latest' | 'popular'
   categorySlug?: string
+  /**
+   * 按作者用户名过滤（个人主页「作品」列表）。
+   *
+   * 为什么不用 authorId：公开资料接口刻意**不返回** profiles.id（服务端不提供按 UUID
+   * 读用户的旁路，见 server/src/routes/profiles.ts），所以主页拿不到 id。
+   * 服务端按 username 授权，私密账号或不可见时返回空列表而不是报错。
+   */
+  authorUsername?: string
   /** 游标（base64url）；首页传 undefined */
   cursor?: string
   /** 每页条数（默认 24） */
@@ -124,6 +134,20 @@ export interface PhotoPatch {
 export interface InteractionRepository {
   listLikesByUser(userId: string): Promise<Photo[]>
   listFavoritesByUser(userId: string): Promise<Photo[]>
+  /**
+   * 某用户公开的喜欢 / 收藏（个人主页三 Tab 之一；游标分页）。
+   *
+   * 与 listLikesByUser / listFavoritesByUser 的差别是**授权口径**，不是数据形状：
+   * 那一对服务「本人」（API 模式仅限自己，否则 400），主页却要能被任何访客读取，
+   * 所以只能按 username 走公开口径（服务端按隐私设置决定返回空页还是内容）。
+   * 用户不存在时返回空页而非抛错：主页已经处理了 404，列表不该再制造一个错误态。
+   */
+  listByUsername(
+    username: string,
+    kind: 'likes' | 'favorites',
+    cursor?: string,
+    limit?: number,
+  ): Promise<CursorListPage<Photo>>
   /** 当前用户是否已赞/已藏 */
   getLikeState(userId: string, photoId: string): Promise<boolean>
   getFavoriteState(userId: string, photoId: string): Promise<boolean>
@@ -193,6 +217,44 @@ export interface SearchRepository {
   search(query: SearchQuery): Promise<Page<Photo>>
 }
 
+// ===== 社交（二期：关注 / 关注动态 / 通知）=====
+
+/**
+ * 游标列表（关注列表、动态流、通知流共用）。
+ *
+ * 刻意不复用 Page<T>：Page 带 total，而这三个接口是「游标流」——
+ * 后端不算总数（算总数要全表扫，且实时变化的值对翻页没有意义）。
+ * 契约里的形状就是 { items, nextCursor }，多要一个字段就是多一份不一致。
+ */
+export interface CursorListPage<T> {
+  items: T[]
+  /** 下一页游标；null 表示没有更多 */
+  nextCursor: string | null
+}
+
+export interface SocialRepository {
+  /** 关注某人（幂等：已关注时直接返回） */
+  follow(username: string): Promise<void>
+  /** 取消关注（幂等：未关注时直接返回） */
+  unfollow(username: string): Promise<void>
+  /** 当前登录用户是否关注了此人；未登录返回 false（不抛错，按钮要能渲染） */
+  isFollowing(username: string): Promise<boolean>
+  /** 粉丝数 / 关注数 */
+  counts(username: string): Promise<FollowCounts>
+  /** 粉丝列表（游标分页） */
+  listFollowers(username: string, cursor?: string): Promise<CursorListPage<Profile>>
+  /** 关注列表（游标分页） */
+  listFollowing(username: string, cursor?: string): Promise<CursorListPage<Profile>>
+  /** 关注动态：我关注的作者发布的已发布作品，按发布时间倒序 */
+  feed(cursor?: string): Promise<CursorListPage<Photo>>
+  /** 我的通知（游标分页） */
+  notifications(cursor?: string): Promise<CursorListPage<AppNotification>>
+  /** 我的未读通知数 */
+  unreadCount(): Promise<number>
+  /** 标记已读；不传 ids = 全部标记为已读 */
+  markRead(ids?: string[]): Promise<void>
+}
+
 /** 所有仓储的集合（data/index.ts 工厂产出） */
 export interface Repositories {
   photos: PhotoRepository
@@ -204,4 +266,5 @@ export interface Repositories {
   auth: AuthRepository
   storage: StorageRepository
   search: SearchRepository
+  social: SocialRepository
 }

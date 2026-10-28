@@ -1,6 +1,8 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 
-const PHOTO_ID = 'c3000000-0000-0000-0000-000000000003'
+// 本套件最后一步会把作品撤回到 removed（破坏性），所以用种子里的「专用待撤回作品」，
+// 不动 social.spec 断言动态流时用的那件（Playwright 按文件名顺序跑，本文件在前）。
+const PHOTO_ID = 'c3000000-0000-0000-0000-000000000004'
 const PASSWORD = 'ApiE2e-pass-2026'
 const PHOTO_PATH = `/works/${PHOTO_ID}`
 

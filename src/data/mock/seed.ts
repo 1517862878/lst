@@ -4,13 +4,17 @@
  * 版权：全部作品 credit='示例素材'；示例图片占位（S3 前无真实图片文件，用纯色 SVG data URL 兜底）。
  */
 import type {
+  AppNotification,
   Article,
   Comment,
+  Follow,
   Interaction,
+  NotificationKind,
   Photo,
   Profile,
 } from '@/domain/types'
 import { ARTICLE_TOPICS, CATEGORIES, DEMO_ACCOUNTS, DEMO_PASSWORD } from '@/domain/constants'
+import type { NotificationRow } from './db'
 
 const now = Date.now()
 const DAY = 24 * 60 * 60 * 1000
@@ -63,6 +67,8 @@ export interface SeedResult {
   favorites: Interaction[]
   comments: Comment[]
   articles: Article[]
+  follows: Follow[]
+  notifications: NotificationRow[]
 }
 
 export function buildSeedData(): SeedResult {
@@ -239,7 +245,70 @@ export function buildSeedData(): SeedResult {
     }),
   )
 
-  return { profiles, photos, likes, favorites, comments, articles }
+  // ===== 二期：关注关系 =====
+  //
+  // 用「i 关注 i+1 / i+2 / i+3」的环形规则，而不是随机取对：
+  //   1) 不需要消耗 rand() —— 上面 photos/interactions 的随机序列完全不变，
+  //      已有 E2E 依赖的种子数据（作品标题、点赞数）一个字节都不会动；
+  //   2) 每个用户都被 3 个人关注、也关注 3 个人，demo 账号首屏不会是「0 粉丝」的尴尬状态。
+  // 再给前 5 个用户各加一条外环关注，让计数互不相同（便于肉眼核对不是写死的常量）。
+  const follows: Follow[] = []
+  const followKeys = new Set<string>()
+  const addFollow = (followerId: string, followingId: string, t: number) => {
+    if (followerId === followingId) return
+    const key = `${followerId}|${followingId}`
+    if (followKeys.has(key)) return
+    followKeys.add(key)
+    follows.push({ followerId, followingId, createdAt: iso(t) })
+  }
+  const total = profiles.length
+  for (let i = 0; i < total; i++) {
+    for (let step = 1; step <= 3; step++) {
+      addFollow(profiles[i]!.id, profiles[(i + step) % total]!.id, now - (i * 3 + step) * DAY)
+    }
+    if (i < 5) addFollow(profiles[i]!.id, profiles[(i + 6) % total]!.id, now - (i + 1) * DAY)
+  }
+
+  // ===== 二期：站内通知 =====
+  //
+  // 只给三个 demo 账号（alice / bob / editor）播种：能登录的账号才有通知页可看，
+  // 给其余 7 个用户造数据只是白占空间。
+  // 时间粒度用小时而不是天 —— 通知列表按时间倒序，同一天的几条要能排出稳定顺序。
+  const photosByAuthor = new Map<string, Photo[]>()
+  for (const p of photos) {
+    const list = photosByAuthor.get(p.authorId)
+    if (list) list.push(p)
+    else photosByAuthor.set(p.authorId, [p])
+  }
+  const commentIdOnPhoto = (photoId: string): string | null =>
+    comments.find((c) => c.photoId === photoId && c.status === 'visible')?.id ?? null
+
+  const notifications: NotificationRow[] = []
+  const NOTIFY_KINDS: NotificationKind[] = ['like', 'comment', 'follow', 'like', 'comment', 'system']
+  profiles.slice(0, DEMO_ACCOUNTS.length).forEach((owner, oi) => {
+    const own = (photosByAuthor.get(owner.id) ?? []).slice(0, NOTIFY_KINDS.length)
+    if (own.length === 0) return
+    const others = profiles.filter((p) => p.id !== owner.id)
+    NOTIFY_KINDS.forEach((kind, ki) => {
+      const photo = own[ki % own.length]!
+      const actor = kind === 'system' ? null : others[(oi * 3 + ki) % others.length]!
+      const createdAt = iso(now - (ki * 5 + 1) * 3600_000)
+      const isPhotoKind = kind === 'like' || kind === 'comment'
+      const notification: AppNotification = {
+        id: `seed-notify-${owner.id}-${ki + 1}`,
+        kind,
+        actor,
+        photoId: isPhotoKind ? photo.id : null,
+        commentId: kind === 'comment' ? commentIdOnPhoto(photo.id) : null,
+        // 最新的 3 条留未读：首次登录就能看到铃铛红点，点进去又能看到「未读」标记
+        readAt: ki < 3 ? null : iso(now - (ki * 5 + 1) * 3600_000 + 3600_000),
+        createdAt,
+      }
+      notifications.push({ ...notification, userId: owner.id })
+    })
+  })
+
+  return { profiles, photos, likes, favorites, comments, articles, follows, notifications }
 }
 
 export const SEED_PASSWORD = DEMO_PASSWORD

@@ -11,6 +11,14 @@ export const queryKeys = {
     ['photos', 'same-author', authorId, currentPhotoId, limit] as const,
   photosByUser: (userId: string, kind: 'works' | 'likes' | 'favorites') =>
     ['photos', 'user', userId, kind] as const,
+  /**
+   * 个人主页三 Tab 的键（按 username 驱动）。
+   * 与 photosByUser 分开命名而不是复用：一个按 profiles.id 取（/me 本人视图），
+   * 一个按 username 取（访客也能看的公开视图），两者的数据来源与授权口径都不同，
+   * 混用会让一份缓存被两种口径读到。
+   */
+  photosByUsername: (username: string, kind: 'works' | 'likes' | 'favorites') =>
+    ['photos', 'username', username, kind] as const,
   categories: () => ['categories'] as const,
   category: (slug: string) => ['category', slug] as const,
   comments: (photoId: string) => ['comments', photoId] as const,
@@ -25,4 +33,14 @@ export const queryKeys = {
   session: () => ['session'] as const,
   profile: (id: string) => ['profile', id] as const,
   profileByUsername: (username: string) => ['profileByUsername', username] as const,
+  // ===== 社交（二期）=====
+  // 统一挂在 'social' 前缀下：失效「我关注的人变了」时只需 invalidate ['social']
+  followState: (username: string) => ['social', 'follow-state', username] as const,
+  followCounts: (username: string) => ['social', 'follow-counts', username] as const,
+  followList: (username: string, kind: FollowListKind) => ['social', 'follow-list', username, kind] as const,
+  feed: () => ['social', 'feed'] as const,
+  notifications: () => ['social', 'notifications'] as const,
+  unreadCount: () => ['social', 'unread-count'] as const,
 }
+
+export type FollowListKind = 'followers' | 'following'

@@ -1,5 +1,6 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Header } from '@/components/layout/Header'
@@ -10,6 +11,11 @@ vi.mock('@/hooks/useSession', () => ({
   useSignOut: () => ({ signOut }),
 }))
 
+// 铃铛会打未读数接口：本文件只关心账号菜单，把它钉在 0，别让网络行为混进来
+vi.mock('@/hooks/useSocial', () => ({
+  useUnreadCount: () => ({ data: 0 }),
+}))
+
 const sessionUser = {
   username: 'lin',
   displayName: '林同学',
@@ -17,7 +23,15 @@ const sessionUser = {
 }
 
 function renderHeader() {
-  return render(<MemoryRouter><Header sessionUser={sessionUser} /></MemoryRouter>)
+  // 二期起 Header 里挂了通知铃铛（用 react-query 缓存清角标），必须提供 QueryClient
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <Header sessionUser={sessionUser} />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
 }
 
 describe('Header account menu', () => {

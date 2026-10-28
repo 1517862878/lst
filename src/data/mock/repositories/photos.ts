@@ -4,6 +4,7 @@
  */
 import { AppError, ErrorCodes, type Page, type PhotoCreateInput, type PhotoListQuery, type PhotoPatch, type PhotoRepository } from '@/data/contracts'
 import type { Photo } from '@/domain/types'
+import { findProfileByUsername } from '@/domain/social'
 import { getDb, bumpDataVersion } from '../db'
 
 /** 游标编解码：base64url（photo.id 与 sort 键组成，防伪造直接按游标翻页即可） */
@@ -23,6 +24,12 @@ export const mockPhotoRepository: PhotoRepository = {
     const db = await getDb()
     let photos = (await db.getAll('photos')).filter((p) => p.status === 'published')
     if (query.categorySlug) photos = photos.filter((p) => p.categorySlug === query.categorySlug)
+    if (query.authorUsername) {
+      // 与真实后端同口径：先按 username 定位作者（用户名大小写不敏感 = Postgres 的 citext），
+      // 再按 authorId 过滤。作者不存在时是空列表而不是报错——主页已处理 404，列表不该再抛。
+      const author = findProfileByUsername(await db.getAll('profiles'), query.authorUsername)
+      photos = author ? photos.filter((p) => p.authorId === author.id) : []
+    }
 
     // 排序：latest 按 publishedAt 降序；popular 按 (likeCount*1 + favoriteCount*3) 降序
     if (query.sort === 'popular') {

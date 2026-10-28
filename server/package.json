@@ -11,6 +11,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "test": "node --test --import tsx src/**/*.test.ts",
+    "test:integration": "node --test --test-concurrency=1 --import tsx src/**/*.integration.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {

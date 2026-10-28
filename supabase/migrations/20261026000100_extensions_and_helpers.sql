@@ -37,3 +37,4 @@ comment on function public.set_updated_at() is '通用 updated_at 触发器：UP
 --   "关系 public.profiles 不存在"。
 --   实际定义已移到 20261026000310_role_helpers.sql（紧随 profiles 之后）。
 -- ----------------------------------------------------------------------------
+;

@@ -55,7 +55,9 @@ export interface PhotoListQuery {
 export interface SearchQuery {
   text: string
   categorySlug?: string
-  sort?: 'latest' | 'popular'
+  tags?: string[]
+  locationName?: string
+  sort?: 'relevance' | 'latest' | 'hot'
   cursor?: string
   limit?: number
 }

@@ -116,11 +116,57 @@ export async function registerAccount(input: {
   })
 }
 
-/** 重设密码哈希（找回密码 / 后续改密用） */
-export async function setPassword(userId: string, passwordHash: string): Promise<void> {
-  await withRls(null, (c: pg.PoolClient) =>
-    c.query('select public.api_set_password($1, $2)', [userId, passwordHash]),
+/** 当前登录用户自己的凭据；目标身份只来自 RLS 上下文中的 auth.uid()。 */
+export async function getOwnCredential(userId: string): Promise<{
+  userId: string
+  passwordHash: string | null
+} | null> {
+  return withRls(userId, async (c: pg.PoolClient) => {
+    const result = await c.query<{ user_id: string; password_hash: string | null }>(
+      'select user_id,password_hash from public.api_get_own_credential()',
+    )
+    const row = result.rows[0]
+    return row ? { userId: row.user_id, passwordHash: row.password_hash } : null
+  })
+}
+
+/** 登录态改密；数据库函数只接受哈希，不接受目标 userId。 */
+export async function setOwnPassword(userId: string, passwordHash: string): Promise<void> {
+  await withRls(userId, (c: pg.PoolClient) =>
+    c.query('select public.api_set_own_password($1)', [passwordHash]),
   )
+}
+
+export interface PasswordResetOutcome extends CodeOutcome {
+  ok: boolean
+  reason: string | null
+}
+
+/**
+ * 找回密码的原子边界：验证码校验/消费、验证码绑定手机号到用户的解析、改密与会话撤销
+ * 全部由单个数据库函数完成。调用方不能指定 userId。
+ */
+export async function resetPasswordWithCode(input: {
+  codeId: string
+  phone: string
+  codeHash: string
+  passwordHash: string
+}): Promise<PasswordResetOutcome> {
+  return withRls(null, async (c: pg.PoolClient) => {
+    const result = await c.query<{
+      ok: boolean
+      reason: string | null
+      attempts: number
+      locked: boolean
+    }>(
+      `select ok,reason,attempts,locked
+         from public.api_reset_password_with_code($1,$2,$3,$4)`,
+      [input.codeId, input.phone, input.codeHash, input.passwordHash],
+    )
+    const row = result.rows[0]
+    if (!row) throw new Error('api_reset_password_with_code 未返回结果')
+    return row
+  })
 }
 
 // ===== 手机验证码 =====

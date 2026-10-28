@@ -1,5 +1,6 @@
 /** 本地磁盘图片上传。文件名与目录均由服务端根据登录用户生成，禁止客户端提供路径。 */
-import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises'
+import { constants as fsConstants } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { dirname, relative, resolve } from 'node:path'
 import type { FastifyInstance } from 'fastify'
@@ -24,7 +25,10 @@ export async function registerStorageRoutes(app: FastifyInstance, imageRoot: str
     done(null, body)
   })
 
-  app.put<{ Params: { '*': string } }>('/api/storage/*', async (req) => {
+  app.put<{ Params: { '*': string } }>(
+    '/api/storage/*',
+    { config: { rateLimit: { max: 30, timeWindow: '1 hour' } } },
+    async (req) => {
     const user = await requireUser(req)
     if (req.headers['content-type']?.split(';', 1)[0]?.trim().toLowerCase() !== 'image/webp') {
       throw validation('Content-Type 必须是 image/webp')
@@ -48,12 +52,14 @@ export async function registerStorageRoutes(app: FastifyInstance, imageRoot: str
     const temp = `${target}.${randomUUID()}.tmp`
     try {
       await writeFile(temp, bytes, { flag: 'wx', mode: 0o640 })
-      await rename(temp, target)
+      await copyFile(temp, target, fsConstants.COPYFILE_EXCL)
+      await rm(temp, { force: true })
     } catch (err) {
       await rm(temp, { force: true }).catch(() => undefined)
       throw new ApiError('STORAGE', '图片写入磁盘失败', err instanceof Error ? err.message : String(err))
     }
 
     return { key, size: bytes.length }
-  })
+    },
+  )
 }

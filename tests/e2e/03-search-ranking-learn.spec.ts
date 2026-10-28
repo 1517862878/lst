@@ -29,6 +29,14 @@ test.describe('主链路 3 · 搜索、榜单与学习', () => {
     expect(markCount).toBeGreaterThan(0)
   })
 
+  test('多关键词查询保持完整，并给出明确结果状态', async ({ page }) => {
+    await page.goto(`/search?q=${encodeURIComponent('星空 长曝')}`)
+    await expect(page.getByLabel('关键词')).toHaveValue('星空 长曝')
+    await expect(page.getByRole('button', { name: '搜索' })).toBeEnabled()
+    await expect(page.getByText(/共 \d+ 个结果/)).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('body')).not.toContainText('Application error')
+  })
+
   test('搜索无结果时显示空态而不是空白页', async ({ page }) => {
     // 用 encodeURIComponent 保证中文关键词在地址栏里正确传递
     await page.goto(`/search?q=${encodeURIComponent('zzzz不存在的关键词zzzz')}`)

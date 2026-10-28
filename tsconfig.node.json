@@ -12,5 +12,10 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["vite.config.ts", "eslint.config.js", "prettier.config.js"]
+  "include": [
+    "vite.config.ts",
+    "playwright.api.config.ts",
+    "eslint.config.js",
+    "prettier.config.js"
+  ]
 }

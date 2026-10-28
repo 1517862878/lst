@@ -24,6 +24,19 @@
   width: 100%;
 }
 
+.g-auth-switch {
+  margin: 0;
+  padding-top: var(--g-space-3);
+  border-top: 1px dashed var(--g-line-soft);
+  color: var(--g-ink-2);
+  text-align: center;
+  font-size: var(--g-text-sm);
+}
+
+.g-auth-switch a {
+  font-weight: 700;
+}
+
 .g-demo-banner {
   background: var(--g-warning);
   color: #fff;
@@ -82,6 +95,16 @@
   flex-direction: column;
   gap: var(--g-space-4);
   padding: var(--g-space-4) 0;
+}
+
+.g-publish-license-summary {
+  margin: calc(var(--g-space-3) * -1) 0 0;
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+}
+
+.g-checkbox-label a {
+  margin-inline: 0.2em;
 }
 
 .g-upload-zone {

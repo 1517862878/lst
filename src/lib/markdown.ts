@@ -1,55 +1,71 @@
-/**
- * Markdown 渲染管线（ROADMAP §7 / FRONTEND-WORK §4.6）。
- * marked 解析 + DOMPurify 净化，白名单标签/属性，防 XSS。
- */
-import { marked } from 'marked'
+/** marked + DOMPurify rendering with deterministic heading anchors. */
+import { marked, type Tokens } from 'marked'
 import DOMPurify from 'dompurify'
 
-// 只允许标题/段落/列表/代码/引用/链接/加粗/斜体/表格
 const ALLOWED_TAGS = [
-  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'p', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
-  'a', 'strong', 'em', 'br', 'hr',
-  'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol', 'li', 'blockquote',
+  'pre', 'code', 'a', 'strong', 'em', 'br', 'hr', 'table', 'thead', 'tbody',
+  'tr', 'th', 'td', 'img',
 ]
-const ALLOWED_ATTR = ['href', 'title', 'src', 'alt', 'target', 'rel']
+const ALLOWED_ATTR = ['href', 'title', 'src', 'alt', 'target', 'rel', 'id']
 
-// 配置 marked：链接新窗口打开 + 安全
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-})
+marked.setOptions({ gfm: true, breaks: true })
 
-/**
- * 渲染 Markdown 为安全 HTML。
- * 链接强制 target=_blank + rel=noopener（防 window.opener 攻击）。
- */
 export function renderMarkdown(md: string): string {
-  const raw = marked.parse(md) as string
+  const renderer = new marked.Renderer()
+  const ids = createHeadingIdGenerator()
+  renderer.heading = ({ tokens, depth }: Tokens.Heading) => {
+    const text = renderer.parser.parseInline(tokens)
+    const plainText = tokens.map((token) => 'text' in token ? String(token.text) : '').join('')
+    return `<h${depth} id="${ids.next(plainText)}">${text}</h${depth}>`
+  }
+  renderer.link = ({ href, title, tokens }: Tokens.Link) => {
+    const safeHref = href || '#'
+    const titleAttr = title ? ` title="${escapeHtml(title)}"` : ''
+    return `<a href="${escapeHtml(safeHref)}"${titleAttr} target="_blank" rel="noopener noreferrer">${renderer.parser.parseInline(tokens)}</a>`
+  }
+
+  const raw = marked.parse(md, { renderer }) as string
   return DOMPurify.sanitize(raw, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
     FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form'],
     FORBID_ATTR: ['onerror', 'onclick', 'onload', 'style'],
-    ADD_ATTR: ['target'],
   })
 }
 
-/** 提取标题（用于目录锚点） */
 export function extractHeadings(md: string): Array<{ id: string; text: string; level: number }> {
   const headings: Array<{ id: string; text: string; level: number }> = []
-  const lines = md.split('\n')
-  for (const line of lines) {
-    const m = /^(#{1,6})\s+(.+)$/.exec(line.trim())
-    if (m) {
-      const level = m[1]!.length
-      const text = m[2]!.trim()
-      const id = text
-        .toLowerCase()
-        .replace(/[^\w\u4e00-\u9fa5]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-      headings.push({ id, text, level })
-    }
+  const ids = createHeadingIdGenerator()
+  for (const line of md.split('\n')) {
+    const match = /^(#{1,6})\s+(.+)$/.exec(line.trim())
+    if (!match) continue
+    const level = match[1]!.length
+    const text = match[2]!.trim().replace(/\s+#+$/u, '')
+    headings.push({ id: ids.next(text), text, level })
   }
   return headings
+}
+
+function createHeadingIdGenerator() {
+  const seen = new Map<string, number>()
+  return {
+    next(text: string) {
+      const base = text
+        .normalize('NFKC')
+        .toLocaleLowerCase()
+        .replace(/<[^>]*>/gu, '')
+        .replace(/[^\p{Letter}\p{Number}]+/gu, '-')
+        .replace(/^-+|-+$/gu, '') || 'section'
+      const count = seen.get(base) ?? 0
+      seen.set(base, count + 1)
+      return count === 0 ? base : `${base}-${count + 1}`
+    },
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/gu, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[character]!)
 }

@@ -14,7 +14,11 @@ import { RequireAuth } from '@/components/layout/guards'
 import { useSession } from '@/hooks/useSession'
 import { createRepositories, dataSource } from '@/data'
 import { CATEGORIES } from '@/domain/constants'
+import { LICENSE_DESCRIPTORS } from '@/domain/licenses'
 import type { PhotoLicense } from '@/domain/types'
+import { Checkbox } from '@/components/ui/Checkbox'
+import { Link } from 'react-router'
+import { parseTags } from '@/lib/search/normalize'
 import { compressImage, validateImageFile } from '@/lib/image/compress'
 import { parseExifWhitelist, assertNoGps } from '@/lib/image/exif'
 
@@ -29,13 +33,9 @@ interface DraftState {
   tags: string[]
 }
 
-const LICENSE_OPTIONS: Array<{ value: PhotoLicense; label: string }> = [
-  { value: 'all_rights_reserved', label: '保留所有权利（默认）' },
-  { value: 'cc_by', label: 'CC BY 4.0（署名）' },
-  { value: 'cc_by_nc', label: 'CC BY-NC 4.0（署名-非商业）' },
-  { value: 'cc_by_nc_nd', label: 'CC BY-NC-ND 4.0（署名-非商业-禁止演绎）' },
-  { value: 'cc0', label: 'CC0（放弃权利）' },
-]
+const LICENSE_OPTIONS = (Object.entries(LICENSE_DESCRIPTORS) as Array<
+  [PhotoLicense, (typeof LICENSE_DESCRIPTORS)[PhotoLicense]]
+>).map(([value, descriptor]) => ({ value, label: descriptor.label }))
 
 export function PublishPage() {
   return (
@@ -62,6 +62,7 @@ function PublishInner() {
   const [exifPreview, setExifPreview] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState('')
   const [draftRestored, setDraftRestored] = useState(false)
+  const [publicationAccepted, setPublicationAccepted] = useState(false)
   const draftTimer = useRef<number | null>(null)
 
   // 草稿恢复（刷新后不丢，FRONTEND-WORK §2.17 验收）
@@ -91,7 +92,7 @@ function PublishInner() {
       categorySlug,
       locationName,
       license,
-      tags: tags.split(/\s+/).filter(Boolean).slice(0, 5),
+      tags: parseTags(tags),
     }
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
   }, [title, description, categorySlug, locationName, license, tags])
@@ -145,6 +146,10 @@ function PublishInner() {
       setError('请选择要发布的图片（仅 JPG）')
       return
     }
+    if (!publicationAccepted) {
+      setError('发布前请确认作品权利与平台发布协议')
+      return
+    }
 
     setUploading(true)
     try {
@@ -164,7 +169,7 @@ function PublishInner() {
         title: title.trim(),
         description,
         categorySlug,
-        tags: tags.split(/\s+/).filter(Boolean).slice(0, 5),
+        tags: parseTags(tags),
         locationName,
         locationLat: null,
         locationLng: null,
@@ -288,6 +293,18 @@ function PublishInner() {
             ))}
           </select>
         </div>
+        <p className="g-publish-license-summary">{LICENSE_DESCRIPTORS[license].summary}</p>
+        <Checkbox
+          checked={publicationAccepted}
+          onCheckedChange={setPublicationAccepted}
+          required
+          label={(
+            <span>
+              我确认拥有发布所需权利，并同意<Link to="/terms" target="_blank">用户协议</Link>与
+              <Link to="/copyright" target="_blank">版权及发布规则</Link>。我理解所选许可会公开展示。
+            </span>
+          )}
+        />
 
         {error && (
           <p className="g-auth-error" role="alert">

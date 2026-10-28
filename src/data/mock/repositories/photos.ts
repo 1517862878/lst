@@ -56,7 +56,8 @@ export const mockPhotoRepository: PhotoRepository = {
   async get(id: string): Promise<Photo> {
     const db = await getDb()
     const photo = await db.get('photos', id)
-    if (!photo) throw new AppError(ErrorCodes.NOT_FOUND, `作品不存在：${id}`)
+    // 与真实 API/RLS 保持一致：软撤回记录仅供内部审计，公开详情按不存在处理。
+    if (!photo || photo.status !== 'published') throw new AppError(ErrorCodes.NOT_FOUND, `作品不存在：${id}`)
     return photo
   },
 

@@ -44,6 +44,7 @@ function lazyNamed(loader: () => Promise<PageModule>, name: string): () => React
 
 const GalleryPage = lazyNamed(() => import('@/pages/GalleryPage'), 'GalleryPage')
 const WorkDetailPage = lazyNamed(() => import('@/pages/WorkDetailPage'), 'WorkDetailPage')
+const WorkEditPage = lazyNamed(() => import('@/pages/WorkEditPage'), 'WorkEditPage')
 const CategoriesPage = lazyNamed(() => import('@/pages/CategoriesPage'), 'CategoriesPage')
 const CategoryPage = lazyNamed(() => import('@/pages/CategoryPage'), 'CategoryPage')
 const LoginPage = lazyNamed(() => import('@/pages/LoginPage'), 'LoginPage')
@@ -101,13 +102,15 @@ export const router = createRouter(
         { index: true, element: <HomePage /> },
         { path: 'gallery', element: <GalleryPage /> },
         { path: 'works/:id', element: <WorkDetailPage /> },
+        { path: 'works/:id/edit', element: <WorkEditPage /> },
         { path: 'categories', element: <CategoriesPage /> },
         { path: 'categories/:slug', element: <CategoryPage /> },
         { path: 'login', element: <LoginPage /> },
         { path: 'register', element: <RegisterPage /> },
         { path: 'publish', element: <PublishPage /> },
         { path: 'u/:username', element: <ProfilePage /> },
-        { path: 'settings/profile', element: <SettingsPage /> },
+        { path: 'settings', element: <SettingsPage /> },
+        { path: 'settings/:section', element: <SettingsPage /> },
         { path: 'me', element: <MePage /> },
         { path: 'search', element: <SearchPage /> },
         { path: 'rankings/weekly', element: <RankingPage /> },

@@ -7,25 +7,36 @@
 import type { Page, PhotoRepository, SearchQuery, SearchRepository } from '@/data/contracts'
 import type { Photo } from '@/domain/types'
 import { getDb } from '../db'
+import { normalizeSearchText, normalizeTag } from '@/lib/search/normalize'
 
 export const mockSearchRepository: SearchRepository = {
   async search(query: SearchQuery): Promise<Page<Photo>> {
     const db = await getDb()
     const all = (await db.getAll('photos')).filter((p) => p.status === 'published')
-    const text = query.text.trim().toLowerCase()
+    const text = normalizeSearchText(query.text)
     let matched = all
     if (text) {
+      const terms = text.split(' ').filter(Boolean)
       matched = all.filter((p) => {
-        const haystack = [p.title, p.description, p.locationName, ...p.tags]
-          .join(' ')
-          .toLowerCase()
-        return haystack.includes(text)
+        const haystack = normalizeSearchText([p.title, p.description, p.locationName, ...p.tags].join(' '))
+        return terms.every((term) => haystack.includes(term))
       })
     }
     if (query.categorySlug) matched = matched.filter((p) => p.categorySlug === query.categorySlug)
-    if (query.sort === 'popular') {
+    if (query.tags?.length) {
+      const requiredTags = query.tags.map(normalizeTag)
+      matched = matched.filter((p) => {
+        const photoTags = new Set(p.tags.map(normalizeTag))
+        return requiredTags.every((tag) => photoTags.has(tag))
+      })
+    }
+    if (query.locationName) {
+      const location = normalizeSearchText(query.locationName)
+      matched = matched.filter((p) => normalizeSearchText(p.locationName).includes(location))
+    }
+    if (query.sort === 'hot') {
       matched.sort((a, b) => b.likeCount + b.favoriteCount * 3 - (a.likeCount + a.favoriteCount * 3))
-    } else {
+    } else if (query.sort === 'latest') {
       matched.sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
     }
     const limit = query.limit ?? 24

@@ -9,8 +9,17 @@
 import type { FastifyInstance } from 'fastify'
 import { currentUser, requireUser } from '../lib/auth.js'
 import { withAnonymous, withRls } from '../lib/db.js'
-import { validation } from '../lib/errors.js'
-import { createComment, createPhoto, publishPhoto, removeComment, setFavorite, setLike } from '../repositories/writes.js'
+import { notFound, validation } from '../lib/errors.js'
+import {
+  createComment,
+  createPhoto,
+  publishPhoto,
+  removeComment,
+  removePhoto,
+  setFavorite,
+  setLike,
+  updatePhoto,
+} from '../repositories/writes.js'
 import { listComments } from '../repositories/comments.js'
 import { getInteractionState, listByPhoto, listFavoritesByUser, listLikesByUser } from '../repositories/interactions.js'
 import { listPhotos, getPhoto, relatedPhotos } from '../repositories/photos.js'
@@ -24,8 +33,99 @@ import {
 } from '../repositories/rankings.js'
 import { registerAuthRoutes } from './auth.js'
 import { registerProfileRoutes } from './profiles.js'
+import { registerAccountCenterRoutes } from './account-center.js'
 import { registerModerationRoutes } from './moderation.js'
 import { searchPhotos } from '../repositories/search.js'
+
+export const PHOTO_LICENSES = [
+  'all_rights_reserved',
+  'cc_by',
+  'cc_by_nc',
+  'cc_by_nc_nd',
+  'cc0',
+] as const
+const EXIF_KEYS = [
+  'Make',
+  'Model',
+  'LensModel',
+  'FNumber',
+  'ExposureTime',
+  'ISO',
+  'FocalLength',
+  'DateTimeOriginal',
+] as const
+const MUTATION_RATE_LIMIT = { max: 60, timeWindow: '1 minute' } as const
+const COMMENT_RATE_LIMIT = { max: 20, timeWindow: '1 minute' } as const
+const PUBLISH_RATE_LIMIT = { max: 10, timeWindow: '1 hour' } as const
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  const proto = Object.getPrototypeOf(value)
+  return proto === Object.prototype || proto === null
+}
+
+export function validateExif(value: unknown): Record<string, unknown> | null {
+  if (value == null) return null
+  if (!isPlainObject(value)) throw validation('exif 必须是普通对象或 null')
+  const allowed = new Set<string>(EXIF_KEYS)
+  for (const [key, entry] of Object.entries(value)) {
+    if (!allowed.has(key) || (typeof entry === 'object' && entry !== null)) {
+      throw validation('exif 含白名单之外或嵌套的字段')
+    }
+  }
+  return value
+}
+
+export function publicLocation(
+  precision: string,
+  name: string,
+  lat: number | null,
+  lng: number | null,
+): { name: string; lat: number | null; lng: number | null } {
+  if (precision === 'hidden') return { name: '', lat: null, lng: null }
+  if (precision === 'city' || precision === 'district') return { name, lat: null, lng: null }
+  return { name, lat, lng }
+}
+
+export function parsePhotoPatch(body: Record<string, unknown>) {
+  const allowed = new Set(['title', 'description', 'categorySlug', 'tags', 'locationName', 'license', 'status'])
+  const unknown = Object.keys(body).filter((key) => !allowed.has(key))
+  if (unknown.length > 0) throw validation('包含不可修改的作品字段', { fields: unknown })
+  if (Object.keys(body).length === 0) throw validation('至少提供一个可修改字段')
+
+  const patch: Parameters<typeof updatePhoto>[2] = {}
+  if ('title' in body) {
+    if (typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 60) throw validation('title 不合法')
+    patch.title = body.title.trim()
+  }
+  if ('description' in body) {
+    if (typeof body.description !== 'string' || body.description.length > 2000) throw validation('description 不合法')
+    patch.description = body.description.trim()
+  }
+  if ('categorySlug' in body) {
+    if (typeof body.categorySlug !== 'string' || !body.categorySlug.trim() || body.categorySlug.trim().length > 80) throw validation('categorySlug 不合法')
+    patch.categorySlug = body.categorySlug.trim()
+  }
+  if ('tags' in body) {
+    if (!Array.isArray(body.tags) || !body.tags.every((entry) => typeof entry === 'string')) throw validation('tags 不合法')
+    const tags = [...new Set((body.tags as string[]).map((entry) => entry.trim()).filter(Boolean))]
+    if (tags.length > 5 || tags.some((entry) => entry.length > 20 || /[\p{Cc}\p{Cf}]/u.test(entry))) throw validation('tags 最多 5 个且每个不超过 20 字')
+    patch.tags = tags
+  }
+  if ('locationName' in body) {
+    if (typeof body.locationName !== 'string' || body.locationName.length > 80) throw validation('locationName 不合法')
+    patch.locationName = body.locationName.trim()
+  }
+  if ('license' in body) {
+    if (typeof body.license !== 'string' || !(PHOTO_LICENSES as readonly string[]).includes(body.license)) throw validation('license 不合法')
+    patch.license = body.license
+  }
+  if ('status' in body) {
+    if (body.status !== 'removed') throw validation('status 只能用于撤回作品')
+    patch.status = body.status
+  }
+  return patch
+}
 
 export async function registerRoutes(app: FastifyInstance) {
   // ==========================================================================
@@ -33,6 +133,7 @@ export async function registerRoutes(app: FastifyInstance) {
   // ==========================================================================
   await registerAuthRoutes(app)
   await registerProfileRoutes(app)
+  await registerAccountCenterRoutes(app)
   await registerModerationRoutes(app)
 
   // ==========================================================================
@@ -65,7 +166,10 @@ export async function registerRoutes(app: FastifyInstance) {
     return withRls(user?.userId ?? null, (c) => getPhoto(c, req.params.id))
   })
 
-  app.post<{ Body: Record<string, unknown> }>('/api/photos', async (req) => {
+  app.post<{ Body: Record<string, unknown> }>(
+    '/api/photos',
+    { config: { rateLimit: PUBLISH_RATE_LIMIT } },
+    async (req) => {
     const user = await requireUser(req)
     const b = req.body ?? {}
     const text = (name: string, max: number, required = true) => {
@@ -84,7 +188,7 @@ export async function registerRoutes(app: FastifyInstance) {
     const tags = Array.isArray(b.tags) && b.tags.every((v) => typeof v === 'string')
       ? [...new Set((b.tags as string[]).map((v) => v.trim()).filter(Boolean))]
       : []
-    if (tags.length > 5 || tags.some((v) => v.length > 30)) throw validation('tags 最多 5 个且每个不超过 30 字')
+    if (tags.length > 5 || tags.some((v) => v.length > 20 || /[\p{Cc}\p{Cf}]/u.test(v))) throw validation('tags 最多 5 个且每个不超过 20 字')
     const width = b.width
     const height = b.height
     if (!Number.isInteger(width) || Number(width) < 1 || !Number.isInteger(height) || Number(height) < 1) {
@@ -93,9 +197,14 @@ export async function registerRoutes(app: FastifyInstance) {
     const precision = text('locationPrecision', 20)
     if (!['exact', 'district', 'city', 'hidden'].includes(precision)) throw validation('locationPrecision 不合法')
     const license = text('license', 40)
-    if (!['all_rights_reserved', 'cc_by', 'cc_by_nc'].includes(license)) throw validation('license 不合法')
-    const exif = b.exif == null ? null : b.exif
-    if (exif !== null && (typeof exif !== 'object' || Array.isArray(exif))) throw validation('exif 必须是对象或 null')
+    if (!(PHOTO_LICENSES as readonly string[]).includes(license)) throw validation('license 不合法')
+    const exif = validateExif(b.exif)
+    const location = publicLocation(
+      precision,
+      text('locationName', 80, false),
+      nullableNumber('locationLat'),
+      nullableNumber('locationLng'),
+    )
 
     return withRls(user.userId, (c) => createPhoto(c, {
       id,
@@ -103,9 +212,9 @@ export async function registerRoutes(app: FastifyInstance) {
       description: text('description', 2000, false),
       categorySlug: text('categorySlug', 80),
       tags,
-      locationName: text('locationName', 80, false),
-      locationLat: nullableNumber('locationLat'),
-      locationLng: nullableNumber('locationLng'),
+      locationName: location.name,
+      locationLat: location.lat,
+      locationLng: location.lng,
       locationPrecision: precision,
       shotAt: b.shotAt == null ? null : text('shotAt', 40),
       exif: exif as Record<string, unknown> | null,
@@ -117,24 +226,58 @@ export async function registerRoutes(app: FastifyInstance) {
       license,
       credit: b.credit == null ? null : text('credit', 200, false),
     }))
-  })
+    },
+  )
 
-  app.post<{ Params: { id: string } }>('/api/photos/:id/publish', async (req) => {
-    const user = await requireUser(req)
-    return withRls(user.userId, (c) => publishPhoto(c, req.params.id))
-  })
+  app.patch<{ Params: { id: string }; Body: Record<string, unknown> }>(
+    '/api/photos/:id',
+    { config: { rateLimit: MUTATION_RATE_LIMIT } },
+    async (req) => {
+      const user = await requireUser(req)
+      const patch = parsePhotoPatch(req.body ?? {})
+      return withRls(user.userId, (c) => updatePhoto(c, req.params.id, patch))
+    },
+  )
 
-  app.put<{ Params: { id: string }; Body: { liked?: unknown } }>('/api/photos/:id/like', async (req) => {
-    const user = await requireUser(req)
-    if (typeof req.body?.liked !== 'boolean') throw validation('liked 必须是布尔值')
-    return { liked: await withRls(user.userId, (c) => setLike(c, req.params.id, req.body.liked as boolean)) }
-  })
+  app.delete<{ Params: { id: string } }>(
+    '/api/photos/:id',
+    { config: { rateLimit: MUTATION_RATE_LIMIT } },
+    async (req, reply) => {
+      const user = await requireUser(req)
+      const removed = await withRls(user.userId, (c) => removePhoto(c, req.params.id))
+      if (!removed) throw notFound('作品不存在')
+      return reply.status(204).send()
+    },
+  )
 
-  app.put<{ Params: { id: string }; Body: { favorited?: unknown } }>('/api/photos/:id/favorite', async (req) => {
-    const user = await requireUser(req)
-    if (typeof req.body?.favorited !== 'boolean') throw validation('favorited 必须是布尔值')
-    return { favorited: await withRls(user.userId, (c) => setFavorite(c, req.params.id, req.body.favorited as boolean)) }
-  })
+  app.post<{ Params: { id: string } }>(
+    '/api/photos/:id/publish',
+    { config: { rateLimit: PUBLISH_RATE_LIMIT } },
+    async (req) => {
+      const user = await requireUser(req)
+      return withRls(user.userId, (c) => publishPhoto(c, req.params.id))
+    },
+  )
+
+  app.put<{ Params: { id: string }; Body: { liked?: unknown } }>(
+    '/api/photos/:id/like',
+    { config: { rateLimit: MUTATION_RATE_LIMIT } },
+    async (req) => {
+      const user = await requireUser(req)
+      if (typeof req.body?.liked !== 'boolean') throw validation('liked 必须是布尔值')
+      return { liked: await withRls(user.userId, (c) => setLike(c, req.params.id, req.body.liked as boolean)) }
+    },
+  )
+
+  app.put<{ Params: { id: string }; Body: { favorited?: unknown } }>(
+    '/api/photos/:id/favorite',
+    { config: { rateLimit: MUTATION_RATE_LIMIT } },
+    async (req) => {
+      const user = await requireUser(req)
+      if (typeof req.body?.favorited !== 'boolean') throw validation('favorited 必须是布尔值')
+      return { favorited: await withRls(user.userId, (c) => setFavorite(c, req.params.id, req.body.favorited as boolean)) }
+    },
+  )
 
   app.get<{ Querystring: { userId?: string; kind?: string } }>('/api/interactions', async (req) => {
     const user = await requireUser(req)
@@ -170,13 +313,17 @@ export async function registerRoutes(app: FastifyInstance) {
     }))
   })
 
-  app.post<{ Params: { id: string }; Body: { parentId?: unknown; body?: unknown } }>('/api/photos/:id/comments', async (req) => {
-    const user = await requireUser(req)
-    const body = typeof req.body?.body === 'string' ? req.body.body.trim() : ''
-    if (!body || body.length > 1000) throw validation('评论正文须为 1–1000 个字符')
-    const parentId = req.body?.parentId == null ? null : String(req.body.parentId)
-    return withRls(user.userId, (c) => createComment(c, { photoId: req.params.id, parentId, body }))
-  })
+  app.post<{ Params: { id: string }; Body: { parentId?: unknown; body?: unknown } }>(
+    '/api/photos/:id/comments',
+    { config: { rateLimit: COMMENT_RATE_LIMIT } },
+    async (req) => {
+      const user = await requireUser(req)
+      const body = typeof req.body?.body === 'string' ? req.body.body.trim() : ''
+      if (!body || body.length > 1000) throw validation('评论正文须为 1–1000 个字符')
+      const parentId = req.body?.parentId == null ? null : String(req.body.parentId)
+      return withRls(user.userId, (c) => createComment(c, { photoId: req.params.id, parentId, body }))
+    },
+  )
 
   app.delete<{ Params: { id: string } }>('/api/comments/:id', async (req, reply) => {
     const user = await requireUser(req)

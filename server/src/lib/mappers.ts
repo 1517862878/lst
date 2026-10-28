@@ -127,7 +127,29 @@ export interface PhotoRow {
 }
 
 /** 对应前端 Photo */
+const PUBLIC_EXIF_KEYS = new Set([
+  'Make',
+  'Model',
+  'LensModel',
+  'FNumber',
+  'ExposureTime',
+  'ISO',
+  'FocalLength',
+  'DateTimeOriginal',
+])
+
+function publicExif(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      ([key, entry]) => PUBLIC_EXIF_KEYS.has(key) && (typeof entry !== 'object' || entry === null),
+    ),
+  )
+}
+
 export function mapPhoto(row: PhotoRow) {
+  const exactLocation = row.location_precision === 'exact'
+  const hiddenLocation = row.location_precision === 'hidden'
   return {
     id: row.id,
     authorId: row.author_id,
@@ -135,12 +157,12 @@ export function mapPhoto(row: PhotoRow) {
     description: row.description,
     categorySlug: row.category_slug,
     tags: row.tags ?? [],
-    locationName: row.location_name,
-    locationLat: numOrNull(row.location_lat),
-    locationLng: numOrNull(row.location_lng),
+    locationName: hiddenLocation ? '' : row.location_name,
+    locationLat: exactLocation ? numOrNull(row.location_lat) : null,
+    locationLng: exactLocation ? numOrNull(row.location_lng) : null,
     locationPrecision: row.location_precision,
     shotAt: iso(row.shot_at),
-    exif: (row.exif as Record<string, unknown> | null) ?? null,
+    exif: publicExif(row.exif),
     imageKey: row.image_key,
     thumbKey: row.thumb_key,
     width: row.width,

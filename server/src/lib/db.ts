@@ -90,9 +90,16 @@ export function withAnonymous<T>(fn: (client: pg.PoolClient) => Promise<T>): Pro
 }
 
 /**
- * 运维查询：绕过 RLS。
- * 仅用于健康检查、计数对账等不涉及用户数据的场景。
+ * 不带 RLS 上下文的连接（app.user_id 不设置，为匿名）。
+ *
+ * 【更正一处长期误述】这里并【不】绕过 RLS：
+ * 连接用的仍是 app_user（非 superuser、非 BYPASSRLS），
+ * 策略与表权限照常生效 —— 它只是"没有登录身份"而已。
+ * 因此它只能用于：健康检查、以及经 security definer 函数访问的运维路径。
  * 【明确禁止】用它读用户私有数据。
+ *
+ * 反面教材：图片清理 worker 曾以为"withSystem 能绕过权限"，
+ * 于是直接 update 了一张对 app_user 完全收回的表，结果每轮 42501。
  */
 export async function withSystem<T>(fn: (client: pg.PoolClient) => Promise<T>): Promise<T> {
   const client = await pool.connect()

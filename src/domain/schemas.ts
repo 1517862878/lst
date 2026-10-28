@@ -65,7 +65,7 @@ export const photoPublishSchema = z.object({
   title: z.string().min(1, '请填写标题').max(60, '标题最多 60 字'),
   description: z.string().max(2000, '心得最多 2000 字'),
   categorySlug: z.string().refine((s) => CATEGORIES.some((c) => c.slug === s), '无效分类'),
-  tags: z.array(z.string().max(20)).max(5, '标签最多 5 个'),
+  tags: z.array(z.string().min(1).max(20)).max(5, '标签最多 5 个'),
   locationName: z.string().max(80, '地点最多 80 字'),
   locationPrecision: locationPrecisionSchema,
   license: photoLicenseSchema,

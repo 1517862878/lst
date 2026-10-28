@@ -1,7 +1,4 @@
-/**
- * 搜索页 /search（FRONTEND-WORK §2.6）。
- * URL 即状态（?q=）；关键词高亮；分类/排序筛选；空态建议。
- */
+/** 搜索页：URL 为唯一状态，支持关键词、分类、标签、地点和排序。 */
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { Container } from '@/components/layout/Container'
@@ -11,133 +8,174 @@ import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { HighlightedText } from '@/features/search/HighlightedText'
 import { useSearch } from '@/hooks/useSearch'
-import { categoryName } from '@/domain/constants'
+import { CATEGORIES } from '@/domain/constants'
+import { normalizeSearchText, parseTags } from '@/lib/search/normalize'
 import type { Photo } from '@/domain/types'
+import type { SearchQuery } from '@/data/contracts'
+
+const TRENDING_TAGS = ['夜景', '街头', '建筑', '长曝光', '黑白']
+type SearchSort = NonNullable<SearchQuery['sort']>
 
 export function SearchPage() {
   const [params, setParams] = useSearchParams()
   const q = params.get('q') ?? ''
   const categorySlug = params.get('category') ?? ''
+  const tagsText = params.get('tags') ?? ''
+  const locationName = params.get('location') ?? ''
+  const sort = parseSort(params.get('sort'))
   const [input, setInput] = useState(q)
 
-  useEffect(() => {
-    setInput(q)
-  }, [q])
+  useEffect(() => setInput(q), [q])
 
-  const { data: photos, isLoading, isFetching, isError, error, refetch } = useSearch(
-    categorySlug ? { text: q, categorySlug } : { text: q },
-  )
+  const tags = useMemo(() => parseTags(tagsText), [tagsText])
+  const query: SearchQuery = {
+    text: q,
+    ...(categorySlug ? { categorySlug } : {}),
+    ...(tags.length ? { tags } : {}),
+    ...(locationName ? { locationName } : {}),
+    sort,
+    limit: 100,
+  }
+  const { data, isLoading, isFetching, isError, error, refetch } = useSearch(query)
+  const hasFilters = Boolean(q || categorySlug || tags.length || locationName)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const next: Record<string, string> = {}
-    if (input.trim()) next.q = input.trim()
-    if (categorySlug) next.category = categorySlug
+  const updateParam = (name: string, value: string) => {
+    const next = new URLSearchParams(params)
+    if (value) next.set(name, value)
+    else next.delete(name)
     setParams(next, { replace: true })
   }
 
-  const clearFilters = () => setParams({}, { replace: true })
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
+    updateParam('q', input.trim())
+  }
+
+  const applyTag = (tag: string) => {
+    const next = new URLSearchParams(params)
+    next.set('tags', tag)
+    setParams(next, { replace: true })
+  }
 
   return (
     <Container>
-      <PageHeader title="搜索" description="按标题、心得、地点、标签查找作品" />
+      <PageHeader title="搜索" description="组合关键词、分类、标签与地点，精确找到感兴趣的作品" />
 
-      <form
-        className="g-search-bar"
-        onSubmit={handleSubmit}
-        role="search"
-        aria-busy={isFetching}
-      >
+      <form className="g-search-bar" onSubmit={handleSubmit} role="search" aria-busy={isFetching}>
         <Input
           label="关键词"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(event) => setInput(event.target.value)}
           placeholder="如：星空、长曝、街头…"
           aria-label="搜索关键词"
         />
-        <Button type="submit" loading={isFetching}>
-          搜索
-        </Button>
+        <Button type="submit" loading={isFetching}>搜索</Button>
       </form>
 
-      {isFetching && (
-        <p className="g-search-result-count" role="status" aria-live="polite">
-          正在搜索…
-        </p>
-      )}
+      <div className="g-search-filter-panel" aria-label="搜索筛选">
+        <label className="g-search-filter-field">
+          <span>分类</span>
+          <select value={categorySlug} onChange={(event) => updateParam('category', event.target.value)}>
+            <option value="">全部分类</option>
+            {CATEGORIES.map((category) => (
+              <option key={category.slug} value={category.slug}>{category.name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="g-search-filter-field">
+          <span>标签</span>
+          <input
+            value={tagsText}
+            onChange={(event) => updateParam('tags', event.target.value)}
+            placeholder="空格分隔，最多 5 个"
+          />
+        </label>
+        <label className="g-search-filter-field">
+          <span>地点</span>
+          <input
+            value={locationName}
+            onChange={(event) => updateParam('location', event.target.value)}
+            placeholder="城市或地点"
+          />
+        </label>
+        <label className="g-search-filter-field">
+          <span>排序</span>
+          <select value={sort} onChange={(event) => updateParam('sort', event.target.value)}>
+            <option value="relevance">相关度</option>
+            <option value="latest">最新发布</option>
+            <option value="hot">热门互动</option>
+          </select>
+        </label>
+      </div>
 
-      {categorySlug && (
-        <div className="g-search-filters" role="status">
-          <span>分类筛选：{categoryName(categorySlug)}</span>
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
-            清除筛选
-          </Button>
+      {hasFilters && (
+        <div className="g-search-filters">
+          <span>{isFetching ? '正在更新结果…' : `已应用 ${[q, categorySlug, tags.length, locationName].filter(Boolean).length} 项筛选`}</span>
+          <Button variant="ghost" size="sm" onClick={() => setParams({}, { replace: true })}>清除全部</Button>
         </div>
       )}
 
-      {q && !isLoading && !isError && (
-        <p className="g-search-result-count" role="status" aria-live="polite">
-          共 {photos?.length ?? 0} 个结果
-        </p>
+      {hasFilters && !isLoading && !isError && (
+        <p className="g-search-result-count" role="status" aria-live="polite">共 {data?.items.length ?? 0} 个结果</p>
       )}
 
-      {/* 三态：先判失败，再判有无结果 —— 否则失败会被渲染成"没有匹配结果" */}
       {isError ? (
         <ErrorState title="搜索失败" error={error} onRetry={() => void refetch()} />
-      ) : q && photos ? (
-        <SearchResultList photos={photos} terms={q.split(/\s+/u).filter(Boolean)} />
+      ) : hasFilters && data ? (
+        <SearchResultList photos={data.items} terms={normalizeSearchText(q).split(' ').filter(Boolean)} onTag={applyTag} />
       ) : (
-        !isLoading && (
-          <p className="g-placeholder-text">输入关键词开始搜索。</p>
-        )
+        !isLoading && <SearchStart onTag={applyTag} />
       )}
     </Container>
   )
 }
 
-function SearchResultList({ photos, terms }: { photos: Photo[]; terms: string[] }) {
-  const list = useMemo(
-    () => (
-      <div className="g-search-results">
-        {photos.map((p) => (
-          <SearchResultItem key={p.id} photo={p} terms={terms} />
-        ))}
+function SearchStart({ onTag }: { onTag: (tag: string) => void }) {
+  return (
+    <div className="g-search-empty">
+      <h2>从热门主题开始</h2>
+      <p>输入关键词，或先选择一个标签与分类。</p>
+      <div className="g-search-suggestions">
+        {TRENDING_TAGS.map((tag) => <Button key={tag} variant="secondary" size="sm" onClick={() => onTag(tag)}>#{tag}</Button>)}
       </div>
-    ),
-    [photos, terms],
+      <Link to="/categories" className="g-btn g-btn-secondary">浏览全部分类</Link>
+    </div>
   )
+}
+
+function SearchResultList({ photos, terms, onTag }: { photos: Photo[]; terms: string[]; onTag: (tag: string) => void }) {
   if (photos.length === 0) {
     return (
-      <div className="g-placeholder-text">
-        没有匹配结果。试试更短的关键词，或浏览分类。
+      <div className="g-search-empty">
+        <h2>没有匹配结果</h2>
+        <p>试试更短的关键词、清除部分筛选，或从热门标签重新开始。</p>
+        <div className="g-search-suggestions">
+          {TRENDING_TAGS.slice(0, 3).map((tag) => <Button key={tag} variant="secondary" size="sm" onClick={() => onTag(tag)}>#{tag}</Button>)}
+        </div>
+        <Link to="/categories" className="g-btn g-btn-secondary">浏览分类</Link>
       </div>
     )
   }
-  return list
+  return <div className="g-search-results">{photos.map((photo) => <SearchResultItem key={photo.id} photo={photo} terms={terms} onTag={onTag} />)}</div>
 }
 
-function SearchResultItem({ photo, terms }: { photo: Photo; terms: string[] }) {
+function SearchResultItem({ photo, terms, onTag }: { photo: Photo; terms: string[]; onTag: (tag: string) => void }) {
   return (
-    // 用 Link 而非 <a href>：子路径部署（/lst/）时原生 href 会丢 base，点进 404
-    <Link to={`/works/${photo.id}`} className="g-search-result-item">
-      <div className="g-search-result-body">
-        <h3 className="g-search-result-title">
-          <HighlightedText text={photo.title} terms={terms} />
-        </h3>
-        {photo.description && (
-          <p className="g-search-result-desc">
-            <HighlightedText text={photo.description.slice(0, 120)} terms={terms} />
-          </p>
-        )}
-        <p className="g-search-result-meta">
-          {photo.locationName && <span>📍 {photo.locationName}</span>}
-          {photo.tags.map((t) => (
-            <span key={t} className="g-search-result-tag">
-              #{t}
-            </span>
-          ))}
-        </p>
+    <article className="g-search-result-item">
+      <Link to={`/works/${photo.id}`} className="g-search-result-body">
+        <h3 className="g-search-result-title"><HighlightedText text={photo.title} terms={terms} /></h3>
+        {photo.description && <p className="g-search-result-desc"><HighlightedText text={photo.description.slice(0, 120)} terms={terms} /></p>}
+        {photo.locationName && <p className="g-search-result-meta"><span>📍 {photo.locationName}</span></p>}
+      </Link>
+      <div className="g-search-result-meta" aria-label="作品标签">
+        {photo.tags.map((tag) => (
+          <button key={tag} type="button" className="g-search-result-tag" onClick={() => onTag(tag)}>#{tag}</button>
+        ))}
       </div>
-    </Link>
+    </article>
   )
+}
+
+function parseSort(value: string | null): SearchSort {
+  return value === 'latest' || value === 'hot' ? value : 'relevance'
 }

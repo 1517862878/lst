@@ -22,6 +22,7 @@
 --    保留 citext（大小写不敏感），仅替换 check 规则
 -- ----------------------------------------------------------------------------
 alter table public.profiles drop constraint if exists profiles_username_check;
+alter table public.profiles drop constraint if exists ck_profiles_username_format;
 
 alter table public.profiles
   add constraint ck_profiles_username_format
@@ -43,7 +44,7 @@ alter table public.profiles
 alter table public.profiles drop constraint if exists ck_profiles_phone_format;
 alter table public.profiles
   add constraint ck_profiles_phone_format
-  check (phone is null or phone ~ '^1[3-9]\d{9}$');
+  check (phone is null or phone ~ '^1[3-9]\d{9}$') not valid;
 
 create unique index if not exists uq_profiles_phone
   on public.profiles (phone)

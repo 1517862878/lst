@@ -17,6 +17,27 @@
   fill: currentColor;
 }
 
+.g-license-card {
+  margin-top: var(--g-space-3);
+  border: 1px solid var(--g-line);
+  border-left: 4px solid var(--g-brand);
+  border-radius: var(--g-radius-md);
+  background: var(--g-surface-2);
+}
+
+.g-license-card > a,
+.g-license-card > div {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-3);
+  padding: var(--g-space-3) var(--g-space-4);
+  color: var(--g-ink);
+  text-decoration: none;
+}
+
+.g-license-card span { color: var(--g-ink-2); font-size: var(--g-text-sm); }
+.g-license-card a:hover strong { text-decoration: underline; }
+
 /* 评论区 */
 .g-comments {
   margin-top: var(--g-space-6);

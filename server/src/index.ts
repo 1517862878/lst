@@ -18,6 +18,8 @@ import { TRUSTED_ORIGINS, TRUST_PROXY } from './lib/config.js'
 import { registerRequestSecurity } from './lib/request-security.js'
 import { registerRoutes } from './routes/index.js'
 import { registerStorageRoutes } from './routes/storage.js'
+import { StorageCleanupWorker } from './storage/cleanup-worker.js'
+import { LocalDiskStorage } from './storage/local-disk.js'
 
 const PORT = Number(process.env.PORT ?? 3001)
 const HOST = process.env.HOST ?? '127.0.0.1'
@@ -26,6 +28,7 @@ const HOST = process.env.HOST ?? '127.0.0.1'
 const IMAGE_ROOT = process.env.IMAGE_ROOT ?? 'E:\\lst-测试图片'
 
 export async function buildApp() {
+  const imageRoot = resolve(IMAGE_ROOT)
   const app = Fastify({
     logger: {
       level: process.env.LOG_LEVEL ?? 'info',
@@ -140,6 +143,13 @@ export async function buildApp() {
   await registerStorageRoutes(app, imageRoot)
   await registerRoutes(app)
 
+  // 数据库事务只负责软撤回和可靠入队；对象存储删除在提交后由 worker 异步执行。
+  const cleanupWorker = new StorageCleanupWorker(new LocalDiskStorage(imageRoot), app.log)
+  if (process.env.STORAGE_CLEANUP_ENABLED !== 'false') {
+    cleanupWorker.start()
+    app.addHook('onClose', async () => cleanupWorker.stop())
+  }
+
   return app
 }
 
@@ -167,5 +177,4 @@ for (const sig of ['SIGINT', 'SIGTERM'] as const) {
   })
 }
 
-const imageRoot = resolve(IMAGE_ROOT)
-export { imageRoot, PORT, HOST }
+export { PORT, HOST }

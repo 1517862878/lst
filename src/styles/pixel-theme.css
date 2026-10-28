@@ -164,6 +164,17 @@
   height: auto;
 }
 
+.g-photo-card-work-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.g-photo-card-work-link:focus-visible {
+  outline: var(--g-border) solid var(--g-focus);
+  outline-offset: 2px;
+}
+
 .g-photo-card-body {
   padding: var(--g-space-3);
   display: flex;
@@ -176,6 +187,7 @@
 
 .g-photo-card-title {
   margin: 0;
+  padding: var(--g-space-3) var(--g-space-3) 0;
   font-size: var(--g-text-base);
   font-weight: 400;
   color: var(--g-ink);
@@ -493,6 +505,8 @@
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  min-height: 44px;
+  padding-block: var(--g-space-2);
 }
 
 /* 链接之间的分隔符 */
@@ -995,6 +1009,7 @@
   display: flex;
   align-items: center;
   gap: var(--g-space-2);
+  flex-wrap: wrap;
 }
 
 /* ══════════════════════════════════════════
@@ -1257,6 +1272,12 @@
   flex-direction: column;
   gap: var(--g-space-4);
   margin-top: var(--g-space-4);
+}
+
+.g-upload-zone:focus-within {
+  outline: 3px solid var(--g-focus);
+  outline-offset: 3px;
+  box-shadow: var(--g-shadow-sm);
 }
 
 .g-upload-zone {
@@ -1760,6 +1781,28 @@
 
 .g-article-toc a:hover {
   color: var(--g-brand);
+}
+
+@media (max-width: 480px) {
+  .g-demo-banner {
+    text-align: left;
+    font-size: var(--g-text-sm);
+    line-height: 1.6;
+  }
+
+  .g-toolbar-group,
+  .g-publish-actions,
+  .g-hero-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .g-toolbar-group > *,
+  .g-publish-actions > *,
+  .g-hero-actions > * {
+    width: 100%;
+  }
 }
 
 /* ══════════════════════════════════════════

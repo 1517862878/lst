@@ -1,22 +1,19 @@
-import { useEffect, useState } from 'react'
-import { Link, NavLink, useLocation } from 'react-router'
+import { useEffect, useId, useRef, useState } from 'react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router'
 import { Camera, Menu, X } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { IconButton } from '@/components/ui/IconButton'
+import { useSignOut } from '@/hooks/useSession'
+import { accountImageUrl } from '@/lib/account'
 import { cn } from '@/lib/cn'
 
 export interface HeaderProps {
-  /**
-   * 登录态：由 Shell 通过 useSession() 注入，null 表示未登录。
-   * 刻意不给默认值 —— 漏传要在编译期报错，而不是静默显示成"未登录"。
-   */
-  sessionUser: { username: string; displayName: string } | null
+  sessionUser: { username: string; displayName: string; avatarKey: string | null } | null
 }
 
 interface NavItem {
   label: string
   to: string
-  /** 是否精确匹配。只给首页用：否则 "/" 在所有路由上都算激活 */
   match?: boolean
 }
 
@@ -29,28 +26,80 @@ const NAV_ITEMS: NavItem[] = [
   { label: '搜索', to: '/search' },
 ]
 
-/** 全站页头：Logo + 主导航 + 登录态/头像（FRONTEND-WORK §3.2 Header） */
 export function Header({ sessionUser }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const location = useLocation()
-  const navItems = NAV_ITEMS
+  const navigate = useNavigate()
+  const accountRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const firstItemRef = useRef<HTMLAnchorElement>(null)
+  const menuId = useId()
+  const { signOut } = useSignOut()
 
-  // 路由变化后收起：点菜单里的链接、浏览器前进后退都不会把菜单留在展开态
+  const closeAccountMenu = (restoreFocus = false) => {
+    setAccountOpen(false)
+    if (restoreFocus) window.requestAnimationFrame(() => triggerRef.current?.focus())
+  }
+
   useEffect(() => {
     setMenuOpen(false)
+    setAccountOpen(false)
   }, [location.pathname, location.search])
 
-  // 视口回到桌面档（断点与 index.css 的 860px 保持一致）时收起：.g-mobile-nav
-  // 自身没有桌面档隐藏规则，不收起会在宽屏上留下一块重复导航。
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 861px)')
-    const closeOnDesktop = () => {
+    const close = () => {
       if (desktop.matches) setMenuOpen(false)
     }
-    closeOnDesktop()
-    desktop.addEventListener('change', closeOnDesktop)
-    return () => desktop.removeEventListener('change', closeOnDesktop)
+    close()
+    desktop.addEventListener('change', close)
+    return () => desktop.removeEventListener('change', close)
   }, [])
+
+  useEffect(() => {
+    if (!accountOpen) return
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (accountRef.current && !accountRef.current.contains(event.target as Node)) closeAccountMenu()
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeAccountMenu(true)
+      }
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    document.addEventListener('keydown', closeOnEscape)
+    window.requestAnimationFrame(() => firstItemRef.current?.focus())
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [accountOpen])
+
+  const logout = async () => {
+    await signOut()
+    closeAccountMenu()
+    navigate('/', { replace: true })
+  }
+
+  const handleMenuKeys = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]'))
+    const index = items.indexOf(document.activeElement as HTMLElement)
+    let next = index
+    if (event.key === 'ArrowDown') next = index < 0 ? 0 : (index + 1) % items.length
+    else if (event.key === 'ArrowUp') next = index < 0 ? items.length - 1 : (index - 1 + items.length) % items.length
+    else if (event.key === 'Home') next = 0
+    else if (event.key === 'End') next = items.length - 1
+    else if (event.key === 'Tab') {
+      closeAccountMenu()
+      return
+    } else return
+    event.preventDefault()
+    items[next]?.focus()
+  }
+
+  const displayName = sessionUser?.displayName || sessionUser?.username || ''
 
   return (
     <header className="g-header">
@@ -59,37 +108,50 @@ export function Header({ sessionUser }: HeaderProps) {
           <Camera className="g-brand-icon" aria-hidden="true" />
           <span className="g-brand-name">工科影展</span>
         </Link>
-
         <nav className="g-nav" aria-label="主导航">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.match ?? false}
-              className={({ isActive }) => cn('g-nav-link', isActive && 'g-nav-link-active')}
-            >
+          {NAV_ITEMS.map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.match ?? false} className={({ isActive }) => cn('g-nav-link', isActive && 'g-nav-link-active')}>
               {item.label}
             </NavLink>
           ))}
         </nav>
-
         <div className="g-header-right">
           {sessionUser ? (
-            <Link
-              to={`/u/${sessionUser.username}`}
-              className="g-header-avatar-link"
-              aria-label={`查看 ${sessionUser.displayName || sessionUser.username} 的个人主页`}
-            >
-              <Avatar name={sessionUser.displayName || sessionUser.username} size={32} />
-            </Link>
+            <div className="g-account-menu" ref={accountRef}>
+              <button
+                ref={triggerRef}
+                className="g-header-avatar-link"
+                aria-label={`${displayName}的账号菜单`}
+                aria-haspopup="menu"
+                aria-controls={menuId}
+                aria-expanded={accountOpen}
+                onClick={() => setAccountOpen((value) => !value)}
+                onKeyDown={(event) => {
+                  if (!accountOpen && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+                    event.preventDefault()
+                    setAccountOpen(true)
+                  }
+                }}
+              >
+                <Avatar src={accountImageUrl(sessionUser.avatarKey)} name={displayName} size={32} />
+              </button>
+              {accountOpen && (
+                <div id={menuId} className="g-account-popover" role="menu" aria-label="账号菜单" onKeyDown={handleMenuKeys}>
+                  <div className="g-account-popover-head">
+                    <strong>{displayName}</strong>
+                    <span>@{sessionUser.username}</span>
+                  </div>
+                  <Link ref={firstItemRef} role="menuitem" to="/me">我的工作台</Link>
+                  <Link role="menuitem" to={`/u/${sessionUser.username}`}>个人主页</Link>
+                  <Link role="menuitem" to="/settings/profile">设置与隐私</Link>
+                  <button role="menuitem" onClick={() => void logout()}>退出登录</button>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="g-auth-links" aria-label="账号入口">
-              <Link to="/login" className="g-login-link">
-                登录
-              </Link>
-              <Link to="/register" className="g-login-link g-register-link">
-                注册
-              </Link>
+              <Link to="/login" className="g-login-link">登录</Link>
+              <Link to="/register" className="g-login-link g-register-link">注册</Link>
             </div>
           )}
           <IconButton
@@ -98,24 +160,14 @@ export function Header({ sessionUser }: HeaderProps) {
             className="g-mobile-nav-btn"
             aria-expanded={menuOpen}
             aria-controls="g-mobile-nav"
-            onClick={() => setMenuOpen((open) => !open)}
+            onClick={() => setMenuOpen((value) => !value)}
           />
         </div>
       </div>
-
-      {/* 移动端导航：≤860px 由 CSS 显示汉堡按钮，展开后渲染此折叠菜单（index.css .g-mobile-nav） */}
       {menuOpen && (
         <nav id="g-mobile-nav" className="g-mobile-nav" aria-label="移动端导航">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.match ?? false}
-              className={({ isActive }) => cn('g-nav-link', isActive && 'g-nav-link-active')}
-              // 点链接就收起。只看 location 变化不够：点「当前所在页」的链接时路由不变，
-              // 菜单会留在展开态挡住页面。
-              onClick={() => setMenuOpen(false)}
-            >
+          {NAV_ITEMS.map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.match ?? false} className={({ isActive }) => cn('g-nav-link', isActive && 'g-nav-link-active')} onClick={() => setMenuOpen(false)}>
               {item.label}
             </NavLink>
           ))}

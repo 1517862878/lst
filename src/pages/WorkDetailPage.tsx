@@ -2,26 +2,41 @@
  * 作品详情 /works/:id（FRONTEND-WORK §2.3）。
  * 画廊 + EXIF 白名单 + 作者 + 评论列表（S5 前只读）+ 相关推荐。
  */
-import { useParams, Link } from 'react-router'
+import { useState } from 'react'
+import { useNavigate, useParams, Link } from 'react-router'
 import { Container } from '@/components/layout/Container'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Badge } from '@/components/ui/Badge'
 import { PhotoThumb } from '@/features/photos/PhotoThumb'
 import { PhotoGrid } from '@/features/photos/PhotoGrid'
+import { LicenseBadge } from '@/features/photos/LicenseBadge'
+import { ShareButton } from '@/features/photos/ShareButton'
+import { Button } from '@/components/ui/Button'
+import { Dialog } from '@/components/ui/Dialog'
+import { useToast } from '@/components/ui/useToast'
 import { LikeButton, FavoriteButton } from '@/features/interactions/LikeFavoriteButtons'
 import { CommentSection } from '@/features/interactions/CommentSection'
-import { usePhoto, useRelatedPhotos } from '@/hooks/usePhotos'
+import { AuthorLink } from '@/features/profiles/AuthorLink'
+import { useMorePhotosByAuthor, usePhoto, useRelatedPhotos, useWithdrawPhoto } from '@/hooks/usePhotos'
 import { useSession } from '@/hooks/useSession'
 import { useInteractionSync } from '@/hooks/useInteractions'
 import { formatDate, relativeTime } from '@/lib/time'
 import { categoryName } from '@/domain/constants'
+import { LICENSE_DESCRIPTORS } from '@/domain/licenses'
 
 export function WorkDetailPage() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
+  const toast = useToast()
+  const [withdrawOpen, setWithdrawOpen] = useState(false)
+  const [withdrawError, setWithdrawError] = useState('')
+  const withdrawPhoto = useWithdrawPhoto(id)
   const photoQuery = usePhoto(id)
   const relatedQuery = useRelatedPhotos(id)
   const { data: session } = useSession()
+  const loadedPhoto = photoQuery.data
+  const sameAuthorQuery = useMorePhotosByAuthor(loadedPhoto?.authorId ?? '', loadedPhoto?.id ?? '')
   useInteractionSync()
 
   if (photoQuery.isLoading) {
@@ -45,6 +60,28 @@ export function WorkDetailPage() {
   }
 
   const photo = photoQuery.data
+  const isAuthor = session?.userId === photo.authorId
+
+  async function handleWithdraw() {
+    setWithdrawError('')
+    try {
+      await withdrawPhoto.mutateAsync()
+      setWithdrawOpen(false)
+      toast.show('success', '作品已撤回，不再公开展示')
+      navigate('/me', { replace: true })
+    } catch (error) {
+      setWithdrawError(error instanceof Error ? error.message : '撤回失败，请稍后重试')
+    }
+  }
+
+  const licenseJsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Photograph',
+    name: photo.title,
+    description: photo.description,
+    license: LICENSE_DESCRIPTORS[photo.license].schemaUrl,
+    creditText: photo.credit ?? undefined,
+  }).replace(/</g, '\\u003c')
 
   return (
     <Container>
@@ -60,7 +97,20 @@ export function WorkDetailPage() {
         </div>
 
         <div className="g-work-info">
-          <h1 className="g-work-title">{photo.title}</h1>
+          <div className="g-work-heading">
+            <h1 className="g-work-title">{photo.title}</h1>
+            {isAuthor && (
+              <div className="g-work-owner-actions" aria-label="作者操作">
+                <Button size="sm" variant="secondary" onClick={() => navigate(`/works/${photo.id}/edit`)}>
+                  编辑作品
+                </Button>
+                <Button size="sm" variant="danger" onClick={() => setWithdrawOpen(true)}>
+                  撤回作品
+                </Button>
+              </div>
+            )}
+          </div>
+          <AuthorLink authorId={photo.authorId} variant="card" />
           <div className="g-work-meta">
             <Badge tone="info">{categoryName(photo.categorySlug)}</Badge>
             {photo.credit && <Badge tone="warning">{photo.credit}</Badge>}
@@ -103,13 +153,49 @@ export function WorkDetailPage() {
               userId={session?.userId ?? null}
             />
             <span className="g-work-views">👁 {photo.viewCount}</span>
+            <ShareButton title={photo.title} text={photo.description || '来自工科影展的摄影作品'} />
           </div>
 
-          <p className="g-work-license">版权：作者保留所有权利（{photo.license}）</p>
+          <LicenseBadge license={photo.license} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: licenseJsonLd }} />
         </div>
       </article>
 
+      <Dialog
+        open={withdrawOpen}
+        onOpenChange={(open) => {
+          if (!withdrawPhoto.isPending) setWithdrawOpen(open)
+          if (!open) setWithdrawError('')
+        }}
+        title="确认撤回作品？"
+        description="撤回后作品将从公开页面、搜索和榜单中移除。此操作不会立即物理删除原始记录。"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setWithdrawOpen(false)} disabled={withdrawPhoto.isPending}>
+              取消
+            </Button>
+            <Button variant="danger" loading={withdrawPhoto.isPending} onClick={() => void handleWithdraw()}>
+              确认撤回
+            </Button>
+          </>
+        }
+      >
+        <p className="g-withdraw-copy">你将撤回《{photo.title}》。</p>
+        {withdrawError && <p className="g-auth-error" role="alert">{withdrawError}</p>}
+      </Dialog>
+
       <CommentSection photoId={photo.id} currentUserId={session?.userId ?? null} />
+
+      <section className="g-related" aria-labelledby="same-author-title">
+        <h2 id="same-author-title" className="g-related-title">
+          这位作者的更多作品
+        </h2>
+        {sameAuthorQuery.data && sameAuthorQuery.data.length > 0 ? (
+          <PhotoGrid photos={sameAuthorQuery.data} className="g-related-grid" />
+        ) : (
+          !sameAuthorQuery.isLoading && <p className="g-placeholder-text">这位作者暂时没有更多公开作品。</p>
+        )}
+      </section>
 
       <section className="g-related" aria-labelledby="related-title">
         <h2 id="related-title" className="g-related-title">

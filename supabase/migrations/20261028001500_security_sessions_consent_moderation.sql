@@ -190,7 +190,10 @@ begin
 end;
 $$;
 
-create or replace function public.api_rotate_session(
+-- 0016 会把返回结构扩展为带状态字段；重放完整迁移链时先移除任一旧签名，
+-- 避免 PostgreSQL 因 OUT 参数记录类型变化而拒绝 CREATE OR REPLACE。
+drop function if exists public.api_rotate_session(uuid,text,text,timestamptz,text,text);
+create function public.api_rotate_session(
   p_session_id uuid, p_refresh_token_hash text, p_new_refresh_token_hash text,
   p_new_expires_at timestamptz, p_user_agent text default null, p_ip_hash text default null
 ) returns table(session_id uuid, family_id uuid, user_id uuid, expires_at timestamptz)

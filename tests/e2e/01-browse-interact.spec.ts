@@ -20,6 +20,15 @@ test.describe('主链路 1 · 浏览与互动', () => {
     // 首页：三个板块都应有内容
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
     await expect(page.locator('a[href^="/works/"]').first()).toBeVisible()
+
+    // 首页作品卡同时提供作品入口与真实作者入口，且两者不是嵌套链接。
+    const authorLink = page.locator('.g-photo-card a[href^="/u/"]').first()
+    await expect(authorLink).toBeVisible()
+    const authorName = await authorLink.locator('.g-author-link-name').textContent()
+    expect(authorName?.trim()).toBeTruthy()
+    expect(authorName?.trim()).not.toBe('示例素材')
+    await expect(authorLink.locator('a')).toHaveCount(0)
+
     // 榜单入口与分类入口存在
     await expect(page.locator('a[href*="/rankings/weekly"]').first()).toBeVisible()
     await expect(page.locator('a[href="/categories"]').first()).toBeVisible()
@@ -44,6 +53,15 @@ test.describe('主链路 1 · 浏览与互动', () => {
     await expect(page.locator('h1')).toBeVisible()
     await expect(page.getByText('作品墙', { exact: true }).first()).toBeVisible() // 面包屑
     await expect(page.getByRole('heading', { name: '相关作品' })).toBeVisible()
+
+    // 详情页作者卡可识别真实作者，并进入正确个人主页。
+    const detailAuthorLink = page.locator('.g-work-info a[href^="/u/"]')
+    await expect(detailAuthorLink).toBeVisible()
+    const expectedProfilePath = await detailAuthorLink.getAttribute('href')
+    expect(expectedProfilePath).toMatch(/^\/u\/[^/]+$/)
+    await detailAuthorLink.click()
+    await expect(page).toHaveURL(new RegExp(`${expectedProfilePath}$`))
+    await expect(page.locator('h1')).toBeVisible()
   })
 
   test('未登录点赞会跳转登录，登录后回跳到原作品', async ({ page }) => {

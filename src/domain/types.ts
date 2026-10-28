@@ -202,6 +202,8 @@ export interface Session {
   userId: string
   username: string
   displayName: string
+  avatarKey: string | null
+  role: UserRole
   expiresAt: IsoDate
 }
 

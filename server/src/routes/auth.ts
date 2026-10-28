@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto'
+import { createHash, randomBytes, randomInt } from 'node:crypto'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { currentUser } from '../lib/auth.js'
 import {
@@ -11,7 +11,7 @@ import { clearSessionCookie, createSession, requestIpHash, revokeSession, setSes
 import { smsSender } from '../lib/sms.js'
 import { botVerifier } from '../lib/turnstile.js'
 import * as accounts from '../repositories/accounts.js'
-import { getProfileById } from '../repositories/profiles.js'
+import { getOwnProfile } from '../repositories/profiles.js'
 
 const USERNAME_RE = /^[a-zA-Z0-9_\-\u4e00-\u9fa5]{2,20}$/u
 const PHONE_RE = /^\d{4,20}$/
@@ -36,14 +36,11 @@ function assertPassword(password: string): void {
 function hashCode(salt: string, code: string): string {
   return createHash('sha256').update(`${salt}:${code}`).digest('hex')
 }
-function safeEqualHex(a: string, b: string): boolean {
-  const aa = Buffer.from(a, 'hex'); const bb = Buffer.from(b, 'hex')
-  return aa.length > 0 && aa.length === bb.length && timingSafeEqual(aa, bb)
-}
 async function sessionResponse(account: { userId: string; username: string; displayName: string }, req: FastifyRequest, reply: FastifyReply) {
   const session = await createSession(account.userId, req)
   setSessionCookie(reply, session.cookieValue, session.expiresAt)
-  return { userId: account.userId, username: account.username, displayName: account.displayName, expiresAt: session.expiresAt.toISOString() }
+  const profile = await getOwnProfile(account.userId)
+  return { userId: account.userId, username: account.username, displayName: account.displayName, avatarKey: profile?.avatarKey ?? null, role: profile?.role ?? 'user', expiresAt: session.expiresAt.toISOString() }
 }
 async function issuePhoneCode(phone: string, purpose: string) {
   const code = randomInt(0, 1_000_000).toString().padStart(6, '0')
@@ -96,7 +93,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     const ok = await verifyPassword(credential?.passwordHash ?? null, password)
     if (!credential || !ok) throw unauthorized('用户名或密码错误')
     if (credential.deleted) throw forbidden('该账号已注销')
-    const profile = await getProfileById(credential.userId, credential.userId)
+    const profile = await getOwnProfile(credential.userId)
     if (!profile) throw unauthorized('账号不存在或已注销')
     return sessionResponse({ userId: credential.userId, username: profile.username, displayName: profile.displayName }, req, reply)
   })
@@ -104,9 +101,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
   app.get('/api/auth/session', async (req, reply) => {
     const user = await currentUser(req)
     if (!user) return reply.type('application/json').send('null')
-    const profile = await getProfileById(user.userId, user.userId)
+    const profile = await getOwnProfile(user.userId)
     if (!profile) { clearSessionCookie(reply); return reply.type('application/json').send('null') }
-    return { userId: user.userId, username: profile.username, displayName: profile.displayName, expiresAt: user.expiresAt.toISOString() }
+    return { userId: user.userId, username: profile.username, displayName: profile.displayName, avatarKey: profile.avatarKey, role: profile.role, expiresAt: user.expiresAt.toISOString() }
   })
 
   app.post('/api/auth/logout', async (req, reply) => {
@@ -126,15 +123,19 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     if (!PHONE_RE.test(phone)) throw validation('请填写正确的手机号')
     if (!CODE_RE.test(code)) throw validation('验证码为 6 位数字')
     assertPassword(newPassword)
-    const credential=await accounts.findCredential(phone), latest=await accounts.latestPhoneCode(phone,RESET_PURPOSE)
-    if (!credential || !latest || latest.expired) throw validation('验证码不正确或已过期，请重新获取')
-    const matched=safeEqualHex(hashCode(latest.salt,code),latest.codeHash)
-    const outcome=await accounts.finishPhoneCode(latest.codeId,matched)
-    if (!matched) {
+    const latest = await accounts.latestPhoneCode(phone, RESET_PURPOSE)
+    if (!latest || latest.expired) throw validation('验证码不正确或已过期，请重新获取')
+    const outcome = await accounts.resetPasswordWithCode({
+      codeId: latest.codeId,
+      phone,
+      codeHash: hashCode(latest.salt, code),
+      passwordHash: await hashPassword(newPassword),
+    })
+    if (!outcome.ok) {
       if (outcome.locked) throw rateLimited('尝试次数过多，请重新获取验证码')
-      throw validation(`验证码不正确，还可尝试 ${Math.max(0,PHONE_CODE_MAX_ATTEMPTS-outcome.attempts)} 次`)
+      if (outcome.reason === 'expired') throw validation('验证码已过期，请重新获取')
+      throw validation(`验证码不正确，还可尝试 ${Math.max(0, PHONE_CODE_MAX_ATTEMPTS - outcome.attempts)} 次`)
     }
-    await accounts.setPassword(credential.userId,await hashPassword(newPassword))
     clearSessionCookie(reply)
     return { ok:true as const }
   })

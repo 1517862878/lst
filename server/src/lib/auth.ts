@@ -2,7 +2,7 @@
 import type { FastifyRequest } from 'fastify'
 import { unauthorized } from './errors.js'
 import { resolveSession } from './session.js'
-import { getProfileById } from '../repositories/profiles.js'
+import { getOwnProfile } from '../repositories/profiles.js'
 
 export interface AuthPrincipal {
   userId: string
@@ -15,7 +15,7 @@ export interface AuthPrincipal {
 export async function currentUser(req: FastifyRequest): Promise<AuthPrincipal | null> {
   const session = await resolveSession(req)
   if (!session) return null
-  const profile = await getProfileById(session.userId, session.userId)
+  const profile = await getOwnProfile(session.userId)
   if (!profile) return null
   return {
     userId: session.userId,

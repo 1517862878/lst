@@ -7,6 +7,8 @@ export const queryKeys = {
   photo: (id: string) => ['photo', id] as const,
   photosList: (query: PhotoListQuery) => ['photos', 'list', query] as const,
   relatedPhotos: (id: string) => ['photos', 'related', id] as const,
+  sameAuthorPhotos: (authorId: string, currentPhotoId: string, limit: number) =>
+    ['photos', 'same-author', authorId, currentPhotoId, limit] as const,
   photosByUser: (userId: string, kind: 'works' | 'likes' | 'favorites') =>
     ['photos', 'user', userId, kind] as const,
   categories: () => ['categories'] as const,

@@ -3,25 +3,20 @@
  * 运行时用 MiniSearch 索引全量作品查询。
  */
 import { useQuery } from '@tanstack/react-query'
-import { createRepositories, dataSource } from '@/data'
-import { searchPhotos, invalidateIndex } from '@/lib/search'
+import { createRepositories } from '@/data'
+import { invalidateIndex } from '@/lib/search'
 import { queryKeys } from './queryKeys'
-import type { Photo } from '@/domain/types'
+import type { SearchQuery } from '@/data/contracts'
+import type { Page, Photo } from '@/domain/types'
 
-export function useSearch(query: { text: string; categorySlug?: string }) {
-  return useQuery<Photo[]>({
+export function useSearch(query: SearchQuery) {
+  const hasFilters = Boolean(
+    query.text.trim() || query.categorySlug || query.tags?.length || query.locationName?.trim(),
+  )
+  return useQuery<Page<Photo>>({
     queryKey: queryKeys.search({ ...query }),
-    queryFn: async () => {
-      const repos = createRepositories()
-      if (dataSource() === 'api') {
-        return (await repos.search.search({ ...query, sort: 'latest', limit: 100 })).items
-      }
-      const all = (await repos.photos.list({ sort: 'latest', limit: 1000 })).items
-      let matched = searchPhotos(all, query.text)
-      if (query.categorySlug) matched = matched.filter((p) => p.categorySlug === query.categorySlug)
-      return matched
-    },
-    enabled: query.text.trim().length > 0,
+    queryFn: () => createRepositories().search.search({ ...query, limit: query.limit ?? 100 }),
+    enabled: hasFilters,
   })
 }
 

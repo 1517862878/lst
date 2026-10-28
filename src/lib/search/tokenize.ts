@@ -2,8 +2,10 @@
  * 中文分词（ROADMAP §7 / FRONTEND-WORK §4.6）。
  * 策略：Intl.Segmenter 分词；不支持的浏览器降级 bigram（双字切分）。
  */
+import { normalizeSearchText } from './normalize'
+
 export function tokenize(text: string): string[] {
-  const normalized = text.toLowerCase().trim()
+  const normalized = normalizeSearchText(text)
   if (!normalized) return []
 
   // 尝试 Intl.Segmenter（中文按词切分）

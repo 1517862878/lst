@@ -8,7 +8,10 @@ export const apiSearchRepository: SearchRepository = {
       '/api/search' + qs({
         q: query.text,
         categorySlug: query.categorySlug,
+        tags: query.tags?.join(','),
+        locationName: query.locationName,
         sort: query.sort,
+        cursor: query.cursor,
         limit: query.limit,
       }),
     )

@@ -46,6 +46,8 @@ export const mockAuthRepository: AuthRepository = {
       userId: profile.id,
       username: profile.username,
       displayName: profile.displayName,
+      avatarKey: profile.avatarKey,
+      role: profile.role,
       expiresAt: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
     }
     saveSession(session)
@@ -85,6 +87,8 @@ export const mockAuthRepository: AuthRepository = {
       userId: profile.id,
       username: profile.username,
       displayName: profile.displayName,
+      avatarKey: profile.avatarKey,
+      role: profile.role,
       expiresAt: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
     }
     saveSession(session)

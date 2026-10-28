@@ -251,6 +251,12 @@ html {
 }
 
 /* ── 页头右侧 ── */
+.g-auth-links {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--g-space-2);
+}
+
 .g-header-actions {
   display: flex;
   align-items: center;
@@ -280,6 +286,16 @@ html {
   transform: translate(-1px, -1px);
   box-shadow: 3px 3px 0 var(--g-line);
   text-decoration: none;
+}
+
+.g-register-link {
+  background: var(--g-brand);
+  color: var(--g-brand-ink);
+}
+
+.g-register-link:hover {
+  background: var(--g-ink);
+  color: var(--g-bg);
 }
 
 .g-user-btn {
@@ -353,8 +369,13 @@ html {
     gap: var(--g-space-3);
   }
 
-  .g-login-link .g-login-text {
-    display: none;
+  .g-auth-links {
+    gap: var(--g-space-1);
+  }
+
+  .g-login-link {
+    padding-inline: 8px;
+    font-size: var(--g-text-sm);
   }
 }
 
@@ -574,3 +595,47 @@ html {
   color: var(--g-ink);
   font-weight: 400;
 }
+
+/* 一期账号中心：头像菜单、工作台与设置 */
+.g-header-right { display: flex; align-items: center; gap: var(--g-space-2); margin-left: auto; }
+.g-account-menu { position: relative; }
+.g-header-avatar-link { border: var(--g-border) solid transparent; padding: 2px; background: transparent; cursor: pointer; display: grid; place-items: center; }
+.g-header-avatar-link:hover,.g-header-avatar-link:focus-visible,.g-header-avatar-link[aria-expanded='true'] { border-color: var(--g-brand); outline: 2px solid transparent; }
+.g-account-popover { position: absolute; z-index: 50; top: calc(100% + 10px); right: 0; width: 220px; padding: 8px; background: var(--g-surface); border: var(--g-border) solid var(--g-line); box-shadow: var(--g-shadow-md); }
+.g-account-popover-head { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px 10px; border-bottom: 1px solid var(--g-line); }
+.g-account-popover-head span { color: var(--g-ink-2); font-size: var(--g-text-sm); }
+.g-account-popover a,.g-account-popover button { display: block; width: 100%; border: 0; padding: 10px; color: var(--g-ink); background: transparent; text-align: left; text-decoration: none; cursor: pointer; font: inherit; }
+.g-account-popover a:hover,.g-account-popover button:hover,.g-account-popover [role='menuitem']:focus-visible { background: var(--g-surface-2); outline: 2px solid var(--g-focus); outline-offset: -2px; }
+.g-dashboard-heading { display: flex; align-items: center; gap: var(--g-space-4); }
+.g-dashboard-heading .g-page-header { flex: 1; }
+.g-me-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: var(--g-space-3); margin-bottom: var(--g-space-5); }
+.g-me-stats>div { display: flex; flex-direction: column; align-items: center; padding: var(--g-space-4); background: var(--g-surface); border: var(--g-border) solid var(--g-line); }
+.g-me-stats strong { font-size: var(--g-text-2xl); }
+.g-me-stats span,.g-session-row small { color: var(--g-ink-2); }
+.g-me-section,.g-settings-section { margin-top: var(--g-space-6); }
+.g-settings-section { padding-top: var(--g-space-4); border-top: 1px solid var(--g-line); }
+.g-settings-layout { display: grid; grid-template-columns: minmax(170px,220px) minmax(0,1fr); align-items: start; gap: var(--g-space-6); }
+.g-settings-nav { position: sticky; top: 92px; display: flex; flex-direction: column; border: var(--g-border) solid var(--g-line); background: var(--g-surface); }
+.g-settings-nav-link { padding: 12px; color: var(--g-ink-2); text-decoration: none; border-bottom: 1px solid var(--g-line); }
+.g-settings-nav-link:last-child { border-bottom: 0; }
+.g-settings-nav-link:hover,.g-settings-nav-link:focus-visible { background: var(--g-surface-2); text-decoration: none; }
+.g-settings-nav-link-active,.g-settings-nav-link[aria-current='page'] { background: var(--g-ink); color: var(--g-bg); }
+.g-settings-main { min-width: 0; }
+.g-settings-panel>h2 { margin-top: 0; }
+.g-settings-intro,.g-settings-hint { color: var(--g-ink-2); }
+.g-settings-fieldset { min-width: 0; margin: var(--g-space-5) 0; padding: var(--g-space-4); border: 1px solid var(--g-line); }
+.g-settings-fieldset legend { padding-inline: var(--g-space-2); font-weight: 600; }
+.g-settings-check { display: flex; gap: var(--g-space-3); align-items: flex-start; margin: var(--g-space-3) 0; cursor: pointer; }
+.g-settings-check input { margin-top: 4px; flex: 0 0 auto; }
+.g-settings-check span { display: flex; flex-direction: column; gap: 3px; }
+.g-settings-check small { color: var(--g-ink-2); line-height: 1.5; }
+.g-settings-link-row { display: grid; grid-template-columns: minmax(110px,.7fr) minmax(180px,1.3fr) auto; align-items: end; gap: var(--g-space-3); margin-block: var(--g-space-3); }
+.g-session-row { display: flex; align-items: center; justify-content: space-between; gap: var(--g-space-3); padding: var(--g-space-3) 0; border-bottom: 1px solid var(--g-line); }
+.g-session-row>div { display: flex; min-width: 0; flex-direction: column; gap: 4px; overflow-wrap: anywhere; }
+.g-profile-links { display: flex; flex-wrap: wrap; gap: var(--g-space-2); margin: var(--g-space-2) 0; padding: 0; list-style: none; }
+.g-profile-links a { overflow-wrap: anywhere; }
+.g-profile-notice { max-width: 60ch; margin: var(--g-space-2) 0; padding: var(--g-space-2); color: var(--g-warning); border: 1px solid currentColor; }
+.g-profile-boundary { margin-block: var(--g-space-8); padding: var(--g-space-6); text-align: center; border: var(--g-border) solid var(--g-line); background: var(--g-surface); }
+.g-profile-boundary h1,.g-profile-boundary h2 { margin-top: 0; }
+@media (max-width: 700px) { .g-settings-layout { grid-template-columns: 1fr; gap: var(--g-space-4); } .g-settings-nav { position: static; flex-direction: row; overflow-x: auto; } .g-settings-nav-link { flex: 1 0 auto; text-align: center; border-bottom: 0; border-right: 1px solid var(--g-line); } .g-settings-link-row { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .g-account-popover { position: fixed; top: 72px; right: 12px; left: 12px; width: auto; } .g-me-stats { grid-template-columns: 1fr; } .g-dashboard-heading { align-items: flex-start; } .g-profile-header { align-items: flex-start; } .g-session-row { align-items: flex-start; flex-direction: column; } }

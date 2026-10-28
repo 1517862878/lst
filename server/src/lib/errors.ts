@@ -78,7 +78,8 @@ export function translateDbError(err: unknown): ApiError | null {
     case '23514': // check_violation
       return new ApiError('VALIDATION', '数据不符合约束要求', e.detail)
     case '22P02': // invalid_text_representation
-      return new ApiError('VALIDATION', '参数格式不正确')
+    case '22023': // invalid_parameter_value
+      return new ApiError('VALIDATION', e.message || '参数格式不正确')
     default:
       return null
   }

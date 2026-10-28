@@ -30,6 +30,7 @@ comment on column public.profiles.phone is
 
 -- 2. phone_verifications.phone
 alter table public.phone_verifications drop constraint if exists phone_verifications_phone_check;
+alter table public.phone_verifications drop constraint if exists ck_phone_verif_phone_format;
 alter table public.phone_verifications
   add constraint ck_phone_verif_phone_format
   check (

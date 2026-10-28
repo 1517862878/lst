@@ -1,4 +1,5 @@
 import type { PoolClient } from 'pg'
+import { notFound } from '../lib/errors.js'
 import { mapComment, mapPhoto, type CommentRow, type PhotoRow } from '../lib/mappers.js'
 
 export interface CreatePhotoInput {
@@ -45,6 +46,34 @@ export async function publishPhoto(client: PoolClient, photoId: string) {
     [photoId],
   )
   return mapPhoto(rows[0]!)
+}
+
+export interface PhotoUpdateInput {
+  title?: string
+  description?: string
+  categorySlug?: string
+  tags?: string[]
+  locationName?: string
+  license?: string
+  status?: string
+}
+
+export async function updatePhoto(client: PoolClient, photoId: string, patch: PhotoUpdateInput) {
+  const { rows } = await client.query<PhotoRow>(
+    'select p.* from public.api_update_photo($1::uuid, $2::jsonb) as p',
+    [photoId, JSON.stringify(patch)],
+  )
+  const row = rows[0]
+  if (!row) throw notFound('作品不存在或无法修改')
+  return mapPhoto(row)
+}
+
+export async function removePhoto(client: PoolClient, photoId: string): Promise<boolean> {
+  const { rows } = await client.query<{ removed: boolean }>(
+    'select public.api_remove_photo($1::uuid) as removed',
+    [photoId],
+  )
+  return rows[0]?.removed === true
 }
 
 export async function setLike(client: PoolClient, photoId: string, liked: boolean) {

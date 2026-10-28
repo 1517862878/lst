@@ -8,6 +8,7 @@ export default tseslint.config(
   {
     ignores: [
       'dist',
+      '**/dist/**',
       'node_modules',
       'coverage',
       'playwright-report',
@@ -26,6 +27,8 @@ export default tseslint.config(
         process: 'readonly',
         console: 'readonly',
         URL: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
         Buffer: 'readonly',
         __dirname: 'readonly',
         __filename: 'readonly',

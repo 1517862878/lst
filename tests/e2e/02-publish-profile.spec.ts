@@ -62,6 +62,7 @@ test.describe('主链路 2 · 发布与个人主页', () => {
     await page.locator('#publish-category').selectOption('landscape')
     await page.getByLabel('拍摄地点').fill('测试地点')
     await page.getByLabel('标签').fill('测试 自动化')
+    await page.getByRole('checkbox', { name: /我确认拥有发布所需权利/ }).check()
 
     // 发布
     await page.getByRole('button', { name: '发布作品' }).click()
@@ -102,6 +103,7 @@ test.describe('主链路 2 · 发布与个人主页', () => {
     await page.getByLabel('标题').fill(title)
     await page.getByLabel('拍摄心得').fill('验证个人主页可见性。')
     await page.locator('#publish-category').selectOption('people')
+    await page.getByRole('checkbox', { name: /我确认拥有发布所需权利/ }).check()
     await page.getByRole('button', { name: '发布作品' }).click()
     await expect(page).toHaveURL(/\/works\/[0-9a-f-]{36}/, { timeout: 30_000 })
 

@@ -1,0 +1,213 @@
+name: Verify Server & Database
+
+# 为什么单独一个 workflow：
+#   deploy.yml 的 5 个 job 全部只覆盖前端静态站（tsc/lint/unit/两条 E2E/Pages 部署），
+#   server/ 与 supabase/ 从来没有进过 CI —— 迁移链、app_user 权限边界、真实 HTTP 集成、
+#   API 模式浏览器旅程此前都只在开发者本机上验证过。
+#   单独成文件（而不是塞进 deploy.yml）是有意的：前端部署与后端验证各自独立演进，
+#   两边同时改动时不会互相顶掉，也给 paths 过滤留出空间（前端改样式不必跑数据库）。
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'supabase/**'
+      - 'scripts/api-e2e-harness.mjs'
+      - 'playwright.api.config.ts'
+      - 'tests/e2e-api/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/verify-server.yml'
+  pull_request:
+    paths:
+      - 'server/**'
+      - 'supabase/**'
+      - 'scripts/api-e2e-harness.mjs'
+      - 'playwright.api.config.ts'
+      - 'tests/e2e-api/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/verify-server.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── 服务端静态关卡：类型检查 + 单测，不需要数据库 ──
+  server-quality:
+    name: Server（typecheck + unit）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          # server/ 有自己独立的 lockfile，不是 pnpm workspace
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install（server 独立 lockfile）
+        run: pnpm --dir server install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm --dir server run typecheck
+
+      - name: Unit tests
+        run: pnpm --dir server run test
+
+  # ── 数据库关卡：全新库重放迁移链 + 权限边界 SQL + 真实 HTTP 集成 ──
+  database:
+    name: Database（迁移链 + 权限边界 + 真实 HTTP）
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGDATABASE: gongke_ci
+      PGUSER: app_user
+      PGPASSWORD: app_ci_password
+      # 事务级 set_config 的 RLS 依赖它
+      PGOPTIONS: -c row_security=on
+      PGADMIN_USER: postgres
+      PGADMIN_PASSWORD: postgres
+      IMAGE_ROOT: /tmp/gongke-ci-images
+      STORAGE_CLEANUP_ENABLED: 'false'
+      # server/src/lib/config.ts 要求非本机环境必须有 ≥32 字符的 IP 哈希密钥
+      IP_HASH_SECRET: ci-only-ip-hash-secret-0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install（server 独立 lockfile）
+        run: pnpm --dir server install --frozen-lockfile
+
+      - name: 建库与 app_user 角色
+        run: |
+          set -euo pipefail
+          mkdir -p "$IMAGE_ROOT"
+          PGPASSWORD=postgres psql -X -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -c "create database $PGDATABASE"
+          # 迁移链假设 app_user 已存在，而没有任何迁移创建它 —— 必须先建，
+          # 且只建角色不授予表权限，权限交给迁移链里带自检的精确授权。
+          PGPASSWORD=postgres psql -X -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -v app_password="$PGPASSWORD" -f supabase/create-app-role.sql
+
+      - name: 重放全部迁移（每个文件一个事务）
+        run: |
+          set -euo pipefail
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            echo "── $f"
+            PGPASSWORD=postgres psql -X -h 127.0.0.1 -U postgres -d "$PGDATABASE" \
+              -v ON_ERROR_STOP=1 --single-transaction -f "$f"
+          done
+          echo "已重放迁移文件数：$(ls supabase/migrations/*.sql | wc -l)"
+
+      - name: 权限边界 SQL 回归
+        run: |
+          set -euo pipefail
+          for f in supabase/test-photo-owner-api.sql \
+                   supabase/test-photo-storage-cleanup-app-role.sql; do
+            echo "── $f"
+            PGPASSWORD=postgres psql -X -h 127.0.0.1 -U postgres -d "$PGDATABASE" \
+              -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: 真实 HTTP 集成（Fastify → Cookie/CSRF → app_user/RLS → PostgreSQL）
+        run: pnpm --dir server run test:integration
+
+  # ── 浏览器关卡：API 模式真实栈 ──
+  # harness 自己建临时库、重放迁移、灌种子、构建前端并起 dist 服务，
+  # 所以这里只需要一个空 postgres + app_user 角色。
+  api-e2e:
+    name: API E2E（真实后端 + 浏览器）
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: app_user
+      PGPASSWORD: app_ci_password
+      PGADMIN_USER: postgres
+      PGADMIN_PASSWORD: postgres
+      PGADMIN_DATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            server/pnpm-lock.yaml
+
+      - name: Install（root + server 两个独立 lockfile）
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --dir server install --frozen-lockfile
+
+      - name: 建 app_user 角色
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql -X -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -v app_password="$PGPASSWORD" -f supabase/create-app-role.sql
+
+      # harness 直接起 server/dist/index.js，不会自己 build 服务端
+      - name: Build server
+        run: pnpm --dir server run build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: API E2E
+        run: pnpm run test:e2e:api
+        env:
+          # CI 用 Playwright 自带 chromium，不走系统 chrome
+          PLAYWRIGHT_CHROMIUM_CHANNEL: ''
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-api
+          path: playwright-report
+          retention-days: 7

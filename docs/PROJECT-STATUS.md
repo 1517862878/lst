@@ -132,7 +132,9 @@
 | ID | 结果 | 证据 |
 |---|---|---|
 | P0-02（第一切片） | 作品卡、详情页与作者主页完成真实作者链路，并修复 `/lst/` 登录/注册入口 | 普通生产 E2E 16/16、子路径 E2E 7/7、单元测试 8/8；用户于 2026-10-28 指示继续 |
-| M0 实现切片 | 五许可统一；作品 owner-only 编辑/软撤回；EXIF/地点信任边界；关键写限流；作者管理 UI | 本轮前端 16 单测、lint/build，服务端 5 测试/typecheck/build，迁移静态校验与 `git diff --check` 全通过；真实 DB/API/E2E 仍处于验收中 |
+| M0 实现切片 | 五许可统一；作品 owner-only 编辑/软撤回；EXIF/地点信任边界；关键写限流；作者管理 UI | 本轮前端 16 单测、lint/build，服务端 5 测试/typecheck/build，迁移静态校验与 `git diff --check` 全通过 |
+| M0 真实层验证 | 图片清理队列的 app_user 权限边界；API 模式浏览器旅程（作者编辑 / 非作者隔离 / 撤回后直达不可见） | 全新库 25 迁移重放 + owner-only SQL + 图片清理边界 SQL + 真实 HTTP 集成全部通过（`scripts/apply-and-test-photo-owner.ps1` EXIT=0，约 94s）；`playwright.api.config.ts` 经真实 PostgreSQL + Fastify + RLS 的旅程 **1/1 passed**，服务端日志可见撤回后直达返回 404 `作品不存在`；质量门禁 `eslint` 清洁、`vitest` 23/23、`vite build` 成功、服务端 `typecheck` 与单测 10/10 |
+| M0 基础设施缺陷 | harness 把 psql 元命令直传 `pg` 导致迁移报 42601；前端端口 4190 属 WHATWG 禁止端口使旅程必然超时；临时库与共享角色口令泄漏 | 迁移前剥离 `\` 元命令行并对 `\i`/`\ir` 显式报错；端口改 4192 并新增禁止端口守卫；启动时回收过期 `gongke_e2e_*`（已实测回收）；三个 `.ps1` 收尾还原 `app_user` 口令（已实测还原成功）并新增启动前凭据预检 |
 
 ## 十一、本账本自检（2026-10-28）
 

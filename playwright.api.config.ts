@@ -6,7 +6,9 @@
  */
 import { defineConfig, devices } from '@playwright/test'
 
-const PORT = 4190
+// 4190 是 WHATWG / undici 的“禁止端口”，fetch 与浏览器都会直接拒绝，
+// Playwright 的 webServer 探测会因此空等到超时。必须与 harness 保持一致且避开该名单。
+const PORT = 4192
 const BASE_URL = process.env.E2E_API_BASE_URL ?? `http://127.0.0.1:${PORT}`
 const useSystemChrome = process.env.E2E_SYSTEM_CHROME !== '0' && !process.env.CI
 

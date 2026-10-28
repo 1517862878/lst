@@ -5,7 +5,8 @@
 -- 前提：全部 migrations 已执行。
 --
 -- 为什么必须以 app_user 身份跑：
---   0020 把队列表从 app_user 完全收回，而真实服务端 worker 用的就是 app_user。
+--   0020 把队列表从 app_user 完全收回，而真实服务端 worker 用的就是 app_user
+--   （server/src/lib/db.ts 只有一个连接池，PGUSER 默认 app_user）。
 --   以管理员身份写的断言无论队列是否可用都会通过 —— 那正是这个缺陷最初漏掉的原因。
 -- ============================================================================
 \set ON_ERROR_STOP on
@@ -32,7 +33,7 @@ insert into public.photos (
   1200, 800, 'published', clock_timestamp()
 ) on conflict (id) do nothing;
 
--- ---- 1) 权限矩阵：表不可达，三个函数可用，入队仍不可用 ----
+-- ---- 1) 权限矩阵：表不可达、三个函数可用、入队仍不可用 ----
 do $$
 begin
   if has_table_privilege('app_user', 'public.photo_storage_cleanup_jobs', 'select')
@@ -62,11 +63,6 @@ begin
   ) then
     raise exception 'app_user 不应能直接入队';
   end if;
-
-  if not exists (select 1 from public.photo_storage_cleanup_jobs) then
-    -- 表此时应为空（fixture 尚未撤回），断言留到入队之后。
-    null;
-  end if;
 end;
 $$;
 
@@ -90,7 +86,7 @@ begin
 end;
 $$;
 
--- ---- 3) 作者撤回 → 事务内入队 display + thumb 两条任务 ----
+-- ---- 3) 作者撤回 → 同一事务内入队 display + thumb 两条任务 ----
 reset role;
 select set_config('app.user_id', 'd4000000-0000-0000-0000-000000000004', true);
 set local role app_user;
@@ -115,10 +111,10 @@ begin
     raise exception '撤回应恰好入队 2 条任务（display + thumb），实际 %', v_count;
   end if;
 
-  if not exists (
+  if exists (
     select 1 from public.photo_storage_cleanup_jobs
     where photo_id = 'e5000000-0000-0000-0000-000000000005'
-      and available_at >= clock_timestamp() + interval '29 days'
+      and available_at < clock_timestamp() + interval '29 days'
   ) then
     raise exception '任务可执行时间应至少推迟 30 天（线上移除窗口）';
   end if;
@@ -165,14 +161,7 @@ begin
 end;
 $$;
 
--- ---- 5) 以 app_user 完成一条、重试另一条（这是 worker 的真实调用序列） ----
--- 需要保留租约令牌，因此先放进临时表。
-set local role app_user;
-create temporary table cleanup_claim as
-  select * from public.claim_photo_storage_cleanup_jobs(10, 300);
-
--- 上一步已被租约占住，先释放租约再重新领取，确保拿到 token。
-reset role;
+-- ---- 5) worker 的真实调用序列：完成一条、退避一条、失效租约不得算成功 ----
 update public.photo_storage_cleanup_jobs
 set lease_token = null, lease_expires_at = null
 where photo_id = 'e5000000-0000-0000-0000-000000000005';
@@ -180,37 +169,38 @@ where photo_id = 'e5000000-0000-0000-0000-000000000005';
 set local role app_user;
 do $$
 declare
-  v_ok boolean;
+  v_job record;
+  v_first record;
+  v_second record;
+  v_count integer := 0;
 begin
-  drop table if exists pg_temp.cleanup_claim;
-  create temporary table cleanup_claim as
-    select * from public.claim_photo_storage_cleanup_jobs(10, 300);
+  for v_job in select * from public.claim_photo_storage_cleanup_jobs(10, 300) loop
+    v_count := v_count + 1;
+    if v_count = 1 then
+      v_first := v_job;
+    else
+      v_second := v_job;
+    end if;
+  end loop;
 
-  if (select count(*) from cleanup_claim) <> 2 then
-    raise exception '重新领取应得到 2 条任务';
+  if v_count <> 2 then
+    raise exception '重新领取应得到 2 条任务，实际 %', v_count;
   end if;
 
-  select public.complete_photo_storage_cleanup_job(job_id, lease_token) into v_ok
-  from cleanup_claim order by job_id limit 1;
-  if v_ok is not true then
+  if not public.complete_photo_storage_cleanup_job(v_first.job_id, v_first.lease_token) then
     raise exception '完成图片清理任务失败';
   end if;
 
-  select public.retry_photo_storage_cleanup_job(job_id, lease_token, '模拟对象存储失败') into v_ok
-  from cleanup_claim order by job_id offset 1 limit 1;
-  if v_ok is not true then
+  if not public.retry_photo_storage_cleanup_job(v_second.job_id, v_second.lease_token, '模拟对象存储失败') then
     raise exception '重试图片清理任务失败';
   end if;
 
   -- 用已失效的租约再次完成，必须返回 false，不能被当成成功。
-  if public.complete_photo_storage_cleanup_job(
-       (select job_id from cleanup_claim order by job_id limit 1),
-       (select lease_token from cleanup_claim order by job_id limit 1)
-     ) then
+  if public.complete_photo_storage_cleanup_job(v_first.job_id, v_first.lease_token) then
     raise exception '失效租约竟然完成了任务';
   end if;
 
-  -- 完成 + 退避后不应再被领取。
+  -- 完成 + 退避中的任务不应再被领取。
   if (select count(*) from public.claim_photo_storage_cleanup_jobs(10, 300)) <> 0 then
     raise exception '完成或退避中的任务不应被再次领取';
   end if;
@@ -248,10 +238,17 @@ begin
     raise exception '重试应至少退避 60 秒，实际可用时间 %', v_available;
   end if;
 
-  -- 撤回是幂等的，重复撤回不得制造重复任务。
+  -- 重复入队（撤回被重放，或运维手工补队）不得制造重复任务。
+  perform public.enqueue_photo_storage_cleanup(
+    'e5000000-0000-0000-0000-000000000005'::uuid, clock_timestamp()
+  );
+  perform public.enqueue_photo_storage_cleanup(
+    'e5000000-0000-0000-0000-000000000005'::uuid, clock_timestamp()
+  );
+
   if (select count(*) from public.photo_storage_cleanup_jobs
       where photo_id = 'e5000000-0000-0000-0000-000000000005') <> 2 then
-    raise exception '重复撤回制造了重复任务';
+    raise exception '重复入队制造了重复任务';
   end if;
 end;
 $$;

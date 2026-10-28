@@ -46,8 +46,8 @@ export async function registerProfileRoutes(app: FastifyInstance) {
     const kind = req.query.kind
     if (kind !== 'likes' && kind !== 'favorites') throw validation('kind 必须是 likes 或 favorites')
 
-    const limit = req.query.limit ? Number(req.query.limit) : undefined
-    if (limit !== undefined && (!Number.isFinite(limit) || limit < 1)) {
+    const limit = req.query.limit === undefined ? undefined : Number(req.query.limit)
+    if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
       throw validation('limit 必须是正整数')
     }
 

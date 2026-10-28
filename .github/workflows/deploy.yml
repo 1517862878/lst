@@ -115,6 +115,7 @@ jobs:
         run: pnpm run build
         env:
           VITE_BASE: /lst/
+          VITE_USE_HASH_ROUTER: '1'
 
       - name: Generate SPA fallback
         run: node scripts/postbuild.mjs
@@ -144,6 +145,7 @@ jobs:
         run: pnpm run build
         env:
           VITE_BASE: /lst/
+          VITE_USE_HASH_ROUTER: '1'
 
       - name: Generate SPA fallback
         run: node scripts/postbuild.mjs

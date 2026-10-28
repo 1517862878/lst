@@ -6,18 +6,17 @@
  *   两者行为不同 —— S8 部署后整站落到 404 页，就是因为 router 没设 basename。
  *   这类问题在 base='/' 的测试里永远测不出来。
  *
- * 注意路径写法：
- *   baseURL 设为 http://127.0.0.1:4180/lst 时，page.goto('/gallery') 会解析成
- *   http://127.0.0.1:4180/gallery（丢掉 /lst）。所以这里统一用 url() 拼完整地址。
+ * 生产构建使用 hash 路由：真实 HTTP 请求始终停在 /lst/，避免 GitHub Pages
+ * 对 /lst/login、/lst/register 这类深链先返回 404。页面路由位于 # 后面。
  *
- * 运行：VITE_BASE=/lst/ pnpm build && node scripts/postbuild.mjs && pnpm test:e2e:subpath
+ * 运行：VITE_BASE=/lst/ VITE_USE_HASH_ROUTER=1 pnpm build && node scripts/postbuild.mjs && pnpm test:e2e:subpath
  */
 import { expect, test } from '@playwright/test'
 
 const BASE = (process.env.E2E_SUBPATH_URL ?? 'http://127.0.0.1:4180/lst').replace(/\/+$/, '')
 
-/** 访问子路径下的相对路径（避免 baseURL 拼接丢前缀） */
-const url = (path = '/') => BASE + path
+/** 访问生产 hash 路由；根页直接访问 /lst/，其它页面统一放在 # 后。 */
+const url = (path = '/') => (path === '/' ? BASE + '/' : `${BASE}/#${path}`)
 
 test.describe('子路径部署（/lst/）', () => {
   test('首页正常渲染，不落到 404', async ({ page }) => {
@@ -28,7 +27,7 @@ test.describe('子路径部署（/lst/）', () => {
     await expect(page.locator('a[href*="/works/"]').first()).toBeVisible({ timeout: 20_000 })
   })
 
-  test('各主路由都能打开（basename 生效）', async ({ page }) => {
+  test('各主路由都能通过 hash 地址打开', async ({ page }) => {
     // 用 as const 让元组类型收紧，避免 strict 模式下解构出 string | undefined
     const routes = [
       ['/gallery', '作品墙'],
@@ -36,23 +35,40 @@ test.describe('子路径部署（/lst/）', () => {
       ['/rankings/weekly', '本周排行榜'],
       ['/learn', '学习板块'],
       ['/login', '登录'],
+      ['/register', '注册'],
     ] as const
     for (const [path, heading] of routes) {
+      // 首次访问会收到文档响应；同一文档内后续只改变 hash，Playwright 正确返回 null。
+      // HTTP 200 已由首页用例覆盖，这里验证每个 hash 路由实际渲染。
       await page.goto(url(path))
       await expect(page.getByText('页面未找到')).toHaveCount(0)
       await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible({ timeout: 20_000 })
     }
   })
 
-  test('内部链接保留 /lst/ 前缀', async ({ page }) => {
+  test('页头提供独立登录与注册入口，两个页面可以互相切换', async ({ page }) => {
+    await page.goto(url('/'))
+    await expect(page.getByRole('link', { name: '登录', exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: '注册', exact: true })).toBeVisible()
+
+    await page.getByRole('link', { name: '注册', exact: true }).click()
+    await expect(page).toHaveURL(/#\/register$/)
+    await expect(page.getByRole('heading', { name: '注册', exact: true })).toBeVisible()
+
+    await page.getByRole('link', { name: '返回登录' }).click()
+    await expect(page).toHaveURL(/#\/login$/)
+    await expect(page.getByRole('link', { name: '立即注册' })).toBeVisible()
+  })
+
+  test('内部链接保留 /lst/ 前缀并使用 hash 路由', async ({ page }) => {
     await page.goto(url('/gallery'))
     await expect(page.locator('a[href*="/works/"]').first()).toBeVisible({ timeout: 20_000 })
     const hrefs = await page
       .locator('a[href*="/works/"]')
       .evaluateAll((els) => els.slice(0, 5).map((e) => e.getAttribute('href') ?? ''))
     expect(hrefs.length).toBeGreaterThan(0)
-    // 所有作品链接都应带部署前缀，否则点进去会 404
-    for (const h of hrefs) expect(h.startsWith('/lst/')).toBe(true)
+    // HashRouter 生成根相对链接（#/works/...）；浏览器解析后真实请求仍留在 /lst/。
+    for (const h of hrefs) expect(h.startsWith('#/works/')).toBe(true)
   })
 
   test('搜索结果链接保留 /lst/ 前缀', async ({ page }) => {
@@ -62,7 +78,7 @@ test.describe('子路径部署（/lst/）', () => {
       .locator('main a[href*="/works/"]')
       .evaluateAll((els) => els.slice(0, 5).map((e) => e.getAttribute('href') ?? ''))
     expect(links.length).toBeGreaterThan(0)
-    for (const h of links) expect(h.startsWith('/lst/')).toBe(true)
+    for (const h of links) expect(h.startsWith('#/works/')).toBe(true)
   })
 
   test('个人主页可用（Tabs 不崩溃）', async ({ page }) => {

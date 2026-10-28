@@ -7,7 +7,7 @@
  *   - 要求 dist 以 VITE_BASE=/lst/ 构建
  *
  * 用法：
- *   VITE_BASE=/lst/ pnpm build && node scripts/postbuild.mjs
+ *   VITE_BASE=/lst/ VITE_USE_HASH_ROUTER=1 pnpm build && node scripts/postbuild.mjs
  *   pnpm test:e2e:subpath
  */
 import { defineConfig, devices } from '@playwright/test'

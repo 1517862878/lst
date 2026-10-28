@@ -83,9 +83,14 @@ export function Header({ sessionUser }: HeaderProps) {
               <Avatar name={sessionUser.displayName || sessionUser.username} size={32} />
             </Link>
           ) : (
-            <Link to="/login" className="g-login-link">
-              登录 / 注册
-            </Link>
+            <div className="g-auth-links" aria-label="账号入口">
+              <Link to="/login" className="g-login-link">
+                登录
+              </Link>
+              <Link to="/register" className="g-login-link g-register-link">
+                注册
+              </Link>
+            </div>
           )}
           <IconButton
             icon={menuOpen ? X : Menu}

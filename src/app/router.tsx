@@ -1,5 +1,9 @@
+/// <reference types="vite/client" />
+
+declare const __USE_HASH_ROUTER__: boolean
+
 import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
-import { createBrowserRouter } from 'react-router'
+import { createBrowserRouter, createHashRouter } from 'react-router'
 import { Shell } from '@/components/layout/Shell'
 import { HomePage } from '@/pages/HomePage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -78,7 +82,15 @@ const CommunityPage = lazyNamed(() => import('@/pages/LegalPages'), 'CommunityPa
 const RAW_BASE = import.meta.env.BASE_URL ?? '/'
 const BASENAME = RAW_BASE === '/' ? '' : RAW_BASE.replace(/\/+$/, '')
 
-export const router = createBrowserRouter(
+// GitHub Pages 不提供 SPA rewrite：直接刷新 /lst/login 会先返回 HTTP 404。
+// 生产环境改用 hash 路由，让真实请求始终停在 /lst/，页面路径放在 # 后面；
+// 本地开发仍保留干净路径，现有开发体验与主链路测试不受影响。
+// 注意：HashRouter 的 hash 后路径从根开始，不应再传 /lst basename；否则 `/` 会被判定
+// 为“不在 basename 内”而整站空白。BrowserRouter 才需要用 basename 剥离部署前缀。
+const IS_HASH_ROUTER = __USE_HASH_ROUTER__
+const createRouter = IS_HASH_ROUTER ? createHashRouter : createBrowserRouter
+
+export const router = createRouter(
   [
     {
       path: '/',
@@ -114,5 +126,5 @@ export const router = createBrowserRouter(
       ],
     },
   ],
-  { basename: BASENAME },
+  IS_HASH_ROUTER ? undefined : { basename: BASENAME },
 )

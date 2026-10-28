@@ -44,8 +44,13 @@ export default defineConfig(({ command, mode }) => {
   const devApiTarget = (env.VITE_DEV_API_TARGET ?? '').trim() || 'http://127.0.0.1:3001'
 
   return {
-    // 空字符串会让基路径失效，统一归一化成根路径
+    // 空字符串会让基路径失效，统一归一化成根路径。
+    // 同时把部署形态显式注入应用：只有 GitHub Pages 这类“无 SPA rewrite”的静态托管才用 hash 路由；
+    // 普通生产预览/云服务器仍用 BrowserRouter，避免“只要 PROD 就强制 hash”破坏主链路。
     base: (env.VITE_BASE ?? '').trim() || '/',
+    define: {
+      __USE_HASH_ROUTER__: JSON.stringify(TRUTHY.has((env.VITE_USE_HASH_ROUTER ?? '').trim().toLowerCase())),
+    },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

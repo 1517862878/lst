@@ -15,6 +15,7 @@ import { useSession } from '@/hooks/useSession'
 import { createRepositories, dataSource } from '@/data'
 import { CATEGORIES } from '@/domain/constants'
 import { LICENSE_DESCRIPTORS } from '@/domain/licenses'
+import { formatDate } from '@/lib/time'
 import type { PhotoLicense } from '@/domain/types'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Link } from 'react-router'
@@ -22,17 +23,16 @@ import { parseTags } from '@/lib/search/normalize'
 import { PublishTagSuggest } from '@/features/tags/PublishTagSuggest'
 import { compressImage, validateImageFile } from '@/lib/image/compress'
 import { parseExifWhitelist, assertNoGps } from '@/lib/image/exif'
+import { useDeleteMyDraft, useMyDraft, useSaveMyDraft } from '@/hooks/useCollections'
+import type { PublishDraftPayload } from '@/domain/types'
 
+/**
+ * 草稿策略（8.3b）：
+ *   - api 模式：草稿跟着账号走，存在服务端（换设备/换浏览器也能恢复）；
+ *   - mock 模式：没有后端，继续用 localStorage，行为与之前一致。
+ * 老用户（api 模式下已有本地草稿）在第一次进入时会被迁移到服务端，然后删掉本地键。
+ */
 const DRAFT_KEY = 'gy:draft:publish'
-
-interface DraftState {
-  title: string
-  description: string
-  categorySlug: string
-  locationName: string
-  license: PhotoLicense
-  tags: string[]
-}
 
 const LICENSE_OPTIONS = (Object.entries(LICENSE_DESCRIPTORS) as Array<
   [PhotoLicense, (typeof LICENSE_DESCRIPTORS)[PhotoLicense]]
@@ -63,48 +63,110 @@ function PublishInner() {
   const [exifPreview, setExifPreview] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState('')
   const [draftRestored, setDraftRestored] = useState(false)
+  const [draftUpdatedAt, setDraftUpdatedAt] = useState<string | null>(null)
   const [publicationAccepted, setPublicationAccepted] = useState(false)
   const draftTimer = useRef<number | null>(null)
+  const restoredRef = useRef(false)
 
-  // 草稿恢复（刷新后不丢，FRONTEND-WORK §2.17 验收）
+  // api 模式读服务端草稿；mock 模式这个查询不会发请求
+  const draftQuery = useMyDraft({ enabled: isApi })
+  const saveDraftMutation = useSaveMyDraft()
+  const deleteDraftMutation = useDeleteMyDraft()
+  // mutation 的 mutate 身份在 react-query 里是稳定的，用 ref 避免进 effect 依赖
+  const saveDraftRef = useRef(saveDraftMutation.mutate)
+  saveDraftRef.current = saveDraftMutation.mutate
+
+  // 恢复草稿：服务端优先，其次本地旧草稿（迁移后删除本地键）
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(DRAFT_KEY)
-      if (raw) {
-        const d = JSON.parse(raw) as DraftState
-        setTitle(d.title)
-        setDescription(d.description)
-        setCategorySlug(d.categorySlug)
-        setLocationName(d.locationName)
-        setLicense(d.license)
-        setTags(d.tags.join(' '))
-        setDraftRestored(true)
-      }
-    } catch {
-      /* 忽略损坏草稿 */
-    }
-  }, [])
+    if (restoredRef.current) return
+    if (isApi && draftQuery.isPending) return
 
-  // 自动保存草稿（防抖 1s）
-  const saveDraft = useCallback(() => {
-    const draft: DraftState = {
+    const applyDraft = (d: PublishDraftPayload) => {
+      setTitle(d.title)
+      setDescription(d.description)
+      setCategorySlug(d.categorySlug)
+      setLocationName(d.locationName)
+      setLicense(d.license)
+      setTags(d.tags.join(' '))
+      setDraftRestored(true)
+    }
+    const restoreLocal = (): boolean => {
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY)
+        if (!raw) return false
+        applyDraft(JSON.parse(raw) as PublishDraftPayload)
+        return true
+      } catch {
+        return false // 忽略损坏草稿
+      }
+    }
+
+    restoredRef.current = true
+    if (isApi) {
+      const payload = draftQuery.data?.payload
+      if (payload) {
+        applyDraft(payload)
+        setDraftUpdatedAt(draftQuery.data?.updatedAt ?? null)
+        // 服务端已有草稿，本地那份已经多余
+        localStorage.removeItem(DRAFT_KEY)
+        return
+      }
+      // 服务端没有草稿：把本地旧草稿迁上去（下一次防抖保存就会写入）
+      if (restoreLocal()) localStorage.removeItem(DRAFT_KEY)
+      return
+    }
+    restoreLocal()
+  }, [isApi, draftQuery.isPending, draftQuery.data])
+
+  const draftPayload = useCallback(
+    (): PublishDraftPayload => ({
       title,
       description,
       categorySlug,
       locationName,
       license,
       tags: parseTags(tags),
-    }
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
-  }, [title, description, categorySlug, locationName, license, tags])
+    }),
+    [title, description, categorySlug, locationName, license, tags],
+  )
 
+  // 自动保存：api 模式 5 秒防抖写服务端，mock 模式 1 秒防抖写本地
   useEffect(() => {
+    // 草稿还没恢复完就不要写，否则会用空表单覆盖服务端的草稿
+    if (!restoredRef.current) return
     if (draftTimer.current) window.clearTimeout(draftTimer.current)
-    draftTimer.current = window.setTimeout(saveDraft, 1000)
+    draftTimer.current = window.setTimeout(() => {
+      const payload = draftPayload()
+      if (isApi) {
+        saveDraftRef.current(payload)
+        setDraftUpdatedAt(new Date().toISOString())
+        return
+      }
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(payload))
+    }, isApi ? 5000 : 1000)
     return () => {
       if (draftTimer.current) window.clearTimeout(draftTimer.current)
     }
-  }, [saveDraft])
+  }, [draftPayload, isApi])
+
+  /** 手动「保存草稿」：不等防抖，立刻落盘 */
+  const handleManualSave = () => {
+    const payload = draftPayload()
+    if (isApi) {
+      saveDraftMutation.mutate(payload, {
+        onSuccess: () => {
+          setDraftUpdatedAt(new Date().toISOString())
+          setDraftRestored(true)
+          toast.show('success', '草稿已保存到你的账号')
+        },
+        onError: () => toast.show('error', '草稿保存失败，请稍后再试'),
+      })
+      return
+    }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(payload))
+    setDraftRestored(true)
+    toast.show('success', '草稿已保存在本机')
+  }
 
   const handleFile = async (f: File) => {
     const check = validateImageFile(f)
@@ -187,7 +249,11 @@ function PublishInner() {
       }, photoId)
       await repos.photos.publish(photo.id)
 
+      // 发布成功即作废草稿：本地键 + 服务端（失败不影响发布结果）
+      if (draftTimer.current) window.clearTimeout(draftTimer.current)
+      restoredRef.current = false
       localStorage.removeItem(DRAFT_KEY)
+      if (isApi) void deleteDraftMutation.mutateAsync().catch(() => undefined)
       toast.show('success', '发布成功')
       navigate(`/works/${photo.id}`)
     } catch (err) {
@@ -206,7 +272,8 @@ function PublishInner() {
       />
       {draftRestored && (
         <p className="g-draft-note" role="status">
-          已恢复上次未发布的草稿。
+          已恢复上次未发布的草稿
+          {draftUpdatedAt ? `（保存于 ${formatDate(draftUpdatedAt)}）` : ''}。
         </p>
       )}
       <form className="g-publish-form" onSubmit={handleSubmit}>
@@ -318,7 +385,7 @@ function PublishInner() {
           <Button type="submit" loading={uploading}>
             发布作品
           </Button>
-          <Button type="button" variant="ghost" onClick={saveDraft}>
+          <Button type="button" variant="ghost" onClick={handleManualSave}>
             保存草稿
           </Button>
         </div>

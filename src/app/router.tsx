@@ -56,6 +56,8 @@ const ProfilePage = lazyNamed(() => import('@/pages/ProfilePage'), 'ProfilePage'
 const SettingsPage = lazyNamed(() => import('@/pages/SettingsPage'), 'SettingsPage')
 const MePage = lazyNamed(() => import('@/pages/MePage'), 'MePage')
 const MeModerationPage = lazyNamed(() => import('@/pages/MeModerationPage'), 'MeModerationPage')
+const CollectionsPage = lazyNamed(() => import('@/pages/CollectionsPage'), 'CollectionsPage')
+const CollectionDetailPage = lazyNamed(() => import('@/pages/CollectionDetailPage'), 'CollectionDetailPage')
 const AdminPage = lazyNamed(() => import('@/pages/AdminPage'), 'AdminPage')
 const SearchPage = lazyNamed(() => import('@/pages/SearchPage'), 'SearchPage')
 const RankingPage = lazyNamed(() => import('@/pages/RankingPage'), 'RankingPage')
@@ -121,6 +123,8 @@ export const router = createRouter(
         { path: 'settings/:section', element: <SettingsPage /> },
         { path: 'me', element: <MePage /> },
         { path: 'me/moderation', element: <MeModerationPage /> },
+        { path: 'me/collections', element: <CollectionsPage /> },
+        { path: 'c/:id', element: <CollectionDetailPage /> },
         { path: 'admin', element: <AdminPage /> },
         { path: 'feed', element: <FeedPage /> },
         { path: 'notifications', element: <NotificationsPage /> },

@@ -37,6 +37,7 @@ import { registerAccountCenterRoutes } from './account-center.js'
 import { registerModerationRoutes } from './moderation.js'
 import { registerSocialRoutes } from './social.js'
 import { registerTagRoutes } from './tags.js'
+import { registerCollectionRoutes } from './collections.js'
 import { searchPhotos } from '../repositories/search.js'
 
 /**
@@ -151,6 +152,11 @@ export async function registerRoutes(app: FastifyInstance) {
   // ==========================================================================
   await registerSocialRoutes(app)
   await registerTagRoutes(app)
+
+  // ==========================================================================
+  // 服务端草稿 + 收藏夹/公开相册（0028）：草稿跨设备恢复、夹的增删改与条目分页
+  // ==========================================================================
+  await registerCollectionRoutes(app)
 
   // ==========================================================================
   // 作品

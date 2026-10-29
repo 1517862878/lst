@@ -408,3 +408,59 @@ export interface Page<T> {
   nextCursor: string | null
   total: number
 }
+
+// ===== 收藏夹与服务端草稿（8.3b）=====
+
+/**
+ * 收藏夹可见性：
+ *   - private  只有本人可读（他人拿到的是 404，不是 403）
+ *   - unlisted 不列出，但凭 id 任何人都能打开（当分享链接用）
+ *   - public   任何人可读，并出现在公开主页的「相册」Tab
+ */
+export type CollectionVisibility = 'private' | 'unlisted' | 'public'
+
+/** 收藏夹摘要：列表 / 卡片用，不带条目内容 */
+export interface CollectionSummary {
+  id: string
+  title: string
+  description: string
+  visibility: CollectionVisibility
+  itemCount: number
+  /** 封面作品的 id；空夹为 null */
+  coverPhotoId: string | null
+  /**
+   * 封面缩略图的存储键。后端目前只回 coverPhotoId，拿不到缩略图时卡片走渐变占位；
+   * 字段保留是为了将来省一次详情请求。
+   */
+  coverThumbKey?: string | null
+  ownerUsername: string
+  ownerDisplayName: string
+  /** 该作品是否已在夹中 —— 只在带 photoId 查询时有值（mock 会算，api 暂不返回） */
+  hasPhoto?: boolean
+  updatedAt: IsoDate
+}
+
+/** 收藏夹详情（比摘要多了创建时间与「是不是我自己的」） */
+export interface Collection extends CollectionSummary {
+  createdAt: IsoDate
+  isOwner: boolean
+}
+
+/**
+ * 服务端草稿的内容。刻意只存「表单里用户填的东西」：
+ * 图片是提交时才压缩上传的，草稿里没有它的位置，硬塞 imageKey 只会存下空字符串。
+ */
+export interface PublishDraftPayload {
+  title: string
+  description: string
+  categorySlug: string
+  locationName: string
+  license: PhotoLicense
+  tags: string[]
+}
+
+/** GET /api/me/publish-draft 的返回：没有草稿时 payload 为 null */
+export interface PublishDraft {
+  payload: PublishDraftPayload | null
+  updatedAt: IsoDate | null
+}

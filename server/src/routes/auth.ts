@@ -52,6 +52,15 @@ async function issuePhoneCode(phone: string, purpose: string) {
   return { sent: true as const, expiresAt: issued.expiresAt, ...(EXPOSE_DEV_CODE ? { devCode: code } : {}) }
 }
 
+/**
+ * 登录限流上限（每个 IP / 10 分钟）。
+ *
+ * 生产默认 10——足够挡住撞库脚本，又不会误伤「密码输错两次再试」的正常用户。
+ * 真实 API 的浏览器套件会在一轮里登录七八次（两个账号 × 几个用例），必然超限，
+ * 所以允许用环境变量放宽；**只有测试哈枞会设置它**，生产不设即为默认值。
+ */
+const LOGIN_RATE_MAX = Number(process.env.AUTH_LOGIN_RATE_MAX ?? '10') || 10
+
 export async function registerAuthRoutes(app: FastifyInstance) {
   app.post('/api/auth/register/request-code', { config: { rateLimit: { max: 5, timeWindow: '10 minutes' } } }, async (req) => {
     const phone = field(req.body, 'phone').trim()
@@ -86,7 +95,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     return sessionResponse(result.account, req, reply)
   })
 
-  app.post('/api/auth/login', { config: { rateLimit: { max: 10, timeWindow: '10 minutes' } } }, async (req, reply) => {
+  app.post('/api/auth/login', { config: { rateLimit: { max: LOGIN_RATE_MAX, timeWindow: '10 minutes' } } }, async (req, reply) => {
     const identifier = field(req.body, 'username').trim(); const password = field(req.body, 'password')
     if (!identifier || !password) throw validation('请填写用户名和密码')
     await botVerifier.verify({ token: field(req.body, 'turnstileToken'), remoteIp: req.ip, action: 'login' })

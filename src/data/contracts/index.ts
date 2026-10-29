@@ -12,6 +12,9 @@ import type {
   ArticleTopic,
   BlockedUser,
   Category,
+  Collection,
+  CollectionSummary,
+  CollectionVisibility,
   Comment,
   FollowCounts,
   Interaction,
@@ -24,6 +27,8 @@ import type {
   PhotoLicense,
   PhotoStatus,
   Profile,
+  PublishDraft,
+  PublishDraftPayload,
   RankingSnapshot,
   RankingEntry,
   Report,
@@ -55,6 +60,15 @@ export type {
 }
 
 export type { BlockedUser, FollowCounts, Page, UserHit }
+
+/** 收藏夹与服务端草稿的类型也从契约层再导出（8.3b），页面只认一个导入面 */
+export type {
+  Collection,
+  CollectionSummary,
+  CollectionVisibility,
+  PublishDraft,
+  PublishDraftPayload,
+}
 
 // ===== 通用错误（跨适配器一致的错误模型）=====
 
@@ -488,10 +502,49 @@ export interface TagRepository {
   suggest(prefix: string, options?: { limit?: number }): Promise<TagSuggestion[]>
 }
 
+/** 收藏夹与服务端草稿（8.3b）。可见性与配额由数据库决定，这一层只做形态校验与空集→404 翻译。 */
+export interface CollectionRepository {
+  /** GET /api/me/publish-draft —— 没有草稿时 payload 为 null，不抛错 */
+  getMyDraft(): Promise<PublishDraft>
+  /** PUT /api/me/publish-draft —— 整份覆盖（表单是整份提交的） */
+  saveMyDraft(payload: PublishDraftPayload): Promise<{ updatedAt: IsoDate }>
+  /** DELETE /api/me/publish-draft */
+  deleteMyDraft(): Promise<void>
+  /** GET /api/me/collections —— 本人全部收藏夹（含私密）；带 photoId 时顺便标注成员关系 */
+  listMyCollections(options?: { photoId?: string }): Promise<CollectionSummary[]>
+  /** GET /api/u/:username/collections —— 他人只能看到 public */
+  listUserCollections(username: string): Promise<CollectionSummary[]>
+  /** GET /api/collections/:id —— 不可见时抛 NOT_FOUND（不是 FORBIDDEN，避免确认夹存在） */
+  getCollection(id: string): Promise<Collection>
+  /** GET /api/collections/:id/items —— 游标分页 */
+  listCollectionItems(
+    id: string,
+    options?: { cursor?: string | null; limit?: number },
+  ): Promise<CursorListPage<Photo>>
+  /** POST /api/collections */
+  createCollection(input: {
+    title: string
+    description?: string
+    visibility?: CollectionVisibility
+  }): Promise<CollectionSummary>
+  /** PATCH /api/collections/:id */
+  updateCollection(
+    id: string,
+    patch: { title?: string; description?: string; visibility?: CollectionVisibility },
+  ): Promise<CollectionSummary>
+  /** DELETE /api/collections/:id（软删） */
+  deleteCollection(id: string): Promise<void>
+  /** POST /api/collections/:id/items —— 重复加入幂等，返回最新数量 */
+  addItem(collectionId: string, photoId: string): Promise<{ itemCount: number }>
+  /** DELETE /api/collections/:id/items/:photoId —— 幂等 */
+  removeItem(collectionId: string, photoId: string): Promise<{ itemCount: number }>
+}
+
 /** 所有仓储的集合（data/index.ts 工厂产出） */
 export interface Repositories {
   photos: PhotoRepository
   tags: TagRepository
+  collections: CollectionRepository
   interactions: InteractionRepository
   comments: CommentRepository
   rankings: RankingRepository

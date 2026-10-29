@@ -635,6 +635,20 @@
   margin: 0;
   font-size: var(--g-text-base);
   color: var(--g-ink-2);
+  /* 标题与描述同处一个横向 flex：没有 min-width:0 时，长描述会把标题压成一字一行
+     （390px 下实测到的真实排版事故）。窄屏再显式折行，保证标题始终完整可读。 */
+  min-width: 0;
+  flex: 1 1 12em;
+}
+
+@media (max-width: 560px) {
+  .g-dialog-header {
+    flex-wrap: wrap;
+  }
+
+  .g-dialog-title {
+    flex: 1 1 100%;
+  }
 }
 
 .g-dialog-close {

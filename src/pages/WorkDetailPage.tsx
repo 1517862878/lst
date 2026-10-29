@@ -20,6 +20,7 @@ import { LikeButton, FavoriteButton } from '@/features/interactions/LikeFavorite
 import { CommentSection } from '@/features/interactions/CommentSection'
 import { AuthorLink } from '@/features/profiles/AuthorLink'
 import { WorkMoreMenu } from '@/features/moderation/WorkMoreMenu'
+import { AddToCollectionDialog } from '@/features/collections/AddToCollectionDialog'
 import { useMorePhotosByAuthor, usePhoto, useRelatedPhotos, useWithdrawPhoto } from '@/hooks/usePhotos'
 import { useSession } from '@/hooks/useSession'
 import { useInteractionSync } from '@/hooks/useInteractions'
@@ -32,6 +33,7 @@ export function WorkDetailPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const [withdrawOpen, setWithdrawOpen] = useState(false)
+  const [collectionOpen, setCollectionOpen] = useState(false)
   const [withdrawError, setWithdrawError] = useState('')
   const withdrawPhoto = useWithdrawPhoto(id)
   const photoQuery = usePhoto(id)
@@ -162,6 +164,19 @@ export function WorkDetailPage() {
             />
             <span className="g-work-views">👁 {photo.viewCount}</span>
             <ShareButton title={photo.title} text={photo.description || '来自工科影展的摄影作品'} />
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                if (!session) {
+                  navigate(`/login?next=${encodeURIComponent(`/works/${photo.id}`)}`)
+                  return
+                }
+                setCollectionOpen(true)
+              }}
+            >
+              加入收藏夹
+            </Button>
             <WorkMoreMenu photoId={photo.id} title={photo.title} isAuthor={isAuthor} />
           </div>
 
@@ -169,6 +184,13 @@ export function WorkDetailPage() {
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: licenseJsonLd }} />
         </div>
       </article>
+
+      <AddToCollectionDialog
+        open={collectionOpen}
+        onOpenChange={setCollectionOpen}
+        photoId={photo.id}
+        photoTitle={photo.title}
+      />
 
       <Dialog
         open={withdrawOpen}

@@ -21,6 +21,7 @@ import { mockSocialRepository } from './mock/repositories/social'
 import { mockStorageRepository } from './mock/repositories/storage'
 import { mockModerationRepository } from './mock/repositories/moderation'
 import { mockTagRepository } from './mock/repositories/tags'
+import { mockCollectionRepository } from './mock/repositories/collections'
 
 import { apiPhotoRepository } from './api/photos'
 import { apiCategoryRepository } from './api/categories'
@@ -34,6 +35,7 @@ import { apiInteractionRepository } from './api/interactions'
 import { apiSocialRepository } from './api/social'
 import { apiModerationRepository } from './api/moderation'
 import { apiTagRepository } from './api/tags'
+import { apiCollectionRepository } from './api/collections'
 
 let cached: Repositories | null = null
 
@@ -60,6 +62,7 @@ export function createRepositories(): Repositories {
       social: apiSocialRepository,
       moderation: apiModerationRepository,
       tags: apiTagRepository,
+      collections: apiCollectionRepository,
     }
   } else {
     cached = {
@@ -75,6 +78,7 @@ export function createRepositories(): Repositories {
       social: mockSocialRepository,
       moderation: mockModerationRepository,
       tags: mockTagRepository,
+      collections: mockCollectionRepository,
     }
   }
 

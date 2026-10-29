@@ -47,6 +47,9 @@ export async function buildApp() {
   await app.register(rateLimit, {
     global: false,
     errorResponseBuilder: (_req, context) => ({
+      // statusCode 必须带上：这个返回值会被 @fastify/rate-limit 当作 Error 抛出，
+      // 而我们的 setErrorHandler 只认 ApiError，没有 statusCode 就会掉进「未知错误」→ 500。
+      statusCode: 429,
       code: 'RATE_LIMIT',
       message: '操作过于频繁，请稍后重试',
       details: { retryAfterSeconds: Math.ceil(context.ttl / 1000) },
@@ -68,6 +71,20 @@ export async function buildApp() {
 
   // ---- 统一错误处理 ----
   app.setErrorHandler((err, req, reply) => {
+    // 限流（@fastify/rate-limit 抛的是普通对象，不走 ApiError 分支）：
+    // 必须显式转成 429 + Retry-After，否则用户拿到的是一次 500 和一句「服务器开小差」。
+    if ((err as { code?: string }).code === 'RATE_LIMIT') {
+      const retryAfter = (err as { details?: { retryAfterSeconds?: number } }).details
+        ?.retryAfterSeconds
+      if (retryAfter) reply.header('retry-after', String(retryAfter))
+      req.log.warn({ url: req.url, retryAfter }, '请求被限流')
+      return reply.status(429).send({
+        code: 'RATE_LIMIT',
+        message: '操作过于频繁，请稍后重试',
+        details: { retryAfterSeconds: retryAfter },
+      })
+    }
+
     // 业务错误
     if (err instanceof ApiError) {
       req.log.warn({ code: err.code, url: req.url }, err.message)

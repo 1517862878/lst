@@ -10,6 +10,8 @@ export const ErrorCodes = {
   UNAUTHORIZED: 'UNAUTHORIZED',
   FORBIDDEN: 'FORBIDDEN',
   VALIDATION: 'VALIDATION',
+  /** 配额上限（0028：收藏夹 30 个 / 单夹 500 件）。语义上不是「参数不合法」，所以单列 422。 */
+  LIMIT_EXCEEDED: 'LIMIT_EXCEEDED',
   CONFLICT: 'CONFLICT',
   STORAGE: 'STORAGE',
   INTERNAL: 'INTERNAL',
@@ -23,6 +25,7 @@ const STATUS_OF: Record<ErrorCode, number> = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   VALIDATION: 400,
+  LIMIT_EXCEEDED: 422,
   CONFLICT: 409,
   STORAGE: 500,
   INTERNAL: 500,
@@ -49,6 +52,7 @@ export const unauthorized = (msg = '请先登录') => new ApiError('UNAUTHORIZED
 export const forbidden = (msg = '无权访问') => new ApiError('FORBIDDEN', msg)
 export const validation = (msg: string, details?: unknown) =>
   new ApiError('VALIDATION', msg, details)
+export const limitExceeded = (msg: string) => new ApiError('LIMIT_EXCEEDED', msg)
 export const conflict = (msg: string) => new ApiError('CONFLICT', msg)
 export const rateLimited = (msg = '操作过于频繁') => new ApiError('RATE_LIMIT', msg)
 
@@ -101,8 +105,17 @@ export function translateDbError(err: unknown): ApiError | null {
       return new ApiError('CONFLICT', '数据已存在（唯一约束冲突）', e.detail)
     case '23503': // foreign_key_violation
       return new ApiError('VALIDATION', '关联数据不存在', e.detail)
-    case '23514': // check_violation
-      return new ApiError('VALIDATION', '数据不符合约束要求', e.detail)
+    case '23514': {
+      // check_violation。表约束撞车时 PostgreSQL 给的是英文样板
+      // （new row for relation "photos" violates check constraint ...），
+      // 迁移里 `raise exception '只能收藏已发布作品' using errcode='23514'` 的
+      // 中文文案才是该给用户看的，所以只有前者才替换成通用文案。
+      const boilerplate = /^(new row for relation|insert or update on table|value for domain|.*violates check constraint)/i
+      const message = e.message && !boilerplate.test(e.message) ? e.message : '数据不符合约束要求'
+      return new ApiError('VALIDATION', message, e.detail)
+    }
+    case '53400': // configuration_limit_exceeded：0028 的配额上限（422 而不是 400）
+      return new ApiError('LIMIT_EXCEEDED', e.message || '已达上限')
     case '55000': // object_not_in_prerequisite_state：目标对象当前状态不允许该操作
       // 治理链路里「申诉已复核」「已撤销的处罚再撤销」这类都是状态冲突，
       // 对客户端是 409 的可重试无意义错误，透传数据库写好的中文文案。

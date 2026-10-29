@@ -275,6 +275,9 @@ try {
       STORAGE_CLEANUP_ENABLED: 'false',
       IMAGE_ROOT: resolve(ROOT, '.tmp/api-e2e-images'),
       IP_HASH_SECRET: 'api-e2e-only-secret-000000000000000000000000',
+      // 一轮套件要登录七八次（两个账号 × 多个用例），生产默认 10/10 分钟必然超限；
+      // 这里放宽只影响测试哈枞，生产不设该变量。
+      AUTH_LOGIN_RATE_MAX: '200',
     },
   })
   await waitFor(`http://127.0.0.1:${API_PORT}/api/health`, 30_000)

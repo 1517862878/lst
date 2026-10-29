@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
+import { FolderHeart } from 'lucide-react'
 import { Container } from '@/components/layout/Container'
 import { Avatar } from '@/components/ui/Avatar'
+import { Badge } from '@/components/ui/Badge'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Tabs, TabsPrimitive } from '@/components/ui/Tabs'
@@ -10,11 +13,15 @@ import { PhotoGrid } from '@/features/photos/PhotoGrid'
 import { FollowButton } from '@/features/social/FollowButton'
 import { FollowStats } from '@/features/social/FollowStats'
 import { ProfileMoreMenu } from '@/features/social/ProfileMoreMenu'
+import { useUserCollections } from '@/hooks/useCollections'
+import { usePhotoImage } from '@/hooks/usePhotoImage'
 import { usePhotosByUsername } from '@/hooks/usePhotos'
 import { useProfileByUsername, useSession } from '@/hooks/useSession'
 import { accountImageUrl } from '@/lib/account'
+import type { CollectionSummary, CollectionVisibility } from '@/domain/types'
 
-type ProfileTab = 'works' | 'likes' | 'favorites'
+type ProfileTab = 'works' | 'likes' | 'favorites' | 'album'
+
 type ExtendedProfile = NonNullable<ReturnType<typeof useProfileByUsername>['data']> & {
   visibility?: 'public' | 'private'
   showLikes?: boolean
@@ -102,6 +109,8 @@ export function ProfilePage() {
     { value: 'works', label: '作品' },
     ...(isOwner || profile.showLikes ? [{ value: 'likes', label: '喜欢' }] : []),
     ...(isOwner || profile.showFavorites ? [{ value: 'favorites', label: '收藏' }] : []),
+    // 「相册」= 公开收藏夹的橱窗：非本人只看得到 public 夹，本人额外看到 private 夹并标注。
+    { value: 'album', label: '相册' },
   ]
 
   return (
@@ -122,7 +131,118 @@ export function ProfilePage() {
         <TabsPrimitive.Content value="works" className="g-tabs-content"><PhotoGrid photos={worksQuery.data ?? []} loading={worksQuery.isLoading} error={worksQuery.error} onRetry={() => void worksQuery.refetch()} emptyTitle="还没有作品" {...(isOwner ? { emptyActions: [{ label: '去发布', to: '/publish' }] } : {})} /></TabsPrimitive.Content>
         <TabsPrimitive.Content value="likes" className="g-tabs-content"><PhotoGrid photos={likesQuery.data ?? []} loading={likesQuery.isLoading} error={likesQuery.error} onRetry={() => void likesQuery.refetch()} emptyTitle="还没有喜欢的作品" /></TabsPrimitive.Content>
         <TabsPrimitive.Content value="favorites" className="g-tabs-content"><PhotoGrid photos={favoritesQuery.data ?? []} loading={favoritesQuery.isLoading} error={favoritesQuery.error} onRetry={() => void favoritesQuery.refetch()} emptyTitle="还没有收藏的作品" /></TabsPrimitive.Content>
+        <TabsPrimitive.Content value="album" className="g-tabs-content"><ProfileAlbumTab username={username} isOwner={isOwner} /></TabsPrimitive.Content>
       </Tabs>
     </Container>
+  )
+}
+
+/* ------------------------------------------------------------------ *
+ * 「相册」Tab（公开收藏夹）
+ * ------------------------------------------------------------------ */
+
+/** 非公开夹在本人主页上要标出来的原因：私密只有自己可看，链接可见只差一步分享。 */
+const PROFILE_VISIBILITY_NOTE: Record<CollectionVisibility, string> = {
+  public: '',
+  unlisted: '仅链接可见',
+  private: '仅自己可见',
+}
+
+function hueOf(seed: string): number {
+  let hash = 0
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = (hash * 31 + seed.charCodeAt(index)) % 360
+  }
+  return 180 + (hash % 100)
+}
+
+function ProfileCollectionCover({ collection }: { collection: CollectionSummary }) {
+  const { url } = usePhotoImage(collection.coverThumbKey ?? '')
+  const hue = hueOf(String(collection.id ?? collection.title ?? ''))
+  return (
+    <div
+      className="g-collection-cover"
+      style={{ background: `linear-gradient(135deg, hsl(${hue} 46% 88%), hsl(${(hue + 26) % 360} 44% 76%))` }}
+      aria-hidden="true"
+    >
+      {url ? (
+        <img className="g-collection-cover-img" src={url} alt="" loading="lazy" decoding="async" />
+      ) : (
+        <span className="g-collection-cover-letter">{(collection.title || '相').slice(0, 1)}</span>
+      )}
+    </div>
+  )
+}
+
+/**
+ * 数据 hook 必须挂在 Tab 内容组件里：Radix 的 Content 只在激活时挂载，
+ * 这样 profile-page.test.tsx（没有 QueryClientProvider）打开「作品」Tab 时不会触发收藏夹查询。
+ */
+function ProfileAlbumTab({ username, isOwner }: { username: string; isOwner: boolean }) {
+  const collectionsQuery = useUserCollections(username)
+  const all = collectionsQuery.data ?? []
+  // 服务端通常已按会话裁剪，这里再挡一道：非本人永远看不到私密夹。
+  const collections = all.filter((collection) => isOwner || collection.visibility === 'public')
+
+  if (collectionsQuery.isLoading) {
+    return (
+      <div className="g-collection-grid" aria-hidden="true">
+        {[0, 1, 2].map((index) => (
+          <Skeleton key={index} variant="rect" height={220} />
+        ))}
+      </div>
+    )
+  }
+
+  if (collectionsQuery.isError) {
+    return (
+      <ErrorState
+        title="相册加载失败"
+        error={collectionsQuery.error}
+        onRetry={() => void collectionsQuery.refetch()}
+      />
+    )
+  }
+
+  if (collections.length === 0) {
+    return (
+      <EmptyState
+        icon={FolderHeart}
+        title={isOwner ? '还没有公开的收藏夹' : '还没有公开的相册'}
+        description={
+          isOwner
+            ? '把收藏夹的可见性改成「公开」，它就会作为相册出现在这里。'
+            : '这个账号还没有分享公开的收藏夹。'
+        }
+        actions={isOwner ? [{ label: '整理我的收藏夹', to: '/me/collections' }] : []}
+      />
+    )
+  }
+
+  return (
+    <ul className="g-collection-grid" aria-label="相册">
+      {collections.map((collection) => {
+        const id = String(collection.id)
+        const note = PROFILE_VISIBILITY_NOTE[collection.visibility]
+        return (
+          <li key={id} className="g-collection-card">
+            <Link className="g-collection-card-link" to={`/c/${id}`}>
+              <ProfileCollectionCover collection={collection} />
+              <div className="g-collection-card-body">
+                <h3 className="g-collection-card-title">{collection.title}</h3>
+                <div className="g-collection-meta">
+                  <span>{collection.itemCount} 件作品</span>
+                  {note !== '' && (
+                    <Badge tone="neutral" size="sm">
+                      {note}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </Link>
+          </li>
+        )
+      })}
+    </ul>
   )
 }

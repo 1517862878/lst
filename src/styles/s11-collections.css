@@ -1,0 +1,515 @@
+/* ══════════════════════════════════════════════════════════
+   11 · 收藏夹（collections）· 列表 / 详情 / 「加入收藏夹」弹层
+   ─────────────────────────────────────────────
+   只补收藏夹这一层的新视觉，其余全部复用既有设计系统：
+     · 硬边框 --g-border + 偏移阴影 --g-shadow-sm/md，与 .g-card 同源
+     · 间距/字号一律走 --g-space-* / --g-text-* 令牌
+     · 焦点环统一 --g-focus，收藏夹卡片与弹层列表项都是可点元素，键盘必须可见
+   390px 是验收宽度：网格用 minmax(min(100%, 164px), 1fr) 自动收成两列，
+   所有文本 overflow-wrap: anywhere，不允许出现横向滚动条。
+   ══════════════════════════════════════════════════════════ */
+
+/* ── 列表卡片网格：auto-fill + minmax，不写死列宽，390px 自然两列 ── */
+.g-collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 164px), 1fr));
+  gap: var(--g-space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 管理列表（/me/collections）的卡片自带一排操作按钮，比相册卡片宽一档，
+   否则 190px 宽时「重命名 / 删除 / 可见性三选一」要折成三行。 */
+.g-collection-grid-manage {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 236px), 1fr));
+}
+
+.g-collection-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  box-shadow: var(--g-shadow-sm);
+}
+
+.g-collection-card-link {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+}
+
+.g-collection-card-link:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: 2px;
+}
+
+/* ── 封面：有图用图，没有封面时退化成「标题首字 + 稳定色块」 ── */
+.g-collection-cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-bottom: var(--g-border) solid var(--g-line);
+}
+
+.g-collection-cover-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.g-collection-cover-letter {
+  font-size: var(--g-text-xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--g-line);
+  opacity: 0.55;
+  user-select: none;
+}
+
+/* ── 卡身 ── */
+.g-collection-card-body {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--g-space-2);
+  padding: var(--g-space-3);
+}
+
+.g-collection-card-title {
+  margin: 0;
+  font-size: var(--g-text-base);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.g-collection-card-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.g-collection-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  margin-top: auto;
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+}
+
+/* ── 卡片操作区：重命名 / 删除 / 可见性切换 ── */
+.g-collection-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  padding: var(--g-space-2) var(--g-space-3) var(--g-space-3);
+  border-top: 1px solid var(--g-surface-3);
+}
+
+.g-collection-visibility-switch {
+  display: inline-flex;
+  flex: 0 0 auto;
+  /* 不靠 margin-left:auto 右对齐：390px 下它会掉到下一行，右侧对齐与左侧对齐
+     在不同断点间来回跳，反而像错位。统一左对齐、随 flex-wrap 自然换行。 */
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+}
+
+.g-collection-visibility-btn {
+  min-height: 32px;
+  padding: 4px var(--g-space-2);
+  border: 0;
+  border-right: 1px solid var(--g-line);
+  background: transparent;
+  color: var(--g-ink-2);
+  font-family: inherit;
+  font-size: var(--g-text-xs);
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background var(--g-dur-fast) var(--g-ease);
+}
+
+.g-collection-visibility-btn:last-child {
+  border-right: 0;
+}
+
+.g-collection-visibility-btn:hover:not(:disabled) {
+  color: var(--g-ink);
+  background: var(--g-surface-3);
+}
+
+.g-collection-visibility-btn[aria-pressed='true'] {
+  background: var(--g-brand);
+  color: var(--g-brand-ink);
+  font-weight: 600;
+}
+
+.g-collection-visibility-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.g-collection-visibility-btn:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: 2px;
+}
+
+/* ── 就地重命名表单 ── */
+.g-collection-rename {
+  display: grid;
+  gap: var(--g-space-2);
+  padding: var(--g-space-3);
+  border-top: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+}
+
+.g-collection-rename-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+}
+
+/* ── 新建表单 ── */
+.g-collection-form {
+  display: grid;
+  gap: var(--g-space-4);
+  margin: 0 0 var(--g-space-5);
+  padding: var(--g-space-4);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  box-shadow: var(--g-shadow-md);
+}
+
+.g-collection-form-title {
+  margin: 0;
+  font-size: var(--g-text-lg);
+}
+
+.g-collection-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+}
+
+/* 可见性三选一：小屏自动变成单列，选项本身是 <label>，点整行都能选中 */
+.g-collection-visibility {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: var(--g-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: var(--g-space-3);
+  border: 1px solid var(--g-line-soft);
+}
+
+.g-collection-visibility-legend {
+  padding-inline: var(--g-space-2);
+  font-weight: 600;
+}
+
+.g-collection-visibility-option {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: var(--g-space-2);
+  padding: var(--g-space-2);
+  border: 1px solid var(--g-line-soft);
+  background: var(--g-surface-2);
+  cursor: pointer;
+}
+
+.g-collection-visibility-option:hover {
+  background: var(--g-surface-3);
+}
+
+.g-collection-visibility-option:has(input:checked) {
+  border-color: var(--g-brand);
+  box-shadow: var(--g-shadow-sm);
+}
+
+.g-collection-visibility-option input {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  accent-color: var(--g-brand);
+}
+
+.g-collection-visibility-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.g-collection-visibility-label {
+  font-weight: 600;
+}
+
+.g-collection-visibility-hint {
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* ── 顶部说明 / 标题 / 反馈 ── */
+.g-collection-note {
+  max-width: 68ch;
+  margin: 0 0 var(--g-space-4);
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  line-height: 1.6;
+}
+
+.g-collection-list-title {
+  margin: var(--g-space-5) 0 var(--g-space-3);
+  font-size: var(--g-text-base);
+}
+
+.g-collection-list-count {
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  font-weight: 400;
+}
+
+.g-collection-feedback {
+  margin: var(--g-space-2) 0;
+  color: var(--g-danger);
+  font-size: var(--g-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.g-collection-skeleton {
+  display: block;
+}
+
+/* ── 详情页头部条 ── */
+.g-collection-detail-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-3);
+  margin-top: var(--g-space-3);
+}
+
+.g-collection-detail-owner {
+  margin: 0;
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.g-collection-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  margin: 0;
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+}
+
+.g-collection-detail-private {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--g-space-1);
+  color: var(--g-warning);
+  font-size: var(--g-text-xs);
+}
+
+.g-collection-detail-private svg {
+  width: 14px;
+  height: 14px;
+}
+
+.g-collection-detail-skeleton {
+  display: grid;
+  gap: var(--g-space-4);
+}
+
+/* ── 「加入收藏夹」弹层 ── */
+.g-collection-dialog-hint {
+  margin: 0 0 var(--g-space-3);
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  line-height: 1.6;
+}
+
+.g-collection-dialog-text {
+  margin: 0 0 var(--g-space-2);
+  overflow-wrap: anywhere;
+}
+
+.g-collection-dialog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--g-space-2);
+  width: 100%;
+}
+
+.g-collection-pick-list {
+  display: grid;
+  gap: var(--g-space-2);
+  max-height: min(50vh, 360px);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.g-collection-pick {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: var(--g-space-3);
+  padding: var(--g-space-2) var(--g-space-3);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--g-dur-fast) var(--g-ease);
+}
+
+.g-collection-pick:hover:not(:disabled) {
+  background: var(--g-surface-3);
+}
+
+.g-collection-pick:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.g-collection-pick:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: 2px;
+}
+
+/* 已加入：底色 + 边框 + 文案三重表达，不只靠颜色 */
+.g-collection-pick-on {
+  border-color: var(--g-brand);
+  background: var(--g-brand-soft);
+}
+
+.g-collection-pick-swatch {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--g-line);
+}
+
+.g-collection-pick-main {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.g-collection-pick-title {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.g-collection-pick-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+}
+
+.g-collection-pick-state {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--g-space-1);
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+  white-space: nowrap;
+}
+
+.g-collection-pick-state svg {
+  width: 14px;
+  height: 14px;
+}
+
+.g-collection-pick-on .g-collection-pick-state {
+  color: var(--g-brand);
+  font-weight: 600;
+}
+
+.g-collection-pick-empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--g-space-3);
+  padding: var(--g-space-5) var(--g-space-3);
+  border: 1px dashed var(--g-line-soft);
+  color: var(--g-ink-2);
+  text-align: center;
+}
+
+.g-collection-pick-empty svg {
+  width: 28px;
+  height: 28px;
+}
+
+.g-collection-pick-empty p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── 390px 收窄：网格两列、操作区换行、可见性切换不再右靠 ── */
+@media (max-width: 560px) {
+  .g-collection-grid,
+  .g-collection-grid-manage {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+    gap: var(--g-space-2);
+  }
+
+  .g-collection-card-body {
+    padding: var(--g-space-2);
+  }
+
+  .g-collection-card-actions {
+    padding: var(--g-space-2);
+  }
+
+  .g-collection-form {
+    padding: var(--g-space-3);
+  }
+
+  .g-collection-detail-bar {
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .g-collection-visibility-btn,
+  .g-collection-pick {
+    transition: none;
+  }
+}

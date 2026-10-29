@@ -66,6 +66,14 @@ export const queryKeys = {
   adminReportDetail: (id: string) => ['moderation', 'admin', 'report', id] as const,
   adminSanctions: (status: string) => ['moderation', 'admin', 'sanctions', status] as const,
   adminAppeals: (status: string) => ['moderation', 'admin', 'appeals', status] as const,
+  // ===== 收藏夹与服务端草稿（8.3b）=====
+  // 统一挂在 'collections' 前缀下：加入/移出会同时影响「我的夹列表」「夹详情」
+  // 与「公开主页相册」，一次 invalidate ['collections'] 全刷，避免逐个点名漏掉一处。
+  publishDraft: () => ['collections', 'draft'] as const,
+  myCollections: (photoId?: string) => ['collections', 'mine', photoId ?? ''] as const,
+  userCollections: (username: string) => ['collections', 'user', username] as const,
+  collection: (id: string) => ['collections', 'detail', id] as const,
+  collectionItems: (id: string) => ['collections', 'items', id] as const,
 }
 
 export type FollowListKind = 'followers' | 'following'

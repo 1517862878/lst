@@ -12,6 +12,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ToastProvider } from '@/components/ui/ToastProvider'
 import type { Photo } from '@/domain/types'
 import { makePhoto } from './fixtures'
@@ -233,16 +234,24 @@ describe('设置页拍摄参数公开范围', () => {
 })
 
 describe('编辑页逐张开关', () => {
+  /** 编辑页现在带组照管理（8.4c），会用到 useQueryClient，所以必须给 Provider。 */
+  function withQuery(children: React.ReactNode) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    return <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  }
+
   function renderEdit() {
     return render(
-      <ToastProvider>
-        <MemoryRouter initialEntries={['/works/p1/edit']}>
-          <Routes>
-            <Route path="/works/:id/edit" element={<WorkEditPage />} />
-            <Route path="/works/:id" element={<p>作品详情</p>} />
-          </Routes>
-        </MemoryRouter>
-      </ToastProvider>,
+      withQuery(
+        <ToastProvider>
+          <MemoryRouter initialEntries={['/works/p1/edit']}>
+            <Routes>
+              <Route path="/works/:id/edit" element={<WorkEditPage />} />
+              <Route path="/works/:id" element={<p>作品详情</p>} />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>,
+      ),
     )
   }
 

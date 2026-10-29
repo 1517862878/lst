@@ -24,6 +24,7 @@ import {
 import { listComments } from '../repositories/comments.js'
 import { getInteractionState, listByPhoto, listFavoritesByUser, listLikesByUser } from '../repositories/interactions.js'
 import { listPhotos, getPhoto, relatedPhotos } from '../repositories/photos.js'
+import { listPhotoItems, replacePhotoItems, type PhotoItemInput } from '../repositories/photo-items.js'
 import { listCategories, getCategory, listArticleTopics } from '../repositories/categories.js'
 import { listArticles, getArticleBySlug } from '../repositories/articles.js'
 import {
@@ -152,6 +153,68 @@ export function parsePhotoPatch(body: Record<string, unknown>) {
   return patch
 }
 
+/** 组照上限：与 0033 的 ck_photo_items_position / api_replace_photo_items 一致。 */
+export const MAX_PHOTO_ITEMS = 9
+/** 单张说明上限：与 ck_photo_items_caption 一致（200 字，按码点计）。 */
+export const MAX_ITEM_CAPTION = 200
+
+/**
+ * 解析 PUT /api/photos/:id/items 的请求体 → 归一化条目数组。
+ *
+ * 两处刻意的设计决定：
+ *  1) 位置由数组顺序决定，不认客户端的 position/id —— 传入的这两个键会被忽略。
+ *     前端上传完可能把现有 items 原样回传（里面带着 id/position），
+ *     如果对它们做「未知字段即 400」，用户只是重排一下顺序就会失败；
+ *     而 position 本来就该由服务端按顺序重排，不能采信客户端。
+ *  2) 校验只做到形状/类型/长度这一层，图片键的归属（必须落在本人 + 本作品的
+ *     目录里）交给数据库的 api_replace_photo_items —— 那是唯一能拿到 auth.uid()
+ *     与作品作者的地方，两边都写等于埋一个「谁改谁漏」的分裂。
+ */
+export function parsePhotoItems(body: Record<string, unknown>): PhotoItemInput[] {
+  const raw = body.items
+  if (!Array.isArray(raw)) throw validation('items 必须是数组')
+  if (raw.length > MAX_PHOTO_ITEMS) throw validation(`一件作品最多 ${MAX_PHOTO_ITEMS} 张图`)
+
+  return raw.map((entry, index) => {
+    if (!isPlainObject(entry)) throw validation(`items[${index}] 必须是普通对象`)
+    const text = (name: string, max: number) => {
+      const value = entry[name]
+      if (typeof value !== 'string' || !value.trim()) throw validation(`items[${index}].${name} 不能为空`)
+      if (value.length > max) throw validation(`items[${index}].${name} 过长`)
+      return value.trim()
+    }
+    const side = (name: string) => {
+      const value = entry[name]
+      if (!Number.isInteger(value) || Number(value) < 1 || Number(value) > 40000) {
+        throw validation(`items[${index}].${name} 必须是 1–40000 的整数`)
+      }
+      return Number(value)
+    }
+    const blurhash = entry.blurhash
+    if (blurhash != null && typeof blurhash !== 'string') {
+      throw validation(`items[${index}].blurhash 必须是字符串或 null`)
+    }
+    const captionRaw = entry.caption
+    if (captionRaw != null && typeof captionRaw !== 'string') {
+      throw validation(`items[${index}].caption 必须是字符串`)
+    }
+    const caption = typeof captionRaw === 'string' ? captionRaw.trim() : ''
+    // 按码点计数（char_length 的语义），否则 200 个 emoji 会被 JS 的 UTF-16 长度误判成 400。
+    if (Array.from(caption).length > MAX_ITEM_CAPTION) {
+      throw validation(`items[${index}].caption 不能超过 ${MAX_ITEM_CAPTION} 字`)
+    }
+
+    return {
+      imageKey: text('imageKey', 512),
+      thumbKey: text('thumbKey', 512),
+      width: side('width'),
+      height: side('height'),
+      blurhash: typeof blurhash === 'string' ? blurhash : null,
+      caption,
+    }
+  })
+}
+
 export async function registerRoutes(app: FastifyInstance) {
   // ==========================================================================
   // 鉴权与资料
@@ -229,7 +292,17 @@ export async function registerRoutes(app: FastifyInstance) {
     // 身份来自 JWT 验签（第 2 步）：伪造令牌不再可能。
     // 用带身份的上下文：作者本人能看自己的草稿，他人看不到（RLS 保证）。
     const user = await currentUser(req)
-    return withRls(user?.userId ?? null, (c) => getPhoto(c, req.params.id))
+    const photoId = req.params.id
+    return withRls(user?.userId ?? null, async (c) => {
+      const photo = await getPhoto(c, photoId)
+      // 0033 组照：单图作品这里恒为 []（api_list_photo_items 返回空集），
+      // 前端只按 items.length / itemCount 判断，不必区分两种作品形态。
+      // 注意封面字段仍然来自 photos 行本身（mapPhoto 的 imageKey/thumbKey），
+      // 没有把既有查询改成 join —— 单图作品的取数路径一个字节都没动。
+      // 列表接口刻意不带 items：那是 N+1，itemCount 已经够前端渲染「共 N 张」。
+      const items = await listPhotoItems(c, photoId)
+      return { ...photo, items }
+    })
   })
 
   app.post<{ Body: Record<string, unknown> }>(
@@ -302,6 +375,27 @@ export async function registerRoutes(app: FastifyInstance) {
       const user = await requireUser(req)
       const patch = parsePhotoPatch(req.body ?? {})
       return withRls(user.userId, (c) => updatePhoto(c, req.params.id, patch))
+    },
+  )
+
+  // 0033 组照：整组替换（作者本人）。空数组 = 退回单图作品（封面保持原样）。
+  app.put<{ Params: { id: string }; Body: Record<string, unknown> }>(
+    '/api/photos/:id/items',
+    { config: { rateLimit: MUTATION_RATE_LIMIT } },
+    async (req) => {
+      const user = await requireUser(req)
+      const items = parsePhotoItems(req.body ?? {})
+      const photoId = req.params.id
+      return withRls(user.userId, async (c) => {
+        const result = await replacePhotoItems(c, photoId, user.userId, items)
+        // 回读一遍而不是把入参回显：位置以数据库里的 position 为准，
+        // 也让「空数组 → item_count=0、items=[]」这条路径只有一种结果形状。
+        return {
+          photoId: result.photoId,
+          itemCount: result.itemCount,
+          items: await listPhotoItems(c, photoId),
+        }
+      })
     },
   )
 

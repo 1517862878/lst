@@ -97,6 +97,26 @@ export interface PinnedPhoto {
   thumbKey: string
 }
 
+/**
+ * 组照里的一张图（8.4c）。
+ *
+ * 为什么是独立结构而不是「多张 photos」：一件作品仍然只有一行 `photos`，
+ * 列表 / 搜索 / 标签 / 器材 / 地点 / 通知 / OG 全部继续读 `photos.image_key`
+ * （= 封面），组照条目只在这件作品的详情与编辑里出现，既有查询零改动。
+ */
+export interface PhotoItem {
+  id: string
+  /** 0–8，第 1 张（position = 0）就是封面 */
+  position: number
+  imageKey: string
+  thumbKey: string
+  width: number
+  height: number
+  blurhash: string | null
+  /** 这一张的说明（≤200 字，可为空） */
+  caption: string
+}
+
 export interface Photo {
   id: string
   authorId: string
@@ -143,6 +163,19 @@ export interface Photo {
   width: number
   height: number
   blurhash: string | null
+  /**
+   * 组照条目（8.4c）。只有「详情」接口返回；列表接口为了不做 N+1 只给 itemCount。
+   *
+   * 可选而不是必填：老服务端 / 老 mock 数据没有这个字段，按「没有组照」处理
+   * （`photo.items ?? []`），否则一次契约加字段就要改遍所有 Photo 字面量。
+   * 单图作品的 `image_key` 仍然是唯一的那张图，`items` 为空数组。
+   */
+  items?: PhotoItem[]
+  /**
+   * 组照张数（8.4c）。列表/详情都返回；缺省（老数据）按 `items.length` 或 0 处理。
+   * 封面永远等于 position = 0 的条目（后端在写 items 时同步回 photos.*）。
+   */
+  itemCount?: number
   license: PhotoLicense
   /** 非本人拍摄时的来源署名；示例素材固定 '示例素材' */
   credit: string | null

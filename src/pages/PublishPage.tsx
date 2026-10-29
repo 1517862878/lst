@@ -25,6 +25,8 @@ import { compressImage, validateImageFile } from '@/lib/image/compress'
 import { parseExifWhitelist, assertNoGps } from '@/lib/image/exif'
 import { useDeleteMyDraft, useMyDraft, useSaveMyDraft } from '@/hooks/useCollections'
 import type { PublishDraftPayload } from '@/domain/types'
+import { PhotoItemList } from '@/features/photos/PhotoItemList'
+import { MAX_PHOTO_ITEMS, moveTo, normalizeCaption } from '@/domain/photoItems'
 
 /**
  * 草稿策略（8.3b）：
@@ -33,6 +35,34 @@ import type { PublishDraftPayload } from '@/domain/types'
  * 老用户（api 模式下已有本地草稿）在第一次进入时会被迁移到服务端，然后删掉本地键。
  */
 const DRAFT_KEY = 'gy:draft:publish'
+
+/**
+ * 待上传的一张（8.4c）。
+ *
+ * `file` 保留原始文件，压缩推迟到提交时做 —— 一次选 9 张时立刻全压会卡住主线程，
+ * 而作者很可能在选完之后先删掉几张、改说明、调顺序。`url` 是预览用的 object URL，
+ * 删除/替换/卸载时必须 revoke，否则 Blob 会一直占内存。
+ */
+interface DraftItem {
+  id: string
+  file: File
+  url: string
+  caption: string
+  /** 原图尺寸（选择时读一次）。组照编辑器用它撑住缩略图比例，提交前不压缩。 */
+  width: number
+  height: number
+}
+
+/** 读出图片自然尺寸；失败时回落到 1×1（不让尺寸问题挡住发布）。 */
+function readImageSize(url: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const image = new Image()
+    image.onload = () =>
+      resolve({ width: image.naturalWidth || 1, height: image.naturalHeight || 1 })
+    image.onerror = () => resolve({ width: 1, height: 1 })
+    image.src = url
+  })
+}
 
 const LICENSE_OPTIONS = (Object.entries(LICENSE_DESCRIPTORS) as Array<
   [PhotoLicense, (typeof LICENSE_DESCRIPTORS)[PhotoLicense]]
@@ -58,7 +88,7 @@ function PublishInner() {
   const [locationName, setLocationName] = useState('')
   const [license, setLicense] = useState<PhotoLicense>('all_rights_reserved')
   const [tags, setTags] = useState('')
-  const [file, setFile] = useState<File | null>(null)
+  const [items, setItems] = useState<DraftItem[]>([])
   const [uploading, setUploading] = useState(false)
   const [exifPreview, setExifPreview] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState('')
@@ -181,27 +211,91 @@ function PublishInner() {
     toast.show('success', '草稿已保存在本机')
   }
 
-  const handleFile = async (f: File) => {
-    const check = validateImageFile(f)
-    if (!check.ok) {
-      setError(check.reason)
+  /**
+   * 追加待上传的图片（8.4c）。
+   *
+   * 一次可以选多张：逐张校验格式，超上限的部分直接丢掉并提示，不做「静默截断」。
+   * 压缩推迟到提交时做——九张图立刻全压会卡住主线程，而作者很可能先删几张。
+   */
+  const handleFiles = async (picked: FileList | null) => {
+    if (!picked || picked.length === 0) return
+    const room = MAX_PHOTO_ITEMS - items.length
+    if (room <= 0) {
+      setError(`一件作品最多 ${MAX_PHOTO_ITEMS} 张图`)
       return
     }
-    setError('')
-    setFile(f)
-    setUploading(true)
-    try {
-      const exif = await parseExifWhitelist(f)
-      if (!assertNoGps(exif)) {
-        setError('EXIF 含 GPS 字段（不应发生，已防御拦截）')
+
+    const accepted: DraftItem[] = []
+    for (const candidate of Array.from(picked).slice(0, room)) {
+      const check = validateImageFile(candidate)
+      if (!check.ok) {
+        setError(check.reason)
+        continue
       }
-      setExifPreview(exif)
-    } catch {
-      setExifPreview(null) // EXIF 解析失败静默降级
-    } finally {
-      setUploading(false)
+      const url = URL.createObjectURL(candidate)
+      const size = await readImageSize(url)
+      accepted.push({
+        id: crypto.randomUUID(),
+        file: candidate,
+        url,
+        caption: '',
+        width: size.width,
+        height: size.height,
+      })
+    }
+
+    if (accepted.length === 0) return
+    if (picked.length > room) setError(`一件作品最多 ${MAX_PHOTO_ITEMS} 张图，多余的文件已忽略`)
+    else setError('')
+    setItems((prev) => [...prev, ...accepted])
+
+    // EXIF 只读第一张（封面）：作品级参数来自封面，逐张参数本项目不采集
+    const cover = items.length === 0 ? accepted[0] : null
+    if (cover) {
+      setUploading(true)
+      try {
+        const exif = await parseExifWhitelist(cover.file)
+        if (!assertNoGps(exif)) setError('EXIF 含 GPS 字段（不应发生，已防御拦截）')
+        setExifPreview(exif)
+      } catch {
+        setExifPreview(null)
+      } finally {
+        setUploading(false)
+      }
     }
   }
+
+  const removeItem = (id: string) => {
+    setItems((prev) => {
+      const target = prev.find((item) => item.id === id)
+      if (target) URL.revokeObjectURL(target.url)
+      return prev.filter((item) => item.id !== id)
+    })
+  }
+
+  const moveItem = (id: string, direction: -1 | 1) => {
+    setItems((prev) => {
+      const from = prev.findIndex((item) => item.id === id)
+      if (from < 0) return prev
+      return moveTo(prev, from, from + direction)
+    })
+  }
+
+  const changeCaption = (id: string, caption: string) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, caption: normalizeCaption(caption) } : item)),
+    )
+  }
+
+  // 卸载时回收预览 Blob，否则选了几轮图之后内存只增不减
+  useEffect(
+    () => () => {
+      for (const item of items) URL.revokeObjectURL(item.url)
+    },
+    // 只在卸载时跑：把当时的 items 快照记下来即可，依赖数组故意留空
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -218,8 +312,13 @@ function PublishInner() {
       setError('请选择分类')
       return
     }
-    if (!file) {
+    if (items.length === 0) {
       setError('请选择要发布的图片（仅 JPG）')
+      return
+    }
+    const invalidCaption = items.find((item) => item.caption.length > 200)
+    if (invalidCaption) {
+      setError('单张说明最多 200 字')
       return
     }
     if (!publicationAccepted) {
@@ -232,13 +331,41 @@ function PublishInner() {
       const repos = createRepositories()
       // 生成作品 ID，按键规则写图片
       const photoId = crypto.randomUUID()
-      const display = await compressImage(file, { maxEdge: 2400, quality: 0.82 })
-      const thumb = await compressImage(file, { maxEdge: 640, quality: 0.75 })
+      const multi = items.length > 1
+      const uploaded: Array<{
+        imageKey: string
+        thumbKey: string
+        width: number
+        height: number
+        blurhash: string | null
+        caption: string
+      }> = []
 
-      const imageKey = `photos/${session.userId}/${photoId}/display.webp`
-      const thumbKey = `photos/${session.userId}/${photoId}/thumb.webp`
-      await repos.storage.put(imageKey, display.blob)
-      await repos.storage.put(thumbKey, thumb.blob)
+      for (const [index, item] of items.entries()) {
+        const display = await compressImage(item.file, { maxEdge: 2400, quality: 0.82 })
+        const thumb = await compressImage(item.file, { maxEdge: 640, quality: 0.75 })
+        // 单图作品继续用历史路径（零回归）；多图走槽位路径，0 号槽即封面
+        const base = multi
+          ? `photos/${session.userId}/${photoId}/items/${index}`
+          : `photos/${session.userId}/${photoId}`
+        const imageKey = `${base}/display.webp`
+        const thumbKey = `${base}/thumb.webp`
+        await repos.storage.put(imageKey, display.blob)
+        await repos.storage.put(thumbKey, thumb.blob)
+        uploaded.push({
+          imageKey,
+          thumbKey,
+          width: display.width,
+          height: display.height,
+          blurhash: null,
+          caption: item.caption,
+        })
+      }
+
+      const cover = uploaded[0]!
+      const imageKey = cover.imageKey
+      const thumbKey = cover.thumbKey
+      const display = { width: cover.width, height: cover.height }
 
       const photo = await repos.photos.create({
         authorId: session.userId,
@@ -263,6 +390,11 @@ function PublishInner() {
         credit: null,
       }, photoId)
       await repos.photos.publish(photo.id)
+
+      // 组照条目（8.4c）：单图不写条目，行为与 8.4c 之前完全一致
+      if (uploaded.length > 1) {
+        await repos.photos.replaceItems(photo.id, uploaded)
+      }
 
       // 评论开关补写（8.4b）：创建接口只保证接受老字段，锁状态的权威入口是
       // comments-lock。作品已经发布成功，这一步失败不能把整次发布判成失败，
@@ -305,29 +437,51 @@ function PublishInner() {
       <form className="g-publish-form" onSubmit={handleSubmit}>
         <div className="g-upload-zone">
           <label className="g-upload-label">
-            {file ? (
+            {items.length > 0 ? (
               <span className="g-upload-has-file">
-                已选择：{file.name}（{exifPreview ? 'EXIF 已读取（白名单）' : '无 EXIF'}）
+                已选择 {items.length} 张：{items[0]?.file.name}
+                {items.length > 1 ? ` 等 ${items.length} 个文件` : ''}
+                {exifPreview ? ' · EXIF 已读取（白名单）' : ' · 无 EXIF'}
               </span>
             ) : (
               <span className="g-upload-empty">
-                点击选择图片（仅 JPG/JPEG，≤20MB）
+                点击选择图片（仅 JPG/JPEG，≤20MB，可一次选多张）
                 <br />
-                <small>GPS 与设备信息会自动剔除</small>
+                <small>GPS 与设备信息会自动剔除；第 1 张为封面</small>
               </span>
             )}
             <input
               type="file"
               accept="image/jpeg,.jpg,.jpeg"
+              multiple
               className="g-visually-hidden"
               onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) void handleFile(f)
+                void handleFiles(e.target.files)
+                // 允许重复选同一批文件（否则第二次选同名文件不会触发 change）
+                e.target.value = ''
               }}
             />
           </label>
           {uploading && <p className="g-upload-status">处理中…（压缩 + EXIF 白名单提取）</p>}
         </div>
+
+        {items.length > 0 && (
+          <PhotoItemList
+            items={items.map((item) => ({
+              id: item.id,
+              caption: item.caption,
+              previewUrl: item.url,
+              width: item.width,
+              height: item.height,
+              status: item.file.name,
+            }))}
+            idPrefix="publish-item"
+            onChangeCaption={changeCaption}
+            onRemove={removeItem}
+            onMove={moveItem}
+            canRemove={items.length > 1}
+          />
+        )}
 
         <Input label="标题" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60} placeholder="作品标题（1–60 字）" required />
         <Textarea

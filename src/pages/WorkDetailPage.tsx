@@ -9,6 +9,8 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Badge } from '@/components/ui/Badge'
 import { PhotoThumb } from '@/features/photos/PhotoThumb'
+import { PhotoGallery } from '@/features/photos/PhotoGallery'
+import { hasPhotoGallery } from '@/domain/photoItems'
 import { PhotoGrid } from '@/features/photos/PhotoGrid'
 import { LicenseBadge } from '@/features/photos/LicenseBadge'
 import { TagChips } from '@/features/tags/TagLink'
@@ -121,7 +123,13 @@ export function WorkDetailPage() {
 
       <article className="g-work-detail">
         <div className="g-work-media">
-          <PhotoThumb photo={photo} size="display" priority />
+          {/* 组照（8.4c）：>1 张才渲染画册；单图继续走原来那一条渲染路径，
+              连 DOM 结构与样式都不变（hasPhotoGallery 里是同一份判定） */}
+          {hasPhotoGallery(photo) ? (
+            <PhotoGallery photo={photo} />
+          ) : (
+            <PhotoThumb photo={photo} size="display" priority />
+          )}
         </div>
 
         <div className="g-work-info">

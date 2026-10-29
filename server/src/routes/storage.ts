@@ -6,9 +6,9 @@ import { dirname, relative, resolve } from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import { requireUser } from '../lib/auth.js'
 import { ApiError, forbidden, validation } from '../lib/errors.js'
+import { parsePhotoImageKey } from '../storage/photo-keys.js'
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
-const KEY_RE = /^photos\/([0-9a-f-]{36})\/([0-9a-f-]{36})\/(display|thumb)\.webp$/i
 
 function bytesOf(body: unknown): Buffer {
   if (Buffer.isBuffer(body)) return body
@@ -34,9 +34,10 @@ export async function registerStorageRoutes(app: FastifyInstance, imageRoot: str
       throw validation('Content-Type 必须是 image/webp')
     }
     const key = req.params['*']
-    const match = KEY_RE.exec(key)
-    if (!match) throw validation('图片键格式不正确')
-    if (match[1]?.toLowerCase() !== user.userId.toLowerCase()) {
+    // 白名单：旧单图路径与 8.4c 的组照槽位路径都放行，形状之外的键一律 400。
+    const parsed = parsePhotoImageKey(key)
+    if (!parsed) throw validation('图片键格式不正确')
+    if (parsed.userId !== user.userId.toLowerCase()) {
       throw forbidden('不能上传到其他用户的目录')
     }
 

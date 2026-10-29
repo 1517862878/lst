@@ -1,7 +1,6 @@
 import { rm } from 'node:fs/promises'
 import { relative, resolve } from 'node:path'
-
-const STORAGE_KEY_RE = /^photos\/([0-9a-f-]{36})\/([0-9a-f-]{36})\/(display|thumb)\.webp$/i
+import { isPhotoObjectKey } from './photo-keys.js'
 
 export interface ObjectStorage {
   /** 删除不存在的对象也必须成功，以支持 at-least-once 重试。 */
@@ -9,7 +8,10 @@ export interface ObjectStorage {
 }
 
 export function resolveStorageObjectPath(root: string, objectKey: string): string {
-  if (!STORAGE_KEY_RE.test(objectKey)) throw new Error('图片清理任务包含非法对象键')
+  // 与上传白名单共用同一个键形状（含 8.4c 的 items/{0-8} 槽位）。
+  // 注意这里刻意不校验归属：清理任务是系统身份在跑，键从队列取，
+  // 形状合法即代表「由本系统的上传接口写过」，可以删。
+  if (!isPhotoObjectKey(objectKey)) throw new Error('图片清理任务包含非法对象键')
   const rootPath = resolve(root)
   const target = resolve(rootPath, ...objectKey.split('/'))
   const rel = relative(rootPath, target)

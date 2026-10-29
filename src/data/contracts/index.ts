@@ -27,6 +27,7 @@ import type {
   NewAuthor,
   Page,
   Photo,
+  PhotoItem,
   PhotoLicense,
   PhotoStatus,
   PhotoStats,
@@ -105,6 +106,9 @@ export type {
 } from '@/domain/photography'
 
 export type { PinnedPhoto } from '@/domain/types'
+
+/** 组照（8.4c）的类型从契约层再导出：页面与编辑组件只认一个导入面 */
+export type { PhotoItem } from '@/domain/types'
 
 // ===== 通用错误（跨适配器一致的错误模型）=====
 
@@ -197,6 +201,34 @@ export interface PhotoRepository {
   remove(id: string): Promise<void>
   /** 相关作品（同分类，排除自身，按点赞排序） */
   related(id: string, limit?: number): Promise<Photo[]>
+  /**
+   * 整组替换组照条目（8.4c，作者本人）。
+   *
+   * 为什么是「整组替换」而不是逐条增删：顺序即封面（position = 0 同步回
+   * photos.image_key/thumb_key/width/height），逐条改会让封面在中间态短暂指向
+   * 一张将要被删的图。一次替换只有一个原子结果，重排也能用同一条路径表达。
+   *
+   * 空数组 = 退回单图（保持 photos.image_key 不变，item_count = 0）。
+   */
+  replaceItems(photoId: string, items: PhotoItemInput[]): Promise<PhotoItemsResult>
+}
+
+/** 组照条目入参（与迁移 0033 的 p_items 形状一致：camelCase 键） */
+export interface PhotoItemInput {
+  imageKey: string
+  thumbKey: string
+  width: number
+  height: number
+  blurhash: string | null
+  /** ≤200 字，可为空 */
+  caption: string
+}
+
+/** replaceItems 的返回体（与 PUT /api/photos/:id/items 的响应一致） */
+export interface PhotoItemsResult {
+  photoId: string
+  itemCount: number
+  items: PhotoItem[]
 }
 
 export interface PhotoCreateInput {

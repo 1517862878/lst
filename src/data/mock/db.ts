@@ -15,6 +15,7 @@ import type {
   Interaction,
   ModerationAction,
   Photo,
+  PhotoItem,
   Profile,
   RankingEntry,
   RankingSnapshot,
@@ -23,7 +24,16 @@ import type {
 } from '@/domain/types'
 
 export const DB_NAME = 'gy-db'
-export const DB_VERSION = 4
+export const DB_VERSION = 5
+
+/**
+ * 组照条目的存储行（8.4c）。
+ *
+ * 主键是 `[photoId, position]`：mock 侧和 SQL 一样按「作品 + 序号」唯一，
+ * 整组替换 = 先删该 photoId 的全部行再写新行，不会出现重复序号。
+ * `id` 借自 PhotoItem（读取时返回给界面），与后端 photo_items.id 同义。
+ */
+export type PhotoItemRow = PhotoItem & { photoId: string }
 
 /**
  * 通知的存储行。
@@ -110,6 +120,12 @@ export interface GyDBSchema extends DBSchema {
     value: ModerationAction
     indexes: { targetId: string; createdAt: string }
   }
+  /** 组照条目（8.4c）；按 photoId 取一组，按 position 排序即作者排好的顺序 */
+  photoItems: {
+    key: [string, number]
+    value: PhotoItemRow
+    indexes: { photoId: string }
+  }
   _meta: { key: string; value: { key: string; value: unknown } }
 }
 
@@ -167,6 +183,14 @@ export const MIGRATIONS: Array<(db: Db) => void> = [
     const actions = db.createObjectStore('moderationActions', { keyPath: 'id' })
     actions.createIndex('targetId', 'targetId')
     actions.createIndex('createdAt', 'createdAt')
+  },
+  // v4 → v5：8.4c 组照（photo_items）
+  //
+  // 老库升级后这张表是空的：既有作品都是单图（items 为空、item_count 缺省 = 0），
+  // 页面按「没有组照」渲染，行为和升级前完全一致。
+  (db) => {
+    const photoItems = db.createObjectStore('photoItems', { keyPath: ['photoId', 'position'] })
+    photoItems.createIndex('photoId', 'photoId')
   },
 ]
 

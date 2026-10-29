@@ -7,6 +7,8 @@
 import type {
   Page,
   PhotoCreateInput,
+  PhotoItemInput,
+  PhotoItemsResult,
   PhotoListQuery,
   PhotoPatch,
   PhotoRepository,
@@ -55,5 +57,17 @@ export const apiPhotoRepository: PhotoRepository = {
     return request<Photo[]>(
       `/api/photos/${encodeURIComponent(id)}/related` + qs({ limit }),
     )
+  },
+
+  /**
+   * 整组替换组照条目（8.4c）。后端在同一事务里清空重建、把 position = 0
+   * 的图同步回 photos.image_key/thumb_key/width/height/blurhash，并重算 item_count。
+   * 空数组 = 退回单图（封面保持原样）。
+   */
+  async replaceItems(id: string, items: PhotoItemInput[]): Promise<PhotoItemsResult> {
+    return request<PhotoItemsResult>(`/api/photos/${encodeURIComponent(id)}/items`, {
+      method: 'PUT',
+      body: { items },
+    })
   },
 }

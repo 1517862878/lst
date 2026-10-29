@@ -2,7 +2,8 @@
  * 照片数据 hooks（FRONTEND-WORK §6.3：TanStack Query 约定）。
  */
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { PhotoListQuery, PhotoPatch } from '@/data/contracts'
+import type { PhotoItemInput, PhotoListQuery, PhotoPatch } from '@/data/contracts'
+import type { Photo } from '@/domain/types'
 import { createRepositories } from '@/data'
 import { queryKeys } from './queryKeys'
 
@@ -134,6 +135,31 @@ export function useWithdrawPhoto(id: string) {
       void queryClient.invalidateQueries({ queryKey: ['photos'] })
       void queryClient.invalidateQueries({ queryKey: ['search'] })
       void queryClient.invalidateQueries({ queryKey: ['ranking'] })
+    },
+  })
+}
+
+/**
+ * 整组替换组照条目（8.4c）。
+ *
+ * 为什么成功后直接把 items/itemCount 写回详情缓存：
+ * 详情页的画册是拿 `photo.items` 渲染的。只 invalidate 的话，编辑页保存后
+ * 回到详情会先闪回旧的一组图再刷新；接口返回的正是权威结果（服务端重排过的
+ * position、同步后的封面），写缓存既快也不会与后端不一致。
+ */
+export function useReplacePhotoItems(id: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (items: PhotoItemInput[]) => repos().photos.replaceItems(id, items),
+    onSuccess: (result) => {
+      queryClient.setQueryData<Photo | undefined>(queryKeys.photo(id), (current) =>
+        current ? { ...current, items: result.items, itemCount: result.itemCount } : current,
+      )
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.photo(id) })
+      void queryClient.invalidateQueries({ queryKey: ['photos'] })
+      void queryClient.invalidateQueries({ queryKey: ['search'] })
     },
   })
 }

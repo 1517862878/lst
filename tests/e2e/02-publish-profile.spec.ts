@@ -54,7 +54,7 @@ test.describe('主链路 2 · 发布与个人主页', () => {
     })
 
     // 等待压缩与 EXIF 读取完成（上传区显示"已选择"）
-    await expect(page.getByText(/已选择：e2e-sample\.jpg/)).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/已选择 1 张：e2e-sample\.jpg/)).toBeVisible({ timeout: 20_000 })
 
     // 填表
     await page.getByLabel('标题').fill(title)
@@ -100,7 +100,7 @@ test.describe('主链路 2 · 发布与个人主页', () => {
       mimeType: 'image/jpeg',
       buffer: MINIMAL_JPEG,
     })
-    await expect(page.getByText(/已选择：e2e-profile\.jpg/)).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText(/已选择 1 张：e2e-profile\.jpg/)).toBeVisible({ timeout: 20_000 })
 
     await page.getByLabel('标题').fill(title)
     await page.getByLabel('拍摄心得').fill('验证个人主页可见性。')

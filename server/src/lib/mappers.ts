@@ -160,6 +160,12 @@ export interface PhotoRow {
   author_exif_visibility?: string | null
   /** 0032 起：作者是否关闭了评论。可选，旧的行/测试构造对象可以没有这一列（按未锁处理）。 */
   comments_locked?: boolean
+  /**
+   * 0033 起：组照张数（photo_items 行数，0 表示单图作品）。
+   * 可选 + 默认 0：走 SQL 投影函数的列表（器材/地点/发现等）暂时不带这一列，
+   * 它们拿到的 itemCount 是 0 —— 与「单图作品」的取值一致，不会误导前端。
+   */
+  item_count?: number
 }
 
 /** 对应前端 Photo */
@@ -220,6 +226,9 @@ export function mapPhoto(row: PhotoRow) {
     // 0032：评论区锁定。缺列（旧投影函数、测试构造对象）按「未锁定」处理，
     // 让前端拿到的永远是布尔值，不必区分 undefined。
     commentsLocked: row.comments_locked === true,
+    // 0033：组照张数。列表与详情都直接来自 photos.item_count（触发器维护），
+    // 因此单图作品的 0 与「没有 items 行」永远是同一个事实。
+    itemCount: num(row.item_count),
     // 0029 编辑精选：未精选一律给 null（前端用 `featuredAt != null` 判断徽标）
     featuredAt: iso(row.featured_at),
     viewCount: row.view_count,

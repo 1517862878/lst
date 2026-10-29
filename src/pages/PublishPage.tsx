@@ -19,6 +19,7 @@ import type { PhotoLicense } from '@/domain/types'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Link } from 'react-router'
 import { parseTags } from '@/lib/search/normalize'
+import { PublishTagSuggest } from '@/features/tags/PublishTagSuggest'
 import { compressImage, validateImageFile } from '@/lib/image/compress'
 import { parseExifWhitelist, assertNoGps } from '@/lib/image/exif'
 
@@ -276,6 +277,7 @@ function PublishInner() {
           placeholder="空格分隔，最多 5 个"
           hint="如：风光 长曝 日出"
         />
+        <PublishTagSuggest value={tags} onChange={setTags} />
         <div className="g-field">
           <label className="g-label" htmlFor="publish-license">
             作品授权

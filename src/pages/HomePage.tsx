@@ -1,26 +1,60 @@
 /**
- * 首页 /（FRONTEND-WORK §2.1）。
- * 精选轮播（S3 简化：横向滚动精选）+ 本周榜 Top5 + 最新教程 + 分类入口。
+ * 首页 /（FRONTEND-WORK §2.1 + 8.3a 发现/关注双 Feed）。
+ * 「发现」= 全站精选；「关注」= 我关注的作者动态。两种 Feed 用 URL 上的
+ * ?feed=following 区分：首页是分享率最高的页面，Feed 选择必须能被收藏/回退键还原。
  */
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { Container } from '@/components/layout/Container'
 import { dataSource } from '@/data'
 import { Section } from '@/components/layout/Section'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { PhotoCard } from '@/features/photos/PhotoCard'
+import { TagLink } from '@/features/tags/TagLink'
 import { useArticles, useCategories, useWeeklyRanking } from '@/hooks/useContent'
+import { useTags } from '@/hooks/useTags'
 import { usePhotos, usePhoto } from '@/hooks/usePhotos'
+import { useFeed } from '@/hooks/useSocial'
+import { useSession } from '@/hooks/useSession'
 import { currentIsoWeek } from '@/lib/time'
+
+type FeedMode = 'discover' | 'following'
+
+/** 双 Feed 切换：真链接 + aria-current，键盘直接 Tab 可达 */
+function FeedSwitch({ mode }: { mode: FeedMode }) {
+  return (
+    <nav className="g-feed-switch" aria-label="首页内容">
+      <Link
+        to="/"
+        className="g-feed-switch-link"
+        aria-current={mode === 'discover' ? 'page' : undefined}
+      >
+        发现
+      </Link>
+      <Link
+        to="/?feed=following"
+        className="g-feed-switch-link"
+        aria-current={mode === 'following' ? 'page' : undefined}
+      >
+        关注
+      </Link>
+    </nav>
+  )
+}
 
 export function HomePage() {
   const isApi = dataSource() === 'api'
+  const [params] = useSearchParams()
+  const mode: FeedMode = params.get('feed') === 'following' ? 'following' : 'discover'
+
   const featuredQuery = usePhotos({ sort: 'popular', limit: 6 })
   const rankingQuery = useWeeklyRanking(currentIsoWeek(), 'live')
   const articlesQuery = useArticles({ limit: 3 })
   const categoriesQuery = useCategories()
+  const hotTagsQuery = useTags({ sort: 'hot', limit: 12 })
 
   const featured = featuredQuery.data?.pages.flatMap((p) => p.items).slice(0, 6) ?? []
+  const hotTags = hotTagsQuery.data ?? []
 
   return (
     <Container>
@@ -42,27 +76,38 @@ export function HomePage() {
         </div>
       </section>
 
-      <Section title="本周精选" action={{ label: '作品墙', to: '/gallery' }}>
-        {featuredQuery.isLoading ? (
-          <div className="g-home-grid" aria-hidden="true">
-            {Array.from({ length: 6 }, (_, i) => (
-              <Skeleton key={i} variant="rect" height={220} />
-            ))}
-          </div>
-        ) : featuredQuery.isError ? (
-          <ErrorState
-            title="精选作品加载失败"
-            error={featuredQuery.error}
-            onRetry={() => void featuredQuery.refetch()}
-          />
-        ) : (
-          <div className="g-home-grid">
-            {featured.map((photo) => (
-              <PhotoCard key={photo.id} photo={photo} showAuthor showDemoBadge={photo.credit === '示例素材'} />
-            ))}
-          </div>
-        )}
-      </Section>
+      <FeedSwitch mode={mode} />
+
+      {mode === 'following' ? (
+        <HomeFollowingFeed />
+      ) : (
+        <Section title="本周精选" action={{ label: '作品墙', to: '/gallery' }}>
+          {featuredQuery.isLoading ? (
+            <div className="g-home-grid" aria-hidden="true">
+              {Array.from({ length: 6 }, (_, i) => (
+                <Skeleton key={i} variant="rect" height={220} />
+              ))}
+            </div>
+          ) : featuredQuery.isError ? (
+            <ErrorState
+              title="精选作品加载失败"
+              error={featuredQuery.error}
+              onRetry={() => void featuredQuery.refetch()}
+            />
+          ) : (
+            <div className="g-home-grid">
+              {featured.map((photo) => (
+                <PhotoCard
+                  key={photo.id}
+                  photo={photo}
+                  showAuthor
+                  showDemoBadge={photo.credit === '示例素材'}
+                />
+              ))}
+            </div>
+          )}
+        </Section>
+      )}
 
       <Section title="本周排行榜" action={{ label: '查看完整榜单', to: '/rankings/weekly' }}>
         {rankingQuery.isLoading ? (
@@ -126,7 +171,112 @@ export function HomePage() {
           </div>
         )}
       </Section>
+
+      <Section title="热门标签" action={{ label: '全部标签', to: '/tags' }}>
+        {hotTagsQuery.isError ? (
+          <ErrorState
+            title="热门标签加载失败"
+            error={hotTagsQuery.error}
+            onRetry={() => void hotTagsQuery.refetch()}
+          />
+        ) : hotTagsQuery.isLoading ? (
+          <div className="g-tag-chips" aria-hidden="true">
+            {Array.from({ length: 8 }, (_, i) => (
+              <Skeleton key={i} variant="rect" width={64 + (i % 3) * 16} height={28} />
+            ))}
+          </div>
+        ) : hotTags.length === 0 ? (
+          <p className="g-placeholder-text">还没有标签，发布作品时填写标签即可出现在这里。</p>
+        ) : (
+          <ul className="g-tag-chips g-tag-chips-home" aria-label="热门标签">
+            {hotTags.map((tag) => (
+              <li key={tag.tag}>
+                <TagLink tag={tag.tag} count={tag.photoCount} size="md" />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
     </Container>
+  )
+}
+
+/**
+ * 首页「关注」Feed。
+ *
+ * 三个状态必须分开表达：未登录（给登录入口）、加载中（骨架）、空（还没关注人）。
+ * 全都渲染成「空着」会让用户以为关注功能坏了。
+ */
+function HomeFollowingFeed() {
+  const { data: session, isLoading: sessionLoading } = useSession()
+
+  return (
+    <Section title="关注动态" action={{ label: '查看全部', to: '/feed' }}>
+      {sessionLoading ? (
+        <div className="g-home-grid" aria-hidden="true">
+          {Array.from({ length: 3 }, (_, i) => (
+            <Skeleton key={i} variant="rect" height={220} />
+          ))}
+        </div>
+      ) : session ? (
+        <FollowingFeedGrid />
+      ) : (
+        <div className="g-feed-switch-guest">
+          <p>登录后这里会显示你关注的作者最近发布的作品。</p>
+          <div className="g-hero-actions">
+            <Link to={`/login?next=${encodeURIComponent('/?feed=following')}`} className="g-btn g-btn-primary g-btn-sm">
+              去登录
+            </Link>
+            <Link to="/gallery" className="g-btn g-btn-secondary g-btn-sm">
+              先去发现作者
+            </Link>
+          </div>
+        </div>
+      )}
+    </Section>
+  )
+}
+
+function FollowingFeedGrid() {
+  const { data, isLoading, error, refetch } = useFeed()
+  // 游标翻页在边界上可能返回重复项，按 id 去重后再渲染（重复 key 会让 React 报错）
+  const photos = (data?.pages.flatMap((page) => page.items) ?? []).filter(
+    (photo, index, all) => all.findIndex((other) => other.id === photo.id) === index,
+  )
+
+  if (error) {
+    return <ErrorState title="关注动态加载失败" error={error} onRetry={() => void refetch()} />
+  }
+  if (isLoading) {
+    return (
+      <div className="g-home-grid" aria-hidden="true">
+        {Array.from({ length: 3 }, (_, i) => (
+          <Skeleton key={i} variant="rect" height={220} />
+        ))}
+      </div>
+    )
+  }
+  if (photos.length === 0) {
+    return (
+      <div className="g-feed-switch-guest">
+        <p>你关注的作者还没有新作品。去作品墙或标签页找到想关注的人。</p>
+        <div className="g-hero-actions">
+          <Link to="/gallery" className="g-btn g-btn-secondary g-btn-sm">
+            浏览作品墙
+          </Link>
+          <Link to="/tags" className="g-btn g-btn-secondary g-btn-sm">
+            按标签发现
+          </Link>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="g-home-grid">
+      {photos.slice(0, 6).map((photo) => (
+        <PhotoCard key={photo.id} photo={photo} showAuthor />
+      ))}
+    </div>
   )
 }
 

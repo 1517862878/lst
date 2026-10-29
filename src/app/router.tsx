@@ -47,6 +47,8 @@ const WorkDetailPage = lazyNamed(() => import('@/pages/WorkDetailPage'), 'WorkDe
 const WorkEditPage = lazyNamed(() => import('@/pages/WorkEditPage'), 'WorkEditPage')
 const CategoriesPage = lazyNamed(() => import('@/pages/CategoriesPage'), 'CategoriesPage')
 const CategoryPage = lazyNamed(() => import('@/pages/CategoryPage'), 'CategoryPage')
+const TagsPage = lazyNamed(() => import('@/pages/TagsPage'), 'TagsPage')
+const TagDetailPage = lazyNamed(() => import('@/pages/TagDetailPage'), 'TagDetailPage')
 const LoginPage = lazyNamed(() => import('@/pages/LoginPage'), 'LoginPage')
 const RegisterPage = lazyNamed(() => import('@/pages/RegisterPage'), 'RegisterPage')
 const PublishPage = lazyNamed(() => import('@/pages/PublishPage'), 'PublishPage')
@@ -109,6 +111,8 @@ export const router = createRouter(
         { path: 'works/:id/edit', element: <WorkEditPage /> },
         { path: 'categories', element: <CategoriesPage /> },
         { path: 'categories/:slug', element: <CategoryPage /> },
+        { path: 'tags', element: <TagsPage /> },
+        { path: 'tags/:tag', element: <TagDetailPage /> },
         { path: 'login', element: <LoginPage /> },
         { path: 'register', element: <RegisterPage /> },
         { path: 'publish', element: <PublishPage /> },

@@ -408,9 +408,90 @@ export interface ModerationRepository {
   ): Promise<{ appealId: string; status: AppealStatus; updatedAt: IsoDate }>
 }
 
+// ===== 标签（8.3a：标签总览 / 标签详情 / 标签作品流 / 搜索建议）=====
+
+/**
+ * 标签的聚合口径（与后端 8.3 的标签视图对齐）。
+ *
+ * 计数只统计**已发布且未删除**的作品：草稿出现在标签页等于泄露未公开内容，
+ * 所以两套实现都必须同一个过滤口径（见 domain/tags.ts 的 isTagEligible）。
+ */
+export interface TagSummary {
+  /** 标签原文（不做大小写归一：展示用作者当时写下的那个） */
+  tag: string
+  /** 关联作品数 */
+  photoCount: number
+  /** 关联作者数（去重） */
+  authorCount: number
+  /** 最近一次发布作品的发布时间；无作品时为 null */
+  latestPublishedAt: IsoDate | null
+}
+
+/** 相关标签：与当前标签共同出现在同一作品上的其他标签 */
+export interface RelatedTag {
+  tag: string
+  /** 共现作品数 */
+  count: number
+}
+
+/** 标签详情（总览字段 + 相关标签） */
+export interface TagDetail extends TagSummary {
+  relatedTags: RelatedTag[]
+}
+
+/** 标签列表排序：hot = 作品数降序，latest = 最近更新时间降序 */
+export type TagListSort = 'hot' | 'latest'
+
+/** 标签作品流排序：latest = 时间，popular = 点赞 + 收藏 */
+export type TagPhotoSort = 'latest' | 'popular'
+
+export interface TagListQuery {
+  sort: TagListSort
+  /** 默认 20，上限 50（与后端默认 limit 对齐） */
+  limit?: number
+  /** 前缀过滤（搜索建议 / 搜索页标签 Tab 复用同一端点） */
+  prefix?: string
+}
+
+export interface TagPhotoQuery {
+  sort: TagPhotoSort
+  /** 不透明游标；省略 = 第一页 */
+  cursor?: string
+  limit?: number
+}
+
+/** 标签搜索建议项 */
+export interface TagSuggestion {
+  tag: string
+  photoCount: number
+}
+
+/**
+ * 标签仓储。
+ *
+ * 四个方法对应后端四个 GET 端点（清单见 api/tags.ts 顶部）。刻意不让 photos()
+ * 复用 PhotoRepository.list：标签作品流的排序口径（popular = 赞+藏）与公开列表
+ * 不同，硬塞进 PhotoListQuery 会让两种排序在契约里打架。
+ */
+export interface TagRepository {
+  /** GET /api/tags — 热门 / 最新标签（按 prefix 过滤时用于搜索建议） */
+  list(query: TagListQuery): Promise<TagSummary[]>
+  /**
+   * GET /api/tags/:tag — 标签详情。
+   * 未知标签不抛 404（空标签页是合法状态：用户拼错或标签刚被删空），
+   * 返回 photoCount 为 0 的空详情即可。
+   */
+  get(tag: string): Promise<TagDetail>
+  /** GET /api/tags/:tag/photos — 游标分页的作品流 */
+  photos(tag: string, query: TagPhotoQuery): Promise<CursorListPage<Photo>>
+  /** GET /api/search/tags — 输入建议（前缀匹配） */
+  suggest(prefix: string, options?: { limit?: number }): Promise<TagSuggestion[]>
+}
+
 /** 所有仓储的集合（data/index.ts 工厂产出） */
 export interface Repositories {
   photos: PhotoRepository
+  tags: TagRepository
   interactions: InteractionRepository
   comments: CommentRepository
   rankings: RankingRepository

@@ -1,0 +1,521 @@
+/* ══════════════════════════════════════════════════════════
+   8.3a 标签体系 · 标签页 / 双 Feed / 搜索建议
+   ─────────────────────────────────────────────
+   只补「标签」这一层新增的视觉语言，其余全部复用既有设计系统：
+     · 硬边框 2px + 偏移阴影来自 .g-card / --g-shadow-sm
+     · 间距、字号一律走 --g-space-* / --g-text-* 令牌
+     · 焦点环统一 --g-focus，键盘可达是硬要求（标签是导航元素）
+   390px 是验收宽度：所有横向排列的地方都允许换行或收缩（min-width:0），
+   不许出现横向滚动条。
+   ══════════════════════════════════════════════════════════ */
+
+/* ── 标签胶囊（TagLink / TagChips 的唯一外观） ── */
+.g-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.g-tag-chips > li {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.g-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  border: 1px solid var(--g-line);
+  background: var(--g-surface-2);
+  color: var(--g-ink-2);
+  text-decoration: none;
+  border-radius: 0;
+  line-height: 1.4;
+  box-shadow: none;
+  transition:
+    background-color var(--g-dur-fast) var(--g-ease),
+    color var(--g-dur-fast) var(--g-ease),
+    border-color var(--g-dur-fast) var(--g-ease);
+}
+
+.g-tag-chip:hover {
+  background: var(--g-brand);
+  border-color: var(--g-line);
+  color: var(--g-brand-ink);
+  text-decoration: none;
+}
+
+.g-tag-chip:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: 2px;
+}
+
+.g-tag-chip-sm {
+  padding: 1px 6px;
+  font-size: var(--g-text-xs);
+}
+
+.g-tag-chip-md {
+  padding: 3px 10px;
+  font-size: var(--g-text-base);
+}
+
+.g-tag-chip-lg {
+  padding: 6px 14px;
+  font-size: var(--g-text-lg);
+}
+
+.g-tag-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.g-tag-chip-count {
+  flex-shrink: 0;
+  padding-inline: 4px;
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-3);
+  border-left: 1px solid var(--g-line-soft);
+}
+
+.g-tag-chip:hover .g-tag-chip-count {
+  color: var(--g-brand-ink);
+  border-left-color: currentColor;
+}
+
+/* 作品卡里的标签行：与计数行/作者行拉开一点呼吸 */
+.g-work-tags {
+  margin-top: var(--g-space-2);
+  max-width: 100%;
+}
+
+/* ── 标签总览页 /tags ── */
+.g-tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--g-space-3);
+  min-width: 0;
+}
+
+.g-tag-cloud-item {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.g-tag-latest {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--g-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.g-tag-latest-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-1);
+  min-width: 0;
+  padding: var(--g-space-3);
+  background: var(--g-surface);
+  border: var(--g-border) solid var(--g-line);
+  box-shadow: var(--g-shadow-sm);
+}
+
+.g-tag-latest-link {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-2);
+  min-width: 0;
+  color: var(--g-ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.g-tag-latest-link:hover {
+  color: var(--g-brand);
+  text-decoration: none;
+}
+
+.g-tag-latest-meta {
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-3);
+}
+
+.g-tag-note {
+  margin: var(--g-space-3) 0 0;
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-3);
+}
+
+/* ── 标签详情页 /tags/:tag 顶部工具条 ── */
+.g-tag-detail-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--g-space-3);
+  margin-top: var(--g-space-3);
+  min-width: 0;
+}
+
+.g-tag-sort {
+  display: inline-flex;
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  box-shadow: var(--g-shadow-sm);
+}
+
+.g-tag-sort-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  font-size: var(--g-text-base);
+  color: var(--g-ink-2);
+  text-decoration: none;
+  border-right: 1px solid var(--g-line);
+  white-space: nowrap;
+}
+
+.g-tag-sort-link:last-child {
+  border-right: 0;
+}
+
+.g-tag-sort-link:hover {
+  background: var(--g-surface-2);
+  color: var(--g-ink);
+  text-decoration: none;
+}
+
+.g-tag-sort-link[aria-current='true'],
+.g-tag-sort-link[aria-current='page'] {
+  background: var(--g-ink);
+  color: var(--g-bg);
+}
+
+.g-tag-sort-link:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: -2px;
+}
+
+.g-tag-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-4);
+  margin: 0;
+  min-width: 0;
+}
+
+.g-tag-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.g-tag-stats dt {
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-3);
+  letter-spacing: 0.06em;
+}
+
+.g-tag-stats dd {
+  margin: 0;
+  font-size: var(--g-text-lg);
+  color: var(--g-ink);
+}
+
+.g-tag-back {
+  margin-top: var(--g-space-5);
+  font-size: var(--g-text-base);
+}
+
+/* ── 首页 / 关注页双 Feed 切换 ── */
+.g-feed-switch {
+  display: inline-flex;
+  margin-block: var(--g-space-5) var(--g-space-2);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  box-shadow: var(--g-shadow-sm);
+  max-width: 100%;
+}
+
+.g-feed-switch-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 4px 20px;
+  font-size: var(--g-text-lg);
+  color: var(--g-ink-2);
+  text-decoration: none;
+  border-right: 1px solid var(--g-line);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.g-feed-switch-link:last-child {
+  border-right: 0;
+}
+
+.g-feed-switch-link:hover {
+  background: var(--g-surface-2);
+  color: var(--g-ink);
+  text-decoration: none;
+}
+
+.g-feed-switch-link[aria-current='page'] {
+  background: var(--g-brand);
+  color: var(--g-brand-ink);
+}
+
+.g-feed-switch-link:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: -2px;
+}
+
+/* 未登录 / 首次进入关注 Feed 的引导块：必须给出可点的下一步 */
+.g-feed-switch-guest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-3);
+  padding: var(--g-space-4);
+  border: 1px dashed var(--g-line);
+  background: var(--g-surface);
+  color: var(--g-ink-2);
+}
+
+.g-feed-switch-guest p {
+  margin: 0;
+}
+
+/* ── 搜索页：标签 Tab、最近搜索、输入建议 ── */
+.g-search-combobox {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.g-search-suggestbox {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--g-surface);
+  border: var(--g-border) solid var(--g-line);
+  box-shadow: var(--g-shadow-md);
+}
+
+.g-search-suggest-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--g-space-3);
+  min-width: 0;
+  padding: 8px 12px;
+  font-size: var(--g-text-base);
+  color: var(--g-ink);
+  cursor: pointer;
+  border-bottom: 1px solid var(--g-line-soft);
+  overflow-wrap: anywhere;
+}
+
+.g-search-suggest-option:last-child {
+  border-bottom: 0;
+}
+
+.g-search-suggest-option[aria-selected='true'] {
+  background: var(--g-ink);
+  color: var(--g-bg);
+}
+
+.g-search-suggest-option[aria-selected='true'] .g-search-suggest-meta {
+  color: var(--g-bg);
+}
+
+.g-search-suggest-meta {
+  flex-shrink: 0;
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-3);
+}
+
+.g-search-suggest-head {
+  padding: 6px 12px;
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-3);
+  background: var(--g-surface-2);
+  border-bottom: 1px solid var(--g-line-soft);
+  letter-spacing: 0.06em;
+}
+
+/* 最近搜索：一排可点的胶囊 + 清空 */
+.g-search-recent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  margin-block: var(--g-space-3);
+  min-width: 0;
+}
+
+.g-search-recent-label {
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-3);
+  letter-spacing: 0.06em;
+}
+
+.g-search-recent-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 10px;
+  font: inherit;
+  font-size: var(--g-text-base);
+  color: var(--g-ink-2);
+  background: var(--g-surface-2);
+  border: 1px solid var(--g-line);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.g-search-recent-chip:hover {
+  background: var(--g-brand);
+  color: var(--g-brand-ink);
+}
+
+.g-search-recent-chip:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: 2px;
+}
+
+/* 标签 Tab 的列表 */
+.g-tag-search-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--g-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.g-tag-search-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-1);
+  min-width: 0;
+  padding: var(--g-space-3);
+  background: var(--g-surface);
+  border: var(--g-border) solid var(--g-line);
+  box-shadow: var(--g-shadow-sm);
+}
+
+.g-tag-search-meta {
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-3);
+}
+
+/* ── 发布页：标签候选 ── */
+.g-publish-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  margin-top: var(--g-space-2);
+  min-width: 0;
+}
+
+.g-publish-tag-label {
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-3);
+}
+
+.g-publish-tag-suggest {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 1px 8px;
+  font: inherit;
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-2);
+  background: var(--g-surface-2);
+  border: 1px dashed var(--g-line);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.g-publish-tag-suggest:hover {
+  border-style: solid;
+  color: var(--g-ink);
+  background: var(--g-surface);
+}
+
+.g-publish-tag-suggest:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: 2px;
+}
+
+/* ── 窄屏（390px 验收）── */
+@media (max-width: 560px) {
+  .g-feed-switch {
+    display: flex;
+    width: 100%;
+  }
+
+  .g-feed-switch-link {
+    flex: 1 1 0;
+    padding-inline: var(--g-space-3);
+  }
+
+  .g-tag-detail-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .g-tag-stats {
+    gap: var(--g-space-3);
+  }
+
+  .g-tag-sort {
+    width: 100%;
+  }
+
+  .g-tag-sort-link {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+
+  .g-tag-latest,
+  .g-tag-search-list {
+    grid-template-columns: 1fr;
+  }
+
+  .g-search-combobox {
+    flex-basis: 100%;
+  }
+}
+
+/* 动效偏好：不放大/浮动，只保留颜色变化 */
+@media (prefers-reduced-motion: reduce) {
+  .g-tag-chip,
+  .g-tag-sort-link,
+  .g-feed-switch-link {
+    transition: none;
+  }
+}

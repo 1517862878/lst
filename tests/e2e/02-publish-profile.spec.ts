@@ -61,7 +61,9 @@ test.describe('主链路 2 · 发布与个人主页', () => {
     await page.getByLabel('拍摄心得').fill('E2E 自动化测试创建的拍摄心得。')
     await page.locator('#publish-category').selectOption('landscape')
     await page.getByLabel('拍摄地点').fill('测试地点')
-    await page.getByLabel('标签').fill('测试 自动化')
+    // 8.3a 起发布页多了「标签候选」分组（role=group，aria-label 也是「标签」），
+    // 只写 getByLabel('标签') 会撞 strict mode，必须指定 textbox。
+    await page.getByRole('textbox', { name: '标签', exact: true }).fill('测试 自动化')
     await page.getByRole('checkbox', { name: /我确认拥有发布所需权利/ }).check()
 
     // 发布

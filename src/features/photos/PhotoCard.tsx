@@ -8,6 +8,7 @@ import { categoryName } from '@/domain/constants'
 import { Badge } from '@/components/ui/Badge'
 import { DemoModeBadge } from '@/components/layout/DemoModeBadge'
 import { AuthorLink } from '@/features/profiles/AuthorLink'
+import { TagChips } from '@/features/tags/TagLink'
 import { PhotoThumb } from './PhotoThumb'
 import { cn } from '@/lib/cn'
 
@@ -17,6 +18,8 @@ export interface PhotoCardProps {
   showAuthor?: boolean
   showCounts?: boolean
   showDemoBadge?: boolean
+  /** 是否显示可点标签（默认开；标签是作品卡的主要发现入口之一） */
+  showTags?: boolean
   className?: string
 }
 
@@ -26,6 +29,7 @@ export function PhotoCard({
   showAuthor = false,
   showCounts = true,
   showDemoBadge = true,
+  showTags = true,
   className,
 }: PhotoCardProps) {
   const isDemo = photo.credit === '示例素材'
@@ -45,11 +49,12 @@ export function PhotoCard({
       </Link>
       <div className="g-photo-card-body">
         <div className="g-photo-card-meta">
-          {showAuthor && <AuthorLink authorId={photo.authorId} />}
+          {showAuthor && <AuthorLink authorId={photo.authorId} authorUsername={photo.authorUsername} />}
           <Badge tone="neutral" size="sm">
             {categoryName(photo.categorySlug)}
           </Badge>
         </div>
+        {showTags && <TagChips tags={photo.tags} label={`${photo.title} 的标签`} limit={3} />}
         {showCounts && (
           <div className="g-photo-card-counts" aria-label={`点赞 ${photo.likeCount}，收藏 ${photo.favoriteCount}`}>
             <span>👍 {photo.likeCount}</span>

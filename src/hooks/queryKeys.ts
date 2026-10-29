@@ -1,7 +1,13 @@
 /**
  * 查询键集中定义（FRONTEND-WORK §6.3/§6.5：禁止各处硬编码字符串数组）。
  */
-import type { ArticleListQuery, PhotoListQuery, SearchQuery } from '@/data/contracts'
+import type {
+  ArticleListQuery,
+  PhotoListQuery,
+  SearchQuery,
+  TagListQuery,
+  TagPhotoSort,
+} from '@/data/contracts'
 
 export const queryKeys = {
   photo: (id: string) => ['photo', id] as const,
@@ -43,6 +49,13 @@ export const queryKeys = {
   notifications: () => ['social', 'notifications'] as const,
   unreadCount: () => ['social', 'unread-count'] as const,
   blockedUsers: () => ['social', 'blocked-users'] as const,
+  // ===== 标签（8.3a）=====
+  // 统一挂在 'tags' 前缀下：标签是全局聚合视图，任何一次发布/下架都应让
+  // ['tags'] 整体失效（计数与作品流一起刷新），而不是逐个 key 点名。
+  tags: (query: TagListQuery) => ['tags', 'list', query] as const,
+  tag: (tag: string) => ['tags', 'detail', tag] as const,
+  tagPhotos: (tag: string, sort: TagPhotoSort) => ['tags', 'photos', tag, sort] as const,
+  tagSuggest: (prefix: string, limit: number) => ['tags', 'suggest', prefix, limit] as const,
   // ===== 治理（8.2）=====
   // 与社交一样挂在统一前缀下：举报成功后失效 ['moderation'] 即可让「我的举报」
   // 与后台队列一起刷新（后台在另一个标签页时不至于读到旧列表）。

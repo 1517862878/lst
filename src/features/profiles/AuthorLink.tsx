@@ -1,18 +1,31 @@
 import { Link } from 'react-router'
 import { Avatar } from '@/components/ui/Avatar'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { useProfile } from '@/hooks/useSession'
+import { useProfile, useProfileByUsername } from '@/hooks/useSession'
 import { cn } from '@/lib/cn'
 
 export interface AuthorLinkProps {
   authorId: string
+  /**
+   * 作者的登录名。后端出于安全考虑不再暴露「按 UUID 查资料」的接口
+   * （0018 的安全整改把 UUID 从公开载荷里拿掉了），所以只要能拿到登录名就必须走
+   * `/api/profiles/by-username/:username`；authorId 只作为 mock 模式与兜底路径。
+   */
+  authorUsername?: string | null | undefined
   variant?: 'compact' | 'card'
   className?: string
 }
 
 /** 统一解析作品作者；资料失败时只降级作者区域，不影响作品本身。 */
-export function AuthorLink({ authorId, variant = 'compact', className }: AuthorLinkProps) {
-  const profileQuery = useProfile(authorId)
+export function AuthorLink({
+  authorId,
+  authorUsername,
+  variant = 'compact',
+  className,
+}: AuthorLinkProps) {
+  const byUsernameQuery = useProfileByUsername(authorUsername ?? '')
+  const byIdQuery = useProfile(authorId)
+  const profileQuery = authorUsername ? byUsernameQuery : byIdQuery
   const isCard = variant === 'card'
 
   if (profileQuery.isLoading) {

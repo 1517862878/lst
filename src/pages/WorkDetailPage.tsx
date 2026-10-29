@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/Badge'
 import { PhotoThumb } from '@/features/photos/PhotoThumb'
 import { PhotoGrid } from '@/features/photos/PhotoGrid'
 import { LicenseBadge } from '@/features/photos/LicenseBadge'
+import { TagChips } from '@/features/tags/TagLink'
 import { ShareButton } from '@/features/photos/ShareButton'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
@@ -111,7 +112,11 @@ export function WorkDetailPage() {
               </div>
             )}
           </div>
-          <AuthorLink authorId={photo.authorId} variant="card" />
+          <AuthorLink
+            authorId={photo.authorId}
+            authorUsername={photo.authorUsername}
+            variant="card"
+          />
           <div className="g-work-meta">
             <Badge tone="info">{categoryName(photo.categorySlug)}</Badge>
             {photo.credit && <Badge tone="warning">{photo.credit}</Badge>}
@@ -119,6 +124,8 @@ export function WorkDetailPage() {
               {relativeTime(photo.publishedAt ?? photo.createdAt)}
             </span>
           </div>
+
+          <TagChips tags={photo.tags} size="md" label="作品标签" className="g-work-tags" />
 
           {photo.locationName && (
             <p className="g-work-location" aria-label="拍摄地点">

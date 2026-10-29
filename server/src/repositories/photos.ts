@@ -74,6 +74,29 @@ export interface PhotoListQuery {
   limit?: number
 }
 
+/** 带作者公开信息的作品行（列表/详情/相关作品共用） */
+export interface PhotoWithAuthorRow extends PhotoRow {
+  author_username: string | null
+  author_display_name: string | null
+  author_avatar_key: string | null
+}
+
+/**
+ * 在作品载荷上补作者公开字段。
+ *
+ * 为什么不再让前端按 UUID 反查：0018 的安全整改移除了 `GET /api/profiles/:id`，
+ * 公开载荷里也不含作者联系方式。列表里直接带 username，前端就能跳 `/u/:username`，
+ * 既不泄露 UUID 也不需要 N+1 请求。
+ */
+export function mapPhotoWithAuthor(row: PhotoWithAuthorRow) {
+  return {
+    ...mapPhoto(row),
+    authorUsername: row.author_username,
+    authorDisplayName: row.author_display_name,
+    authorAvatarKey: row.author_avatar_key,
+  }
+}
+
 export interface Page<T> {
   items: T[]
   nextCursor: string | null
@@ -150,15 +173,19 @@ export async function listPhotos(
   const limitIdx = params.length
 
   const sql = `
-    select p.*
+    select p.*,
+             a.username as author_username,
+             a.display_name as author_display_name,
+             a.avatar_key as author_avatar_key
       from public.photos p
+      left join public.profiles a on a.id = p.author_id
      where ${baseWhereSql}
        ${cursorWhere.length ? 'and ' + cursorWhere.join(' and ') : ''}
      order by ${orderBy}
      limit $${limitIdx}
   `
 
-  const res = await client.query<PhotoRow>(sql, params)
+  const res = await client.query<PhotoWithAuthorRow>(sql, params)
   const rows = res.rows.slice(0, limit)
   const hasMore = res.rows.length > limit
 
@@ -185,21 +212,34 @@ export async function listPhotos(
     }
   }
 
-  return { items: rows.map(mapPhoto), nextCursor, total }
+  return { items: rows.map(mapPhotoWithAuthor), nextCursor, total }
 }
 
 export async function getPhoto(client: PoolClient, id: string) {
-  const res = await client.query<PhotoRow>('select * from public.photos where id = $1', [id])
+  const res = await client.query<PhotoWithAuthorRow>(
+    `select p.*,
+            a.username as author_username,
+            a.display_name as author_display_name,
+            a.avatar_key as author_avatar_key
+       from public.photos p
+       left join public.profiles a on a.id = p.author_id
+      where p.id = $1`,
+    [id],
+  )
   const row = res.rows[0]
   if (!row) throw notFound(`作品不存在：${id}`)
-  return mapPhoto(row)
+  return mapPhotoWithAuthor(row)
 }
 
 /** 相关作品：同分类、排除自身、按点赞排序 */
 export async function relatedPhotos(client: PoolClient, id: string, limit = 6) {
-  const res = await client.query<PhotoRow>(
-    `select p.*
+  const res = await client.query<PhotoWithAuthorRow>(
+    `select p.*,
+            a.username as author_username,
+            a.display_name as author_display_name,
+            a.avatar_key as author_avatar_key
        from public.photos p
+       left join public.profiles a on a.id = p.author_id
       where p.category_slug = (select category_slug from public.photos where id = $1)
         and p.id <> $1
         and p.status = 'published'

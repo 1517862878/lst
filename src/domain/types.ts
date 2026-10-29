@@ -69,6 +69,12 @@ export interface Profile {
 export interface Photo {
   id: string
   authorId: string
+  /**
+   * 作者登录名。api 模式由后端 /api/photos 直接返回（公开载荷不含作者 UUID 之外的联系方式），
+   * 前端用它可以走 /api/profiles/by-username/:username 取作者资料；
+   * mock 种子不填，此时回退到按 id 查本地仓储。
+   */
+  authorUsername?: string | null
   /** 1–60 字符 */
   title: string
   /** 0–2000 字符（拍摄心得） */

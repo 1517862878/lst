@@ -36,6 +36,7 @@ import { registerProfileRoutes } from './profiles.js'
 import { registerAccountCenterRoutes } from './account-center.js'
 import { registerModerationRoutes } from './moderation.js'
 import { registerSocialRoutes } from './social.js'
+import { registerTagRoutes } from './tags.js'
 import { searchPhotos } from '../repositories/search.js'
 
 /**
@@ -149,6 +150,7 @@ export async function registerRoutes(app: FastifyInstance) {
   // 社交关系闭环（0022）：关注 / 粉丝、关注动态流、通知中心
   // ==========================================================================
   await registerSocialRoutes(app)
+  await registerTagRoutes(app)
 
   // ==========================================================================
   // 作品

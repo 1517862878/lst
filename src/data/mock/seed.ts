@@ -15,6 +15,7 @@ import type {
 } from '@/domain/types'
 import { ARTICLE_TOPICS, CATEGORIES, DEMO_ACCOUNTS, DEMO_PASSWORD } from '@/domain/constants'
 import type { NotificationRow } from './db'
+import { buildModerationSeed, type ModerationSeedResult } from './seedModeration'
 
 const now = Date.now()
 const DAY = 24 * 60 * 60 * 1000
@@ -60,7 +61,7 @@ const DESCRIPTIONS = [
   '微距下的世界，细节惊人。',
 ] as const
 
-export interface SeedResult {
+export interface SeedResult extends ModerationSeedResult {
   profiles: Profile[]
   photos: Photo[]
   likes: Interaction[]
@@ -308,7 +309,12 @@ export function buildSeedData(): SeedResult {
     })
   })
 
-  return { profiles, photos, likes, favorites, comments, articles, follows, notifications }
+  // ===== 8.2 治理：举报 / 处罚 / 申诉 / 审计 =====
+  // 单独一个模块生成：内容只引用上面已经算好的 profiles/photos/comments，
+  // 且全程不碰 rand()，所以不会影响前面任何一条种子值。
+  const moderation = buildModerationSeed(profiles, photos, comments, now)
+
+  return { profiles, photos, likes, favorites, comments, articles, follows, notifications, ...moderation }
 }
 
 export const SEED_PASSWORD = DEMO_PASSWORD

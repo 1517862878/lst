@@ -6,20 +6,24 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type {
   AppNotification,
+  Appeal,
   Article,
   ArticleTopic,
   Category,
   Comment,
   Follow,
   Interaction,
+  ModerationAction,
   Photo,
   Profile,
   RankingEntry,
   RankingSnapshot,
+  Report,
+  MySanction,
 } from '@/domain/types'
 
 export const DB_NAME = 'gy-db'
-export const DB_VERSION = 3
+export const DB_VERSION = 4
 
 /**
  * 通知的存储行。
@@ -37,6 +41,22 @@ export interface BlockRow {
   blockedId: string
   createdAt: string
 }
+
+/**
+ * 处罚存储行。
+ *
+ * 与 MySanction 的差异只有 userId：契约里的 MySanction 是「我受到的处罚」，
+ * 归属由会话决定；本地库是所有用户共用的，必须显式记下被处罚人。
+ * 后台处罚列表靠它按人聚合。
+ */
+export type SanctionRow = MySanction & {
+  userId: string
+  /** 作出处罚的审核员（profiles.id）；种子数据里是 editor */
+  createdBy: string | null
+}
+
+/** 申诉存储行（同样多一个归属字段，出库前剥掉） */
+export type AppealRow = Appeal & { appellantId: string }
 
 export interface GyDBSchema extends DBSchema {
   profiles: { key: string; value: Profile; indexes: { username: string } }
@@ -69,6 +89,26 @@ export interface GyDBSchema extends DBSchema {
     key: [string, string]
     value: BlockRow
     indexes: { blockerId: string; blockedId: string }
+  }
+  /** 举报（8.2）；后台队列按 status 索引，我的举报按 reporterId 取 */
+  reports: {
+    key: string
+    value: Report & { reporterId: string | null }
+    indexes: { reporterId: string; status: string }
+  }
+  /** 处罚（8.2）；我的处罚按 userId，后台列表可按 status 过滤 */
+  sanctions: { key: string; value: SanctionRow; indexes: { userId: string; status: string } }
+  /** 申诉（8.2）；我的申诉按 appellantId，后台队列按 status */
+  appeals: {
+    key: string
+    value: AppealRow
+    indexes: { appellantId: string; status: string; reportId: string }
+  }
+  /** 审计条目（8.2，只增不改） */
+  moderationActions: {
+    key: string
+    value: ModerationAction
+    indexes: { targetId: string; createdAt: string }
   }
   _meta: { key: string; value: { key: string; value: unknown } }
 }
@@ -109,6 +149,24 @@ export const MIGRATIONS: Array<(db: Db) => void> = [
     const blocks = db.createObjectStore('blocks', { keyPath: ['blockerId', 'blockedId'] })
     blocks.createIndex('blockerId', 'blockerId')
     blocks.createIndex('blockedId', 'blockedId')
+  },
+  // v3 → v4：8.2 治理（举报 / 处罚 / 申诉 / 审计）
+  //
+  // 老库升级后这四张表是空的，由 seedSlice=3 补播演示数据（见 seedInit.ts）。
+  (db) => {
+    const reports = db.createObjectStore('reports', { keyPath: 'id' })
+    reports.createIndex('reporterId', 'reporterId')
+    reports.createIndex('status', 'status')
+    const sanctions = db.createObjectStore('sanctions', { keyPath: 'id' })
+    sanctions.createIndex('userId', 'userId')
+    sanctions.createIndex('status', 'status')
+    const appeals = db.createObjectStore('appeals', { keyPath: 'id' })
+    appeals.createIndex('appellantId', 'appellantId')
+    appeals.createIndex('status', 'status')
+    appeals.createIndex('reportId', 'reportId')
+    const actions = db.createObjectStore('moderationActions', { keyPath: 'id' })
+    actions.createIndex('targetId', 'targetId')
+    actions.createIndex('createdAt', 'createdAt')
   },
 ]
 

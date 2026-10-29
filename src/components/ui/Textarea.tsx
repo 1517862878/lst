@@ -5,7 +5,7 @@ export interface TextareaProps
   extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'> {
   id?: string
   label: string
-  error?: string
+  error?: string | undefined
   hint?: string
   /** 显示字数统计（0/500） */
   showCount?: boolean

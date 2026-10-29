@@ -2,21 +2,31 @@ import { useEffect, useRef, useState } from 'react'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/useToast'
+import { ReportDialog } from '@/features/moderation/ReportDialog'
+import { useReportRequest } from '@/features/moderation/useReportRequest'
 import { AppError } from '@/data/contracts'
 import { useBlockUser } from '@/hooks/useSocial'
 
 export interface ProfileMoreMenuProps {
   username: string
+  /**
+   * 被举报对象 id。API 模式的公开资料**不返回** profiles.id（服务端按 username 授权），
+   * 所以这里可以省略 —— 省略时退回 username，后端两种都能解析，mock 模式永远是真实 id。
+   */
+  profileId?: string
+  /** 展示名（举报对话框标题用，缺省回落 @username） */
+  displayName?: string
   onBlocked: () => void
 }
 
-export function ProfileMoreMenu({ username, onBlocked }: ProfileMoreMenuProps) {
+export function ProfileMoreMenu({ username, profileId, displayName, onBlocked }: ProfileMoreMenuProps) {
   const [open, setOpen] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const block = useBlockUser(username)
   const toast = useToast()
+  const report = useReportRequest()
 
   useEffect(() => {
     if (!open) return
@@ -57,6 +67,23 @@ export function ProfileMoreMenu({ username, onBlocked }: ProfileMoreMenuProps) {
       </button>
       {open && (
         <div className="g-profile-more-popover" role="menu" aria-label="个人主页更多操作">
+          {!confirming && (
+            <button
+              type="button"
+              role="menuitem"
+              className="g-profile-more-item"
+              onClick={() => {
+                setOpen(false)
+                report.request({
+                  type: 'profile',
+                  id: profileId ?? username,
+                  label: displayName ? `用户 ${displayName}` : `用户 @${username}`,
+                })
+              }}
+            >
+              举报 @{username}
+            </button>
+          )}
           {!confirming ? (
             <button type="button" role="menuitem" className="g-profile-more-danger" onClick={() => setConfirming(true)}>拉黑 @{username}</button>
           ) : (
@@ -71,6 +98,7 @@ export function ProfileMoreMenu({ username, onBlocked }: ProfileMoreMenuProps) {
           )}
         </div>
       )}
+      <ReportDialog target={report.target} onClose={report.close} />
     </div>
   )
 }

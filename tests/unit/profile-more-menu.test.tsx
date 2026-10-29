@@ -1,17 +1,32 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '@/components/ui/ToastProvider'
 import { ProfileMoreMenu } from '@/features/social/ProfileMoreMenu'
 
 const mocks = vi.hoisted(() => ({ mutateAsync: vi.fn(), pending: { value: false } }))
 vi.mock('@/hooks/useSocial', () => ({ useBlockUser: () => ({ mutateAsync: mocks.mutateAsync, isPending: mocks.pending.value }) }))
+// 更多菜单里还有举报入口：useReportRequest 要读会话与路由，这里按已登录用户钉住
+vi.mock('@/hooks/useSession', () => ({
+  useSession: () => ({ data: { userId: 'u-me', username: 'lin', role: 'user' }, isLoading: false }),
+}))
 
 beforeEach(() => { mocks.mutateAsync.mockReset().mockResolvedValue({ removedFollows: 1 }); mocks.pending.value = false })
 afterEach(cleanup)
 
 function renderMenu(onBlocked = vi.fn()) {
-  render(<ToastProvider><ProfileMoreMenu username="alice" onBlocked={onBlocked} /></ToastProvider>)
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ToastProvider>
+          <ProfileMoreMenu username="alice" onBlocked={onBlocked} />
+        </ToastProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
   return onBlocked
 }
 

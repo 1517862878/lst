@@ -5,7 +5,7 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   /** 必须传入，用于 label 关联（C-3） */
   id?: string
   label: string
-  error?: string
+  error?: string | undefined
   hint?: string
   endAdornment?: ReactNode
 }

@@ -103,6 +103,10 @@ export function translateDbError(err: unknown): ApiError | null {
       return new ApiError('VALIDATION', '关联数据不存在', e.detail)
     case '23514': // check_violation
       return new ApiError('VALIDATION', '数据不符合约束要求', e.detail)
+    case '55000': // object_not_in_prerequisite_state：目标对象当前状态不允许该操作
+      // 治理链路里「申诉已复核」「已撤销的处罚再撤销」这类都是状态冲突，
+      // 对客户端是 409 的可重试无意义错误，透传数据库写好的中文文案。
+      return new ApiError('CONFLICT', e.message || '当前状态不允许该操作', e.detail)
     case '22P02': // invalid_text_representation
     case '22023': // invalid_parameter_value
       return new ApiError('VALIDATION', e.message || '参数格式不正确')

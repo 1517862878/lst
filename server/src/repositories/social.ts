@@ -78,6 +78,11 @@ export interface NotificationItem {
   commentExcerpt: string | null
   readAt: string | null
   createdAt: string
+  /**
+   * 0025 起系统通知可携带结构化引用（reportId / appealId / sanctionId / outcome ...），
+   * 前端据此深链到举报或申诉详情；非系统通知为 null。
+   */
+  meta: Record<string, unknown> | null
 }
 
 function iso(value: unknown): string {
@@ -318,6 +323,7 @@ interface NotificationRow {
   comment_excerpt: string | null
   read_at: unknown
   created_at: unknown
+  meta: unknown
 }
 
 const NOTIFICATION_KINDS = new Set(['like', 'comment', 'follow', 'system'])
@@ -345,6 +351,13 @@ function mapActor(row: NotificationRow): NotificationItem['actor'] {
   })
 }
 
+/** meta 只接受 JSON 对象；历史行没有 meta 列值时为 null。 */
+function mapNotificationMeta(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
 function mapNotificationRow(row: NotificationRow): NotificationItem {
   return {
     id: row.id,
@@ -357,6 +370,7 @@ function mapNotificationRow(row: NotificationRow): NotificationItem {
     commentExcerpt: row.comment_excerpt,
     readAt: isoOrNull(row.read_at),
     createdAt: iso(row.created_at),
+    meta: mapNotificationMeta(row.meta),
   }
 }
 

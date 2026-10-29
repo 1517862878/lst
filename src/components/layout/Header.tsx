@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router'
 import { Camera, Menu, X } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { IconButton } from '@/components/ui/IconButton'
+import type { UserRole } from '@/domain/types'
 import { useSignOut } from '@/hooks/useSession'
 import { accountImageUrl } from '@/lib/account'
 import { cn } from '@/lib/cn'
@@ -10,6 +11,11 @@ import { NotificationBell } from './NotificationBell'
 
 export interface HeaderProps {
   sessionUser: { username: string; displayName: string; avatarKey: string | null } | null
+  /**
+   * 会话角色（8.2）。只用来决定账号菜单里是否显示「审核台」——
+   * 真正的权限判定在 /admin 页面与后端，菜单项只是入口，不是授权。
+   */
+  role?: UserRole | null
 }
 
 interface NavItem {
@@ -29,7 +35,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: '通知', to: '/notifications' },
 ]
 
-export function Header({ sessionUser }: HeaderProps) {
+export function Header({ sessionUser, role = null }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const location = useLocation()
@@ -149,6 +155,11 @@ export function Header({ sessionUser }: HeaderProps) {
                   </div>
                   <Link ref={firstItemRef} role="menuitem" to="/me">我的工作台</Link>
                   <Link role="menuitem" to={`/u/${sessionUser.username}`}>个人主页</Link>
+                  {/* 治理入口紧挨「个人主页」：都跟「我的账号」有关，往上一项是工作台，方向键顺序稳定 */}
+                  <Link role="menuitem" to="/me/moderation">举报与处罚</Link>
+                  {(role === 'editor' || role === 'admin') && (
+                    <Link role="menuitem" to="/admin">审核台</Link>
+                  )}
                   <Link role="menuitem" to="/settings/profile">设置与隐私</Link>
                   <button role="menuitem" onClick={() => void logout()}>退出登录</button>
                 </div>

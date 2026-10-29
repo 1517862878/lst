@@ -14,6 +14,8 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { useComments, usePostComment } from '@/hooks/useInteractions'
 import { useProfile } from '@/hooks/useSession'
 import { relativeTime } from '@/lib/time'
+import { ReportDialog } from '@/features/moderation/ReportDialog'
+import { useReportRequest } from '@/features/moderation/useReportRequest'
 
 export interface CommentSectionProps {
   photoId: string
@@ -27,6 +29,8 @@ export function CommentSection({ photoId, currentUserId }: CommentSectionProps) 
   const [error, setError] = useState('')
   const post = usePostComment(photoId)
   const navigate = useNavigate()
+  // 举报入口：游客点击会跳登录并回跳本作品页
+  const report = useReportRequest()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,10 +118,14 @@ export function CommentSection({ photoId, currentUserId }: CommentSectionProps) 
               replies={comments.filter((r) => r.parentId === c.id)}
               onReply={() => setParentId(c.id)}
               currentUserId={currentUserId}
+              onReport={(target) =>
+                report.request({ type: 'comment', id: target.id, label: '评论' })
+              }
             />
           ))}
         </ul>
       )}
+      <ReportDialog target={report.target} onClose={report.close} />
     </section>
   )
 }
@@ -127,11 +135,13 @@ function CommentItem({
   replies,
   onReply,
   currentUserId,
+  onReport,
 }: {
   comment: Comment
   replies: Comment[]
   onReply: () => void
   currentUserId: string | null
+  onReport: (comment: Comment) => void
 }) {
   // 软删：显示占位（ROADMAP §5.3）
   if (comment.status === 'removed' || comment.deletedAt) {
@@ -151,6 +161,16 @@ function CommentItem({
             回复
           </button>
         )}
+        {comment.authorId !== currentUserId && (
+          <button
+            type="button"
+            className="g-comment-report-btn"
+            onClick={() => onReport(comment)}
+            aria-label="举报这条评论"
+          >
+            举报
+          </button>
+        )}
       </div>
       {replies.length > 0 && (
         <ul className="g-comment-replies">
@@ -159,7 +179,21 @@ function CommentItem({
               {r.status === 'removed' || r.deletedAt ? (
                 <p className="g-comment-removed-text">该评论已删除</p>
               ) : (
-                <CommentBody comment={r} />
+                <>
+                  <CommentBody comment={r} />
+                  {r.authorId !== currentUserId && (
+                    <div className="g-comment-item-actions g-comment-item-actions-reply">
+                      <button
+                        type="button"
+                        className="g-comment-report-btn"
+                        onClick={() => onReport(r)}
+                        aria-label="举报这条回复"
+                      >
+                        举报
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </li>
           ))}

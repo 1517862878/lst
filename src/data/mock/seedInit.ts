@@ -14,8 +14,11 @@ import { buildSeedData } from './seed'
  * 表现为「升级后所有人都没有粉丝、也没有通知」，看起来像功能没做。
  * 所以再加一个切片号：老库带着旧切片号进来时，只补播新切片（社交关系），
  * 不动用户已有的作品/互动数据。
+ *
+ * 切片 3：8.2 治理（reports / sanctions / appeals / moderationActions）。
+ * 同样只补播这四张表，不碰作品与互动。
  */
-const SEED_SLICE = 2
+const SEED_SLICE = 3
 
 let seeding: Promise<void> | null = null
 
@@ -41,6 +44,10 @@ export async function ensureSeeded(): Promise<void> {
           'articles',
           'follows',
           'notifications',
+          'reports',
+          'sanctions',
+          'appeals',
+          'moderationActions',
         ],
         'readwrite',
       )
@@ -54,6 +61,10 @@ export async function ensureSeeded(): Promise<void> {
       for (const a of seed.articles) await tx.objectStore('articles').put(a)
       for (const f of seed.follows) await tx.objectStore('follows').put(f)
       for (const n of seed.notifications) await tx.objectStore('notifications').put(n)
+      for (const r of seed.reports) await tx.objectStore('reports').put(r)
+      for (const s of seed.sanctions) await tx.objectStore('sanctions').put(s)
+      for (const a of seed.appeals) await tx.objectStore('appeals').put(a)
+      for (const a of seed.moderationActions) await tx.objectStore('moderationActions').put(a)
       await tx.done
 
       await setMeta('seededAt', new Date().toISOString())
@@ -64,12 +75,29 @@ export async function ensureSeeded(): Promise<void> {
 
     if ((slice ?? 1) >= SEED_SLICE) return
 
-    // 老库补播社交切片：只写 follows / notifications（id 确定，重复跑也安全）
     const seed = buildSeedData()
-    const tx = db.transaction(['follows', 'notifications'], 'readwrite')
-    for (const f of seed.follows) await tx.objectStore('follows').put(f)
-    for (const n of seed.notifications) await tx.objectStore('notifications').put(n)
-    await tx.done
+
+    // 老库补播社交切片：只写 follows / notifications（id 确定，重复跑也安全）
+    if ((slice ?? 1) < 2) {
+      const tx = db.transaction(['follows', 'notifications'], 'readwrite')
+      for (const f of seed.follows) await tx.objectStore('follows').put(f)
+      for (const n of seed.notifications) await tx.objectStore('notifications').put(n)
+      await tx.done
+    }
+
+    // 8.2 治理切片：四张表全部按确定 id 写入，重复跑只会覆盖同一条演示记录
+    const moderationTx = db.transaction(
+      ['reports', 'sanctions', 'appeals', 'moderationActions'],
+      'readwrite',
+    )
+    for (const r of seed.reports) await moderationTx.objectStore('reports').put(r)
+    for (const s of seed.sanctions) await moderationTx.objectStore('sanctions').put(s)
+    for (const a of seed.appeals) await moderationTx.objectStore('appeals').put(a)
+    for (const a of seed.moderationActions) {
+      await moderationTx.objectStore('moderationActions').put(a)
+    }
+    await moderationTx.done
+
     await setMeta('seedSlice', SEED_SLICE)
   })()
   return seeding

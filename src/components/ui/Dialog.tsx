@@ -8,7 +8,7 @@ export interface DialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
-  description?: string
+  description?: string | undefined
   /** 底部操作区（确认/取消按钮） */
   footer?: ReactNode
   children: ReactNode

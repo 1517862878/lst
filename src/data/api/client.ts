@@ -8,6 +8,8 @@
  *   3) 非安全方法附带双提交 CSRF cookie（gy_csrf）
  */
 import { AppError, ErrorCodes } from '@/data/contracts'
+import { parseSanctionBlock, sanctionBlockedMessage } from '@/domain/restrictions'
+import { emitSanctionBlocked } from '@/lib/restrictionNotice'
 
 type ErrorCodeValue = (typeof ErrorCodes)[keyof typeof ErrorCodes]
 
@@ -50,7 +52,7 @@ function toAppError(status: number, body: ApiErrorBody | null, fallback: string)
   const code: ErrorCodeValue =
     rawCode && KNOWN_CODES.has(rawCode) ? (rawCode as ErrorCodeValue) : fallbackCodeOf(status)
 
-  return new AppError(code, body?.message || fallback)
+  return new AppError(code, body?.message || fallback, body?.details)
 }
 
 /** 后端没给 code（或给了未知 code）时，按 HTTP 状态码兜底映射 */
@@ -127,7 +129,17 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   if (!res.ok) {
-    throw toAppError(res.status, parsed as ApiErrorBody | null, `请求失败（${res.status}）`)
+    const error = toAppError(res.status, parsed as ApiErrorBody | null, `请求失败（${res.status}）`)
+    // 只有「403 + 可识别的 details.sanctionKind」才弹限制提示；
+    // 普通权限 403 保持原样抛给页面，不能被这里吞掉或改写成账号限制。
+    const block = parseSanctionBlock(res.status, parsed)
+    if (block) {
+      emitSanctionBlocked({
+        ...block,
+        message: sanctionBlockedMessage(block.kind, block.endsAt, error.message),
+      })
+    }
+    throw error
   }
 
   return parsed as T

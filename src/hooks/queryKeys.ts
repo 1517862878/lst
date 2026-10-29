@@ -43,6 +43,16 @@ export const queryKeys = {
   notifications: () => ['social', 'notifications'] as const,
   unreadCount: () => ['social', 'unread-count'] as const,
   blockedUsers: () => ['social', 'blocked-users'] as const,
+  // ===== 治理（8.2）=====
+  // 与社交一样挂在统一前缀下：举报成功后失效 ['moderation'] 即可让「我的举报」
+  // 与后台队列一起刷新（后台在另一个标签页时不至于读到旧列表）。
+  myReports: () => ['moderation', 'my-reports'] as const,
+  myAppeals: () => ['moderation', 'my-appeals'] as const,
+  mySanctions: () => ['moderation', 'my-sanctions'] as const,
+  adminReports: (status: string) => ['moderation', 'admin', 'reports', status] as const,
+  adminReportDetail: (id: string) => ['moderation', 'admin', 'report', id] as const,
+  adminSanctions: (status: string) => ['moderation', 'admin', 'sanctions', status] as const,
+  adminAppeals: (status: string) => ['moderation', 'admin', 'appeals', status] as const,
 }
 
 export type FollowListKind = 'followers' | 'following'

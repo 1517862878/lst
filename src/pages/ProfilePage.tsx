@@ -80,7 +80,12 @@ export function ProfilePage() {
   const socialRow = (
     <FollowStats
       username={profile.username}
-      leading={isOwner ? null : <><FollowButton username={profile.username} /><ProfileMoreMenu username={profile.username} onBlocked={() => { setBlockNotice(true); void profileQuery.refetch() }} /></>}
+      leading={isOwner ? null : <><FollowButton username={profile.username} /><ProfileMoreMenu
+          username={profile.username}
+          profileId={profile.id ?? profile.username}
+          displayName={profile.displayName || profile.username}
+          onBlocked={() => { setBlockNotice(true); void profileQuery.refetch() }}
+        /></>}
     />
   )
 

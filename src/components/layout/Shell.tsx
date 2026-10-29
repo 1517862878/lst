@@ -2,6 +2,7 @@ import { Outlet } from 'react-router'
 import { Footer } from './Footer'
 import { Header } from './Header'
 import { PixelStarsBackground } from './PixelStarsBackground'
+import { RestrictionBanner } from './RestrictionBanner'
 import { useSession } from '@/hooks/useSession'
 
 /**
@@ -21,7 +22,9 @@ export function Shell() {
       <a className="g-skip-link" href="#main">
         跳到主内容
       </a>
-      <Header sessionUser={sessionUser} />
+      <Header sessionUser={sessionUser} role={sessionUser?.role ?? null} />
+      {/* 账号限制横幅：紧跟页头、压在全部路由内容之上；未登录/未受限时自身返回 null */}
+      <RestrictionBanner restriction={sessionUser?.restriction ?? null} />
       <main id="main" tabIndex={-1}>
         <Outlet />
       </main>

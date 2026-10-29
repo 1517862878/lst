@@ -3,6 +3,10 @@
  * 页面与 hooks 只能通过这里访问数据；mock 与 supabase 各实现一份，行为一致（契约测试同跑）。
  */
 import type {
+  AdminAppeal,
+  AdminSanction,
+  Appeal,
+  AppealStatus,
   AppNotification,
   Article,
   ArticleTopic,
@@ -12,6 +16,9 @@ import type {
   FollowCounts,
   Interaction,
   IsoDate,
+  ModerationAction,
+  MyReport,
+  MySanction,
   Page,
   Photo,
   PhotoLicense,
@@ -19,9 +26,33 @@ import type {
   Profile,
   RankingSnapshot,
   RankingEntry,
+  Report,
+  ReportReason,
+  ReportStatus,
+  ReportTarget,
+  ReportTargetType,
   Session,
   UserHit,
 } from '@/domain/types'
+
+/**
+ * 治理相关类型在这里再导出一次（8.2）：两套仓储（mock / api）与页面都从
+ * `@/data/contracts` 拿类型，避免各自去 domain/types 里翻，导入面收敛成一处。
+ */
+export type {
+  AdminAppeal,
+  AdminSanction,
+  Appeal,
+  AppealStatus,
+  ModerationAction,
+  MyReport,
+  MySanction,
+  Report,
+  ReportReason,
+  ReportStatus,
+  ReportTarget,
+  ReportTargetType,
+}
 
 export type { BlockedUser, FollowCounts, Page, UserHit }
 
@@ -29,10 +60,16 @@ export type { BlockedUser, FollowCounts, Page, UserHit }
 
 export class AppError extends Error {
   readonly code: string
-  constructor(code: string, message: string) {
+  /**
+   * 后端 `details` 原样透传（8.2 起 403 用它携带 sanctionKind / endsAt）。
+   * 保持 unknown：错误码本身稳定，details 的形状按端点而异，由调用方收窄。
+   */
+  readonly details: unknown
+  constructor(code: string, message: string, details?: unknown) {
     super(message)
     this.name = 'AppError'
     this.code = code
+    this.details = details
   }
 }
 
@@ -276,6 +313,101 @@ export interface SocialRepository {
   listBlocked(params?: { cursor?: string; limit?: number }): Promise<Page<BlockedUser>>
 }
 
+// ===== 治理（8.2：举报 / 审核 / 处罚 / 申诉）=====
+
+/** 举报提交入参（POST /api/reports） */
+export interface SubmitReportInput {
+  targetType: ReportTargetType
+  targetId: string
+  reason: ReportReason
+  /** 0–500 字符；服务端会再截一次 */
+  detail: string
+}
+
+/** 提交举报的回执：reportId 用于在「我的举报」和反馈文案里定位这一单 */
+export interface ReportReceipt {
+  reportId: string
+  status: ReportStatus
+}
+
+/** 申诉提交入参；reportId 与 sanctionId 恰好给一个 */
+export interface SubmitAppealInput {
+  reportId?: string
+  sanctionId?: string
+  /** 10–2000 字符 */
+  message: string
+}
+
+export interface AppealReceipt {
+  appealId: string
+  status: AppealStatus
+  createdAt: IsoDate
+}
+
+/** 可见性动作（隐藏 / 恢复内容） */
+export interface VisibilityInput {
+  targetType: ReportTargetType
+  targetId: string
+  hidden: boolean
+  reason: string
+  reportId?: string
+}
+
+/** 裁定（upheld = 举报成立，rejected = 驳回） */
+export interface ResolveReportInput {
+  status: Extract<ReportStatus, 'upheld' | 'rejected'>
+  resolutionCode: string
+  reviewNote: string
+}
+
+export interface AdminReportDetail {
+  report: Report
+  target: ReportTarget
+  actions: ModerationAction[]
+}
+
+/**
+ * 治理仓储。
+ *
+ * 分成「我的」与「后台」两组方法：前者对任何登录用户开放，后者只对 editor|admin
+ * 开放（服务端 403，mock 同样抛 FORBIDDEN）。这样页面能做真实的权限门，而不是
+ * 靠隐藏按钮假装安全。
+ */
+export interface ModerationRepository {
+  /** 提交举报；返回回执编号（前端用它展示「已受理 #编号」） */
+  submitReport(input: SubmitReportInput): Promise<ReportReceipt>
+  /** 我提交过的举报（含申诉状态） */
+  myReports(): Promise<MyReport[]>
+  /** 提交申诉；同一目标的未结申诉重复提交 → CONFLICT */
+  submitAppeal(input: SubmitAppealInput): Promise<AppealReceipt>
+  /** 我提交过的申诉 */
+  myAppeals(): Promise<Appeal[]>
+  /** 我受到的处罚（含申诉状态） */
+  mySanctions(): Promise<MySanction[]>
+
+  /** 后台：举报队列（status 省略 = 全部） */
+  listReports(status?: ReportStatus): Promise<Report[]>
+  /** 后台：单条举报详情（目标上下文 + 审计时间线） */
+  reportDetail(id: string): Promise<AdminReportDetail>
+  /** 后台：认领举报（幂等：已认领给本人直接成功） */
+  claimReport(id: string): Promise<void>
+  /** 后台：隐藏 / 恢复内容 */
+  setVisibility(input: VisibilityInput): Promise<void>
+  /** 后台：裁定举报 */
+  resolveReport(id: string, input: ResolveReportInput): Promise<void>
+  /** 后台：处罚列表（status 省略 = 全部） */
+  listSanctions(status?: string): Promise<AdminSanction[]>
+  /** 后台：撤销处罚 */
+  revokeSanction(id: string, reason: string): Promise<void>
+  /** 后台：申诉队列（status 省略 = 全部） */
+  listAppeals(status?: AppealStatus): Promise<AdminAppeal[]>
+  /** 后台：复核申诉（申诉成立 → 关联处罚撤销 / 举报内容恢复由服务端决定） */
+  reviewAppeal(
+    id: string,
+    input: { outcome: Extract<AppealStatus, 'upheld' | 'rejected'>; note: string },
+  ): Promise<{ appealId: string; status: AppealStatus; updatedAt: IsoDate }>
+}
+
 /** 所有仓储的集合（data/index.ts 工厂产出） */
 export interface Repositories {
   photos: PhotoRepository
@@ -288,4 +420,5 @@ export interface Repositories {
   storage: StorageRepository
   search: SearchRepository
   social: SocialRepository
+  moderation: ModerationRepository
 }

@@ -7,6 +7,7 @@ import {
 } from '../lib/config.js'
 import { forbidden, rateLimited, unauthorized, validation } from '../lib/errors.js'
 import { hashPassword, verifyPassword } from '../lib/password.js'
+import { restrictionFor, toRestrictionView } from '../lib/restrictions.js'
 import { clearSessionCookie, createSession, requestIpHash, revokeSession, setSessionCookie } from '../lib/session.js'
 import { smsSender } from '../lib/sms.js'
 import { botVerifier } from '../lib/turnstile.js'
@@ -103,7 +104,19 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     if (!user) return reply.type('application/json').send('null')
     const profile = await getOwnProfile(user.userId)
     if (!profile) { clearSessionCookie(reply); return reply.type('application/json').send('null') }
-    return { userId: user.userId, username: profile.username, displayName: profile.displayName, avatarKey: profile.avatarKey, role: profile.role, expiresAt: user.expiresAt.toISOString() }
+    // 0026：受限账号也能登录，所以登录态里必须带上"当前处罚"，否则前端只能靠
+    // 某个写接口撞 403 才知道自己被限制（P0-18 要求处罚可见）。
+    // restrictionFor 走请求级缓存，守卫已经查过的请求在这里不会再查一次库。
+    return {
+      userId: user.userId,
+      username: profile.username,
+      displayName: profile.displayName,
+      avatarKey: profile.avatarKey,
+      role: profile.role,
+      expiresAt: user.expiresAt.toISOString(),
+      // null = 无生效处罚（含 warning 已过期、处罚已撤销/已到期）
+      restriction: toRestrictionView(await restrictionFor(req)),
+    }
   })
 
   app.post('/api/auth/logout', async (req, reply) => {

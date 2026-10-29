@@ -1,4 +1,18 @@
 import '@testing-library/jest-dom/vitest'
+import { afterEach } from 'vitest'
+import { cleanup } from '@testing-library/react'
+
+/*
+ * 自动清理挂载的组件。
+ *
+ * vitest 没开 globals（见 vite.config.ts），Testing Library 的自动 cleanup 不会注册，
+ * 于是同一个文件里第二个用例会看到第一个用例遗留的 DOM —— 表现是
+ * 「Found multiple elements with the text of …」或读到上一个用例的旧状态。
+ * 在这里显式注册，对所有测试文件生效。
+ */
+afterEach(() => {
+  cleanup()
+})
 
 /*
  * window.matchMedia 测试桩。

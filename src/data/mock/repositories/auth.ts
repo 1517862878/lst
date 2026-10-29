@@ -3,8 +3,9 @@
  * 安全边界：演示模式，密码不加密、不假装安全；会话存 localStorage。
  */
 import { AppError, ErrorCodes, type AuthRepository, type SignUpInput } from '@/data/contracts'
-import type { Profile, Session } from '@/domain/types'
+import type { Profile, Session, SessionRestriction } from '@/domain/types'
 import { DEMO_PASSWORD } from '@/domain/constants'
+import { pickActiveRestriction } from '@/domain/restrictions'
 import { isBlockedBetween } from '@/domain/social'
 import { getDb } from '../db'
 
@@ -29,9 +30,29 @@ function saveSession(s: Session): void {
   localStorage.setItem(SESSION_KEY, JSON.stringify(s))
 }
 
+/**
+ * 从 user_sanctions 现算当前限制。
+ *
+ * 不把 restriction 只存在 localStorage 里：管理员撤销处罚、或期限到了以后，
+ * 下一次 getSession 必须立刻消失，而不是等用户清缓存。读库失败时退回已存会话
+ * （演示模式宁可少拦一次，也不要让整个站点因为 IndexedDB 异常而登不进去）。
+ */
+async function loadRestriction(userId: string): Promise<SessionRestriction | null> {
+  try {
+    const db = await getDb()
+    const rows = await db.getAllFromIndex('sanctions', 'userId', userId)
+    return pickActiveRestriction(rows, Date.now())
+  } catch {
+    return null
+  }
+}
+
 export const mockAuthRepository: AuthRepository = {
   async getSession(): Promise<Session | null> {
-    return loadSession()
+    const stored = loadSession()
+    if (!stored) return null
+    const restriction = await loadRestriction(stored.userId)
+    return { ...stored, restriction }
   },
 
   async signIn(username: string, password: string, _turnstileToken?: string): Promise<Session> {
@@ -43,6 +64,7 @@ export const mockAuthRepository: AuthRepository = {
     const all = await db.getAll('profiles')
     const profile = all.find((p) => p.username === username)
     if (!profile) throw new AppError(ErrorCodes.UNAUTHORIZED, `用户不存在：${username}`)
+    const restriction = await loadRestriction(profile.id)
     const session: Session = {
       userId: profile.id,
       username: profile.username,
@@ -50,6 +72,7 @@ export const mockAuthRepository: AuthRepository = {
       avatarKey: profile.avatarKey,
       role: profile.role,
       expiresAt: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
+      restriction,
     }
     saveSession(session)
     return session
@@ -91,6 +114,7 @@ export const mockAuthRepository: AuthRepository = {
       avatarKey: profile.avatarKey,
       role: profile.role,
       expiresAt: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
+      restriction: null,
     }
     saveSession(session)
     return session

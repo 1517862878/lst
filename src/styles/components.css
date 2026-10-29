@@ -689,6 +689,7 @@
 .g-toast {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--g-space-2);
   background: var(--g-surface);
   color: var(--g-ink);
@@ -731,6 +732,30 @@
 
 .g-toast-error .g-toast-icon {
   color: var(--g-danger);
+}
+
+/* 长文案允许换行；操作按钮贴右，窄屏时整体换到下一行（390px 不溢出） */
+.g-toast-message {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.g-toast-action {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.g-toast-action:hover {
+  color: var(--g-brand);
 }
 
 /* ===== 分隔线 Divider：像素虚线 ===== */

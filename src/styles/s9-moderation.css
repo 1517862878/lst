@@ -1,0 +1,726 @@
+/* ══════════════════════════════════════════════════════════
+   s9 · 治理（举报 / 投诉 / 处罚）· 8.2
+   ─────────────────────────────────────────────
+   覆盖三块界面：
+     1. 举报入口（作品 / 个人主页的「更多」菜单、评论操作区）
+     2. /me/moderation 的卡片列表与回执
+     3. /admin 审核台的左右分栏、详情面板与时间线
+   约定：沿用像素主题的令牌（--g-line / --g-surface / --g-shadow-* / --g-space-*），
+   不新建颜色；所有容器允许收缩（min-width: 0），长 ID / 长用户名用 overflow-wrap: anywhere，
+   保证 390px 视口不出现横向滚动。
+   ══════════════════════════════════════════════════════════ */
+
+@layer components {
+  /* ── 举报入口：弹出菜单 ── */
+  .g-more-menu {
+    position: relative;
+    display: inline-flex;
+    min-width: 0;
+  }
+
+  .g-more-menu-popover {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 12rem;
+    max-width: min(20rem, calc(100vw - 32px));
+    padding: var(--g-space-2);
+    background: var(--g-surface);
+    border: var(--g-border) solid var(--g-line);
+    box-shadow: var(--g-shadow-md);
+  }
+
+  .g-more-menu-item {
+    display: block;
+    width: 100%;
+    padding: var(--g-space-2) var(--g-space-3);
+    border: 0;
+    background: transparent;
+    color: var(--g-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .g-more-menu-item:hover,
+  .g-more-menu-item:focus-visible {
+    background: var(--g-surface-2);
+    outline: 2px solid var(--g-focus);
+    outline-offset: -2px;
+  }
+
+  .g-more-menu-danger {
+    color: var(--g-danger);
+  }
+
+  /* 个人主页更多菜单里的普通条目（s8 只定义了 danger 版） */
+  .g-profile-more-item {
+    display: block;
+    width: 100%;
+    padding: var(--g-space-3);
+    border: 0;
+    background: transparent;
+    color: var(--g-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .g-profile-more-item:hover,
+  .g-profile-more-item:focus-visible {
+    background: var(--g-surface-2);
+    outline: 2px solid var(--g-focus);
+    outline-offset: -2px;
+  }
+
+  /* ── 举报对话框 ── */
+  .g-report-form {
+    display: grid;
+    gap: var(--g-space-4);
+    min-width: 0;
+  }
+
+  .g-report-reasons {
+    display: grid;
+    gap: var(--g-space-2);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  /* 单选行：整行可点，选中时左侧方块变色 —— 与像素主题的反馈一致 */
+  .g-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--g-space-3);
+    min-width: 0;
+    padding: var(--g-space-2) var(--g-space-3);
+    border: 1px solid var(--g-line-soft);
+    background: var(--g-surface);
+    cursor: pointer;
+  }
+
+  .g-choice:hover {
+    background: var(--g-surface-2);
+  }
+
+  .g-choice:has(input:checked) {
+    border-color: var(--g-brand);
+    box-shadow: inset 3px 0 0 var(--g-brand);
+  }
+
+  .g-choice:has(input:focus-visible) {
+    outline: 2px solid var(--g-focus);
+    outline-offset: -2px;
+  }
+
+  .g-choice input {
+    margin-top: 3px;
+    flex: 0 0 auto;
+    accent-color: var(--g-brand);
+  }
+
+  .g-choice-body {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .g-choice-label {
+    color: var(--g-ink);
+    overflow-wrap: anywhere;
+  }
+
+  .g-choice-hint {
+    color: var(--g-ink-2);
+    font-size: var(--g-text-sm);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .g-report-detail {
+    min-width: 0;
+  }
+
+  /* 提交成功后的回执：编号放大 + 等宽，方便抄写或截图 */
+  .g-report-receipt {
+    display: grid;
+    gap: var(--g-space-2);
+    padding: var(--g-space-4);
+    border: var(--g-border) solid var(--g-brand);
+    background: var(--g-surface-2);
+    box-shadow: var(--g-shadow-sm);
+    min-width: 0;
+  }
+
+  .g-report-receipt-label {
+    margin: 0;
+    color: var(--g-ink-2);
+    font-size: var(--g-text-sm);
+  }
+
+  .g-report-receipt-code {
+    margin: 0;
+    font-family: var(--g-font-mono, ui-monospace, monospace);
+    font-size: var(--g-text-xl);
+    letter-spacing: 0.08em;
+    color: var(--g-ink);
+    overflow-wrap: anywhere;
+    user-select: all;
+  }
+
+  .g-report-receipt-hint {
+    margin: 0;
+    color: var(--g-ink-2);
+    font-size: var(--g-text-sm);
+    line-height: 1.6;
+  }
+
+  /* ── /me/moderation：卡片列表 ── */
+  .g-mod-list {
+    display: grid;
+    gap: var(--g-space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .g-mod-card {
+    display: grid;
+    gap: var(--g-space-2);
+    min-width: 0;
+    padding: var(--g-space-4);
+    background: var(--g-surface);
+    border: var(--g-border) solid var(--g-line);
+    box-shadow: var(--g-shadow-sm);
+  }
+
+  .g-mod-card-head,
+  .g-admin-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--g-space-3);
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .g-mod-card-title {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--g-space-2);
+    min-width: 0;
+    color: var(--g-ink);
+    overflow-wrap: anywhere;
+  }
+
+  .g-mod-card-id {
+    color: var(--g-ink-3);
+    font-size: var(--g-text-sm);
+    font-family: var(--g-font-mono, ui-monospace, monospace);
+  }
+
+  .g-mod-card-meta {
+    margin: 0;
+    color: var(--g-ink-2);
+    font-size: var(--g-text-sm);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .g-mod-card-body {
+    margin: 0;
+    color: var(--g-ink);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+
+  .g-mod-card-note {
+    margin: 0;
+    padding: var(--g-space-2) var(--g-space-3);
+    border-left: 3px solid var(--g-line);
+    background: var(--g-surface-2);
+    color: var(--g-ink-2);
+    font-size: var(--g-text-sm);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .g-mod-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--g-space-3);
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .g-mod-hint {
+    margin: 0;
+    color: var(--g-ink-2);
+    font-size: var(--g-text-sm);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .g-mod-footnote {
+    margin-top: var(--g-space-5);
+    color: var(--g-ink-2);
+    font-size: var(--g-text-sm);
+    line-height: 1.7;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--g-space-2);
+  }
+
+  .g-mod-skeletons {
+    display: grid;
+    gap: var(--g-space-2);
+    padding-block: var(--g-space-2);
+  }
+}
+
+/* ══════════════════════════════════════════
+   /admin 审核台
+   ── 桌面：左列表 + 右详情（详情 sticky，列表滚动时保持可见）
+   ── ≤860px：上下堆叠
+   ══════════════════════════════════════════ */
+.g-admin-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-3);
+  margin-bottom: var(--g-space-4);
+  flex-wrap: wrap;
+}
+
+.g-admin-filter .g-select {
+  width: auto;
+  min-width: 9rem;
+  max-width: 100%;
+}
+
+.g-admin-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: start;
+  gap: var(--g-space-4);
+  min-width: 0;
+}
+
+.g-admin-list-pane,
+.g-admin-detail {
+  min-width: 0;
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  box-shadow: var(--g-shadow-sm);
+}
+
+.g-admin-list-pane {
+  padding: var(--g-space-2);
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.g-admin-detail {
+  display: grid;
+  gap: var(--g-space-3);
+  padding: var(--g-space-4);
+  position: sticky;
+  top: 92px;
+  max-height: calc(100vh - 112px);
+  overflow: auto;
+}
+
+.g-admin-placeholder {
+  margin: 0;
+  padding: var(--g-space-5);
+  color: var(--g-ink-2);
+  text-align: center;
+  border: 1px dashed var(--g-line);
+}
+
+.g-admin-rows {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+/* 队列行本身是按钮：整行可点、可用键盘聚焦 */
+.g-admin-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'title badge'
+    'meta badge';
+  align-items: center;
+  gap: 2px var(--g-space-3);
+  width: 100%;
+  padding: var(--g-space-3);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--g-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.g-admin-row:hover {
+  background: var(--g-surface-2);
+}
+
+.g-admin-row:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: -2px;
+}
+
+.g-admin-row[aria-pressed='true'] {
+  background: var(--g-surface-2);
+  border-color: var(--g-brand);
+  box-shadow: inset 3px 0 0 var(--g-brand);
+}
+
+.g-admin-row-title {
+  grid-area: title;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.g-admin-row-meta {
+  grid-area: meta;
+  min-width: 0;
+  color: var(--g-ink-3);
+  font-size: var(--g-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.g-admin-row .g-badge {
+  grid-area: badge;
+  justify-self: end;
+}
+
+.g-admin-card {
+  display: grid;
+  gap: var(--g-space-2);
+  padding: var(--g-space-4);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  box-shadow: var(--g-shadow-sm);
+  min-width: 0;
+}
+
+.g-admin-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--g-space-3);
+  flex-wrap: wrap;
+  padding-bottom: var(--g-space-2);
+  border-bottom: var(--g-border) solid var(--g-line);
+}
+
+.g-admin-detail-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--g-space-2);
+  margin: 0;
+  font-size: var(--g-text-lg);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.g-admin-kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--g-space-3);
+  margin: 0;
+  min-width: 0;
+}
+
+.g-admin-kv > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.g-admin-kv dt {
+  color: var(--g-ink-3);
+  font-size: var(--g-text-xs);
+}
+
+.g-admin-kv dd {
+  margin: 0;
+  color: var(--g-ink);
+  overflow-wrap: anywhere;
+}
+
+.g-admin-quote {
+  margin: 0;
+  padding: var(--g-space-3);
+  background: var(--g-surface-2);
+  border-left: 3px solid var(--g-brand);
+  color: var(--g-ink);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.g-admin-target {
+  display: grid;
+  gap: var(--g-space-1);
+  padding: var(--g-space-3);
+  border: 1px dashed var(--g-line);
+  min-width: 0;
+}
+
+.g-admin-target-title {
+  margin: 0;
+  color: var(--g-ink);
+  overflow-wrap: anywhere;
+}
+
+.g-admin-target-excerpt {
+  margin: 0;
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.g-admin-section-title {
+  margin: 0 0 var(--g-space-1);
+  font-size: var(--g-text-base);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--g-ink);
+}
+
+.g-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+  align-items: center;
+}
+
+.g-admin-resolve {
+  display: grid;
+  gap: var(--g-space-2);
+  padding: var(--g-space-3);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+  min-width: 0;
+}
+
+.g-admin-resolve-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--g-space-2) var(--g-space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.g-admin-timeline {
+  display: grid;
+  gap: var(--g-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.g-admin-timeline li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-1) var(--g-space-3);
+  padding-left: var(--g-space-3);
+  border-left: 2px solid var(--g-line);
+  min-width: 0;
+}
+
+.g-admin-timeline-time {
+  color: var(--g-ink-3);
+  font-size: var(--g-text-xs);
+  white-space: nowrap;
+}
+
+.g-admin-timeline-text {
+  color: var(--g-ink);
+  font-size: var(--g-text-sm);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.g-admin-inline-form {
+  display: grid;
+  gap: var(--g-space-2);
+  min-width: 0;
+}
+
+/* 评论操作区的「举报」：与 .g-comment-reply-btn 同一视觉层级，
+   只是危险动作用更淡的色，避免评论区出现一排红字。 */
+.g-comment-report-btn {
+  background: transparent;
+  border: none;
+  color: var(--g-ink-3);
+  font-size: var(--g-text-xs);
+  cursor: pointer;
+  padding: 0;
+}
+
+.g-comment-report-btn:hover {
+  color: var(--g-danger);
+  text-decoration: underline;
+}
+
+/* 窄屏：单列堆叠，详情面板取消 sticky 与内部滚动 ——
+   否则在手机上会同时出现「页面滚动」和「面板内滚动」两个滚动条，
+   手指很难点到面板下面的按钮。 */
+@media (max-width: 860px) {
+  .g-admin-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .g-admin-list-pane {
+    max-height: none;
+  }
+
+  .g-admin-detail {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    order: 2;
+  }
+}
+
+@media (max-width: 420px) {
+  .g-admin-row {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'title'
+      'meta'
+      'badge';
+    justify-items: start;
+  }
+
+  .g-admin-row .g-badge {
+    justify-self: start;
+  }
+
+  .g-mod-card,
+  .g-admin-card,
+  .g-admin-detail {
+    padding: var(--g-space-3);
+  }
+
+  .g-report-receipt {
+    padding: var(--g-space-3);
+  }
+
+  .g-report-receipt-code {
+    font-size: var(--g-text-lg);
+    letter-spacing: 0.04em;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   全站账号限制横幅（8.2 补口）
+   ─────────────────────────────────────────────
+   放在 Header 与 main 之间，不吸顶：页头已经 sticky，两条吸顶会互相遮挡。
+   390px 下 mark + 正文 + 操作区换行排列，按钮撑满剩余宽度，不产生横向滚动。
+   ══════════════════════════════════════════════════════════ */
+.g-restriction-banner {
+  background: color-mix(in srgb, var(--g-danger) 18%, var(--g-surface));
+  border-bottom: var(--g-border) solid var(--g-line);
+  color: var(--g-ink);
+}
+
+.g-restriction-banner-warning {
+  background: color-mix(in srgb, var(--g-warning) 22%, var(--g-surface));
+}
+
+.g-restriction-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--g-space-3);
+  padding-block: var(--g-space-3);
+}
+
+.g-restriction-mark {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-danger);
+  color: var(--g-bg);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.g-restriction-banner-warning .g-restriction-mark {
+  background: var(--g-warning);
+}
+
+.g-restriction-body {
+  flex: 1 1 16rem;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.g-restriction-title {
+  margin: 0;
+  font-size: var(--g-text-base);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.g-restriction-text,
+.g-restriction-meta {
+  margin: 0;
+  font-size: var(--g-text-sm);
+  line-height: 1.6;
+  color: var(--g-ink-2);
+  overflow-wrap: anywhere;
+}
+
+.g-restriction-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-2);
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.g-restriction-close {
+  flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+  .g-restriction-inner {
+    flex-wrap: wrap;
+  }
+
+  .g-restriction-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .g-restriction-actions .g-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}

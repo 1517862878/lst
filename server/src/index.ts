@@ -16,6 +16,7 @@ import { healthCheck } from './lib/db.js'
 import { ApiError, forbidden, translateDbError } from './lib/errors.js'
 import { TRUSTED_ORIGINS, TRUST_PROXY } from './lib/config.js'
 import { registerRequestSecurity } from './lib/request-security.js'
+import { registerRestrictionGuard } from './lib/restrictions.js'
 import { registerRoutes } from './routes/index.js'
 import { registerStorageRoutes } from './routes/storage.js'
 import { StorageCleanupWorker } from './storage/cleanup-worker.js'
@@ -59,6 +60,11 @@ export async function buildApp() {
     credentials: true,
   })
   registerRequestSecurity(app)
+  // 处罚分级守卫（0026）：0015 的 api_create_session 曾对 suspension/ban 直接拒绝登录，
+  // 导致受限用户无法进入申诉；现在改为"登录放行、按分级只拦写操作"。
+  // 必须放在 registerRequestSecurity 之后：Origin/CSRF 是纯 header 校验，先做零成本的，
+  // 再做需要查库的分级判定。
+  registerRestrictionGuard(app)
 
   // ---- 统一错误处理 ----
   app.setErrorHandler((err, req, reply) => {

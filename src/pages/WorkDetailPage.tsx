@@ -18,6 +18,7 @@ import { useToast } from '@/components/ui/useToast'
 import { LikeButton, FavoriteButton } from '@/features/interactions/LikeFavoriteButtons'
 import { CommentSection } from '@/features/interactions/CommentSection'
 import { AuthorLink } from '@/features/profiles/AuthorLink'
+import { WorkMoreMenu } from '@/features/moderation/WorkMoreMenu'
 import { useMorePhotosByAuthor, usePhoto, useRelatedPhotos, useWithdrawPhoto } from '@/hooks/usePhotos'
 import { useSession } from '@/hooks/useSession'
 import { useInteractionSync } from '@/hooks/useInteractions'
@@ -154,6 +155,7 @@ export function WorkDetailPage() {
             />
             <span className="g-work-views">👁 {photo.viewCount}</span>
             <ShareButton title={photo.title} text={photo.description || '来自工科影展的摄影作品'} />
+            <WorkMoreMenu photoId={photo.id} title={photo.title} isAuthor={isAuthor} />
           </div>
 
           <LicenseBadge license={photo.license} />

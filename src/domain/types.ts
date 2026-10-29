@@ -262,14 +262,122 @@ export interface Report {
   reason: ReportReason
   /** 0–500 字符 */
   detail: string
-  /** 允许匿名举报 */
-  reporterId: string | null
   status: ReportStatus
+  /** 认领该举报的审核员（profiles.id）；未认领为 null */
+  assignedTo: string | null
+  reviewNote: string | null
+  /** 裁定码（如 content_hidden / no_violation），供后台与回执展示 */
+  resolutionCode: string | null
+  createdAt: IsoDate
+  updatedAt: IsoDate
+  resolvedAt: IsoDate | null
+}
+
+// ===== 治理（8.2：举报 / 处罚 / 申诉）=====
+
+/** 处罚种类（与 user_sanctions.kind 逐字一致） */
+export type SanctionKind = 'warning' | 'content_restriction' | 'suspension' | 'ban'
+
+/** 申诉状态；取值集合与举报一致，故复用 ReportStatus */
+export type AppealStatus = ReportStatus
+
+/** 举报人视角的一条举报（GET /api/reports/mine） */
+export interface MyReport {
+  id: string
+  targetType: ReportTargetType
+  targetId: string
+  reason: ReportReason
+  detail: string
+  status: ReportStatus
+  resolutionCode: string | null
+  reviewNote: string | null
+  /** 该举报关联的最新申诉状态；没有申诉为 null */
+  appealStatus: AppealStatus | null
   createdAt: IsoDate
   resolvedAt: IsoDate | null
 }
 
+/** 申诉（GET /api/me/appeals）；reportId 与 sanctionId 恰好一个非空 */
+export interface Appeal {
+  id: string
+  reportId: string | null
+  sanctionId: string | null
+  message: string
+  status: AppealStatus
+  reviewNote: string
+  createdAt: IsoDate
+  reviewedAt: IsoDate | null
+}
+
+/** 被处罚用户看到的处罚（GET /api/me/sanctions） */
+export interface MySanction {
+  id: string
+  kind: SanctionKind
+  reasonCode: string
+  reasonDetail: string
+  /** user_sanctions.status：active | expired | revoked */
+  status: string
+  startsAt: IsoDate
+  endsAt: IsoDate | null
+  revokedAt: IsoDate | null
+  /** 该处罚关联的最新申诉状态；没有申诉为 null */
+  appealStatus: AppealStatus | null
+  createdAt: IsoDate
+}
+
+/** 举报目标的上下文快照（后台详情面板） */
+export interface ReportTarget {
+  kind: ReportTargetType
+  id: string
+  title: string
+  excerpt: string
+  authorId: string | null
+  authorUsername: string | null
+  authorDisplayName: string | null
+  hidden: boolean
+}
+
+/** 不可变审计条目（moderation_actions） */
+export interface ModerationAction {
+  id: string
+  action: string
+  actorId: string | null
+  targetType: string
+  targetId: string
+  reason: string
+  createdAt: IsoDate
+}
+
+/** 后台处罚列表项（含被处罚人摘要） */
+export interface AdminSanction extends MySanction {
+  userId: string
+  username: string
+  displayName: string
+}
+
+/** 后台申诉列表项（含申诉人摘要） */
+export interface AdminAppeal extends Appeal {
+  appellantId: string
+  appellantUsername: string
+  appellantDisplayName: string
+}
+
 // ===== 会话（静态期伪造，见 ROADMAP §5.1）=====
+
+/**
+ * 当前账号仍然生效的处罚中「最重的一条」。
+ *
+ * 只保留展示所需字段：banner 要说清限制种类、原因与到期时间，
+ * 但不需要把 user_sanctions 的完整审计字段（id / startsAt / appealStatus）
+ * 塞进每个页面的会话对象。真正的处罚明细仍走 GET /api/me/sanctions。
+ */
+export interface SessionRestriction {
+  kind: SanctionKind
+  reasonCode: string
+  reasonDetail: string
+  /** null = 无固定期限（长期限制） */
+  endsAt: IsoDate | null
+}
 
 export interface Session {
   userId: string
@@ -278,6 +386,11 @@ export interface Session {
   avatarKey: string | null
   role: UserRole
   expiresAt: IsoDate
+  /**
+   * 生效中的限制；无限制为 null，旧后端未返回该字段时为 undefined。
+   * 页面必须同时容忍 null 与 undefined（与 Profile.isBlocked 同一约定）。
+   */
+  restriction?: SessionRestriction | null
 }
 
 // ===== 列表/分页辅助（契约层使用）=====

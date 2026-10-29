@@ -3,10 +3,11 @@
  * 安全边界：演示模式，密码不加密、不假装安全；会话存 localStorage。
  */
 import { AppError, ErrorCodes, type AuthRepository, type SignUpInput } from '@/data/contracts'
-import type { Profile, Session, SessionRestriction } from '@/domain/types'
+import type { Photo, Profile, Session, SessionRestriction } from '@/domain/types'
 import { DEMO_PASSWORD } from '@/domain/constants'
 import { pickActiveRestriction } from '@/domain/restrictions'
 import { isBlockedBetween } from '@/domain/social'
+import { pinnedPhotosFrom } from '@/domain/photography'
 import { getDb } from '../db'
 
 const SESSION_KEY = 'gy:session'
@@ -45,6 +46,18 @@ async function loadRestriction(userId: string): Promise<SessionRestriction | nul
   } catch {
     return null
   }
+}
+
+/**
+ * 公开资料里的代表作摘要（8.4a）。
+ *
+ * 库里只存 pinnedPhotoIds（与 profiles.pinned_photo_ids 一致），摘要在这里
+ * 读时算：作品改名/撤回后主页不会留下过期的标题与缩略图，也不需要一次迁移回填。
+ */
+function withPinned(profile: Profile, photos: Photo[]): Profile {
+  const ids = profile.pinnedPhotoIds ?? []
+  if (ids.length === 0) return profile
+  return { ...profile, pinned: pinnedPhotosFrom(ids, photos) }
 }
 
 export const mockAuthRepository: AuthRepository = {
@@ -128,7 +141,7 @@ export const mockAuthRepository: AuthRepository = {
     const db = await getDb()
     const profile = await db.get('profiles', id)
     if (!profile) throw new AppError(ErrorCodes.NOT_FOUND, `用户不存在：${id}`)
-    return profile
+    return withPinned(profile, await db.getAll('photos'))
   },
 
   async getProfileByUsername(username: string): Promise<Profile> {
@@ -140,6 +153,6 @@ export const mockAuthRepository: AuthRepository = {
     if (session && isBlockedBetween(await db.getAll('blocks'), session.userId, profile.id)) {
       throw new AppError(ErrorCodes.NOT_FOUND, `用户不存在：${username}`)
     }
-    return profile
+    return withPinned(profile, await db.getAll('photos'))
   },
 }

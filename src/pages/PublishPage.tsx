@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/useToast'
 import { RequireAuth } from '@/components/layout/guards'
-import { useSession } from '@/hooks/useSession'
+import { useProfileByUsername, useSession } from '@/hooks/useSession'
 import { createRepositories, dataSource } from '@/data'
 import { CATEGORIES } from '@/domain/constants'
 import { LICENSE_DESCRIPTORS } from '@/domain/licenses'
@@ -65,8 +65,19 @@ function PublishInner() {
   const [draftRestored, setDraftRestored] = useState(false)
   const [draftUpdatedAt, setDraftUpdatedAt] = useState<string | null>(null)
   const [publicationAccepted, setPublicationAccepted] = useState(false)
+  // 逐张拍摄参数开关（8.4a）：初值跟随账户设置，作者仍可只对这一张关掉
+  const [exifHidden, setExifHidden] = useState(false)
   const draftTimer = useRef<number | null>(null)
   const restoredRef = useRef(false)
+
+  const profileQuery = useProfileByUsername(session?.username ?? '')
+  const exifDefaultApplied = useRef(false)
+  useEffect(() => {
+    if (exifDefaultApplied.current || !profileQuery.data) return
+    exifDefaultApplied.current = true
+    // 账户级「隐藏」时默认也不公开；作者仍可逐张打开（账户隐藏时打开也不生效，文案里写上）
+    setExifHidden(profileQuery.data.exifVisibility === 'hidden')
+  }, [profileQuery.data])
 
   // api 模式读服务端草稿；mock 模式这个查询不会发请求
   const draftQuery = useMyDraft({ enabled: isApi })
@@ -239,6 +250,7 @@ function PublishInner() {
         locationPrecision: 'city',
         shotAt: null,
         exif: exifPreview,
+        exifHidden,
         imageKey,
         thumbKey,
         width: display.width,
@@ -345,6 +357,24 @@ function PublishInner() {
           hint="如：风光 长曝 日出"
         />
         <PublishTagSuggest value={tags} onChange={setTags} />
+        <div className="g-field">
+          <span className="g-label" id="publish-exif-label">拍摄参数</span>
+          <label className="g-exif-switch" htmlFor="publish-exif-hidden">
+            <input
+              id="publish-exif-hidden"
+              type="checkbox"
+              checked={!exifHidden}
+              onChange={(e) => setExifHidden(!e.target.checked)}
+              aria-describedby="publish-exif-hint"
+            />
+            <span>
+              <strong>公开这张作品的拍摄参数</strong>
+              <small id="publish-exif-hint">
+                默认跟随账号的「拍摄参数公开范围」。关闭后详情页显示「作者未公开拍摄参数」，器材与地点照常归类。
+              </small>
+            </span>
+          </label>
+        </div>
         <div className="g-field">
           <label className="g-label" htmlFor="publish-license">
             作品授权

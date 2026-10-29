@@ -43,6 +43,14 @@ import type {
   Session,
   UserHit,
 } from '@/domain/types'
+import type {
+  ExifVisibility,
+  GearKind,
+  GearSummary,
+  PinnedPhotosResult,
+  PlaceSummary,
+  SeasonSummary,
+} from '@/domain/photography'
 
 /**
  * 治理相关类型在这里再导出一次（8.2）：两套仓储（mock / api）与页面都从
@@ -79,6 +87,24 @@ export type {
   PublishDraft,
   PublishDraftPayload,
 }
+
+/**
+ * 摄影专业化（8.4a）的派生类型同样从契约层再导出。
+ *
+ * 这些形状由 domain/photography.ts 的纯函数产出 —— 聚合口径只有一份，
+ * mock 仓储、页面与单测共用；契约层只负责「页面从哪导入」。
+ */
+export type {
+  ExifVisibility,
+  GearKind,
+  GearSummary,
+  PinnedPhotosResult,
+  PlaceSummary,
+  Season,
+  SeasonSummary,
+} from '@/domain/photography'
+
+export type { PinnedPhoto } from '@/domain/types'
 
 // ===== 通用错误（跨适配器一致的错误模型）=====
 
@@ -182,6 +208,8 @@ export interface PhotoCreateInput {
   blurhash: string | null
   license: PhotoLicense
   credit: string | null
+  /** 发布时是否隐藏这张的拍摄参数（8.4a 逐张覆盖；缺省取账户设置） */
+  exifHidden?: boolean
 }
 
 export interface PhotoPatch {
@@ -192,6 +220,13 @@ export interface PhotoPatch {
   locationName?: string
   license?: PhotoLicense
   status?: PhotoStatus
+  /**
+   * 逐张开关拍摄参数（8.4a，作者本人）。
+   *
+   * 账户级 exif_visibility='hidden' 时本开关不起作用（见 domain/photography.ts
+   * isExifHidden）；作者改成 public 后，这里是唯一能按张恢复的参数。
+   */
+  exifHidden?: boolean
 }
 
 export interface InteractionRepository {
@@ -617,6 +652,73 @@ export interface StatsRepository {
   photoStats(query?: PhotoStatsQuery): Promise<PhotoStats[]>
 }
 
+// ===== 摄影专业化（8.4a）=====
+
+/** 器材作品流的分页参数（后端：limit 1–50 缺省 24，越界 400） */
+export interface GearPhotoQuery {
+  cursor?: string | null
+  limit?: number
+}
+
+/** 地点作品流的分页参数 */
+export interface PlacePhotoQuery {
+  cursor?: string | null
+  limit?: number
+}
+
+/**
+ * 器材浏览（8.4a）：机身 / 镜头两组聚合 + 对应作品流。
+ *
+ * 聚合结果**不含作者 UUID**（延续公开接口不暴露 UUID 的约定），只有计数。
+ * 隐藏了拍摄参数的作品既不产生器材标签，也不出现在器材作品流里 ——
+ * 否则「隐藏 EXIF」就只剩详情页一个洞，聚合页把机型又列了一遍。
+ */
+export interface GearRepository {
+  /** 器材总览（"Make Model" / LensModel，各自带作品数与作者数） */
+  list(limit?: number): Promise<GearSummary[]>
+  /**
+   * 某器材下的作品流（游标分页）。
+   *
+   * label 走 query 而不是路径：中文/带空格的机型名进路径会引出各种编码坑，
+   * 后端也是 GET /api/gear/:kind/photos?label=。
+   */
+  photos(kind: GearKind, label: string, query?: GearPhotoQuery): Promise<CursorListPage<Photo>>
+}
+
+/**
+ * 地点浏览（8.4a）。
+ *
+ * 只聚合 location_precision !== 'hidden' 且地点名非空的作品；
+ * 精确坐标（lat/lng）永远不出现在聚合与页面上。
+ */
+export interface PlaceRepository {
+  list(limit?: number): Promise<PlaceSummary[]>
+  photos(label: string, query?: PlacePhotoQuery): Promise<CursorListPage<Photo>>
+}
+
+/** 季节计数（8.4a）：按 shot_at 的月份划分春夏秋冬 */
+export interface SeasonRepository {
+  list(): Promise<SeasonSummary[]>
+}
+
+/**
+ * 资料侧的摄影设置（8.4a）。
+ *
+ * 单独成一个仓储而不是塞进 AuthRepository：这两个方法是「本人设置」，
+ * 与登录/资料读取的授权口径不同（未登录必须 401，而不是返回空资料）。
+ */
+export interface ProfileRepository {
+  /** 账户级拍摄参数默认范围（隐藏时所有作品都不展示 EXIF） */
+  setExifVisibility(visibility: ExifVisibility): Promise<void>
+  /**
+   * 设置主页代表作（最多 3 件、必须都是本人的在架作品）。
+   *
+   * 传空数组 = 清空。返回服务端规范化后的 id 顺序与作品摘要 —— 以服务端结果
+   * 为准，避免前端乐观更新与服务端校验（越权/已撤回）不一致。
+   */
+  setPinned(photoIds: string[]): Promise<PinnedPhotosResult>
+}
+
 export interface Repositories {
   photos: PhotoRepository
   tags: TagRepository
@@ -633,4 +735,8 @@ export interface Repositories {
   moderation: ModerationRepository
   discover: DiscoverRepository
   stats: StatsRepository
+  gear: GearRepository
+  places: PlaceRepository
+  seasons: SeasonRepository
+  profile: ProfileRepository
 }

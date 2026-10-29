@@ -11,6 +11,13 @@ export interface PhotoEditValues {
   tags: string
   locationName: string
   license: PhotoLicense
+  /**
+   * 逐张拍摄参数开关（8.4a ①）：false = 公开这张的 EXIF。
+   *
+   * 存的是「隐藏」而不是「公开」，因为默认值来自账户设置（账户隐藏时逐张默认隐藏），
+   * 这里只表达作者对**这一张**的额外关闭，与 photos.exif_hidden 的语义一致。
+   */
+  exifHidden?: boolean
 }
 
 export type PhotoEditErrors = Partial<Record<keyof PhotoEditValues, string>>
@@ -27,6 +34,7 @@ export function photoToEditValues(photo: Photo): PhotoEditValues {
     tags: photo.tags.join(' '),
     locationName: photo.locationName,
     license: photo.license,
+    exifHidden: photo.exifHidden === true,
   }
 }
 
@@ -61,5 +69,6 @@ export function photoEditPatch(values: PhotoEditValues): PhotoPatch {
     tags: parseTags(values.tags),
     locationName: values.locationName.trim(),
     license: values.license,
+    exifHidden: values.exifHidden === true,
   }
 }

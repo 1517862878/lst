@@ -87,6 +87,16 @@ export const queryKeys = {
   // （与发现、收藏夹同一约定）。两个方法的额外失效点见 hooks/useStats.ts。
   creatorStats: () => ['stats', 'creator'] as const,
   photoStats: (query: PhotoStatsQuery) => ['stats', 'photos', query] as const,
+  // ===== 摄影专业化（8.4a）=====
+  // 器材 / 地点 / 季节都是「读时聚合」的派生视图：发布、下架、改 EXIF 隐私
+  // 都会让它们同时变化，所以统一挂在 'photography' 前缀下（每个 key 仍带自己的
+  // 二级段），一次 invalidate ['photography'] 全刷，不必逐个点名。
+  gear: () => ['photography', 'gear', 'list'] as const,
+  gearPhotos: (kind: string, label: string) => ['photography', 'gear', kind, label] as const,
+  places: () => ['photography', 'places', 'list'] as const,
+  placePhotos: (label: string) => ['photography', 'places', label] as const,
+  seasons: () => ['photography', 'seasons'] as const,
+  photography: () => ['photography'] as const,
 }
 
 export type FollowListKind = 'followers' | 'following'

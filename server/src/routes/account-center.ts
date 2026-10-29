@@ -13,6 +13,10 @@ const PREFERENCE_KEYS = new Set([
 const NOTIFICATION_KEYS = new Set(['accountSecurity', 'productUpdates'])
 const PASSWORD_KEYS = new Set(['oldPassword', 'newPassword'])
 const DELETE_KEYS = new Set(['password', 'confirm', 'reason'])
+const EXIF_VISIBILITY_KEYS = new Set(['visibility'])
+const PINNED_KEYS = new Set(['photoIds'])
+/** 代表作上限：与 profiles.pinned_photo_ids 的 ck_profiles_pinned_photo_ids 一致。 */
+const PINNED_LIMIT = 3
 const LICENSES = new Set(['all_rights_reserved', 'cc_by', 'cc_by_nc', 'cc_by_nc_nd', 'cc0'])
 const CONTROL_RE = /[\p{Cc}\p{Cf}]/u
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -145,6 +149,41 @@ export async function registerAccountCenterRoutes(app: FastifyInstance) {
     })
     if (!result) throw notFound('账号不存在')
     return result
+  })
+
+  // 0031：拍摄参数公开范围。完整替换语义（PUT），取值域只有 public | hidden；
+  // 「隐藏」是账户级兜底，逐张覆盖仍由作品编辑页的 exifHidden 决定。
+  app.put('/api/me/exif-visibility', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req) => {
+    const user = await requireUser(req)
+    const body = objectBody(req.body, EXIF_VISIBILITY_KEYS)
+    if (body.visibility !== 'public' && body.visibility !== 'hidden') {
+      throw validation('visibility 必须是 public 或 hidden')
+    }
+    const result = await account.updateOwnExifVisibility(user.userId, body.visibility)
+    if (!result) throw notFound('账号不存在')
+    return result
+  })
+
+  // 0031：主页代表作。返回 { pinnedPhotoIds, pinned:[{id,title,thumbKey}] }：
+  // 置顶区要立刻拿到标题与缩略图，让前端为此再拉一次作品列表不值得。
+  // 上限 3、仅本人已发布作品的校验在 api_set_pinned_photos 里（23514 ⇒ 400）。
+  app.put('/api/me/pinned', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (req) => {
+    const user = await requireUser(req)
+    const body = objectBody(req.body, PINNED_KEYS)
+    const photoIds = body.photoIds
+    if (!Array.isArray(photoIds)) throw validation('photoIds 必须是数组')
+    if (photoIds.length > PINNED_LIMIT) throw validation(`代表作最多 ${PINNED_LIMIT} 件`)
+    const ids: string[] = []
+    for (const [index, entry] of photoIds.entries()) {
+      if (typeof entry !== 'string' || !UUID_RE.test(entry)) {
+        throw validation(`第 ${index + 1} 个代表作 id 不是合法的 UUID`)
+      }
+      // 同一次请求里的重复 id 直接拒：静默去重会让用户看到「选了 3 个、只存下 2 个」，
+      // 而顺序是代表作叙事的一部分，谁被丢掉不该由后端决定。
+      if (ids.includes(entry)) throw validation('photoIds 不能包含重复的作品')
+      ids.push(entry)
+    }
+    return account.setOwnPinnedPhotos(user.userId, ids)
   })
 
   app.get('/api/me/sessions', async (req) => {

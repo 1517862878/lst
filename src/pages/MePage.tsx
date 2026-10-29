@@ -19,6 +19,7 @@ import { useSession } from '@/hooks/useSession'
 import { usePhotosByUser } from '@/hooks/usePhotos'
 import { PhotoGrid } from '@/features/photos/PhotoGrid'
 import { CreatorStatsSection } from '@/features/stats/CreatorStatsSection'
+import { PinnedWorksPicker } from '@/features/profiles/PinnedWorksPicker'
 import { accountImageUrl } from '@/lib/account'
 
 export function MePage() {
@@ -68,6 +69,9 @@ function MeInner() {
       </nav>
 
       <CreatorStatsSection />
+
+      {/* 代表作选择器：数据复用上面的 works 查询，不额外请求 */}
+      <PinnedWorksPicker photos={works.data ?? []} />
 
       <section className="g-me-section">
         <h2>最近作品</h2>

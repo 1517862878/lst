@@ -64,6 +64,37 @@ export interface Profile {
    * 都可能拿不到这个字段，所以页面必须容忍 undefined。
    */
   isBlocked?: boolean
+  /**
+   * 拍摄参数默认公开范围（8.4a）。
+   *
+   * 账户级兜底：'hidden' 时所有作品都不展示 EXIF（逐张开关只对 'public' 生效）。
+   * 旧后端未返回该字段时为 undefined，页面必须按 'public' 处理。
+   */
+  exifVisibility?: ExifVisibility
+  /**
+   * 主页代表作摘要（8.4a）：最多 3 件、有序。
+   *
+   * 以作品摘要返回（标题 + 缩略图键 + id），不是 UUID 列表 —— 否则主页要再发 N 次请求。
+   * 未设置时为空数组或 undefined，主页整块隐藏。
+   */
+  pinned?: PinnedPhoto[]
+  /**
+   * 代表作的 id 列表（有序，最多 3 件）。
+   *
+   * 数据库里就是这样存的（profiles.pinned_photo_ids uuid[]），公开投影把它换成
+   * 上面的 `pinned` 摘要；mock 侧读取时同样「读时算」摘要，避免标题/缩略图过期。
+   */
+  pinnedPhotoIds?: string[]
+}
+
+/** 拍摄参数公开范围（与 profiles.exif_visibility 的 check 约束一致） */
+export type ExifVisibility = 'public' | 'hidden'
+
+/** 代表作摘要（公开资料里返回；不含作者 UUID 以外的任何隐私字段） */
+export interface PinnedPhoto {
+  id: string
+  title: string
+  thumbKey: string
 }
 
 export interface Photo {
@@ -90,6 +121,14 @@ export interface Photo {
   shotAt: IsoDate | null
   /** 仅白名单键（DATA-MODEL §10）：Make/Model/LensModel/FNumber/ExposureTime/ISO/FocalLength/DateTimeOriginal */
   exif: Record<string, unknown> | null
+  /**
+   * 这张作品是否隐藏拍摄参数（8.4a 逐张覆盖）。
+   *
+   * 有效可见性 = exifHidden 或 作者 exifVisibility='hidden'；隐藏时后端返回 `exif: {}`，
+   * 并把本字段置 true，前端据此显示「作者未公开拍摄参数」而不是空表格。
+   * 旧数据未返回时为 undefined，按 false 处理。
+   */
+  exifHidden?: boolean
   imageKey: string
   thumbKey: string
   /** >0，防 CLS 占位 */

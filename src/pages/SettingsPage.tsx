@@ -11,6 +11,9 @@ import { Textarea } from '@/components/ui/Textarea'
 import { useToast } from '@/components/ui/useToast'
 import type { AccountLink } from '@/data/api/account'
 import type { PhotoLicense } from '@/domain/types'
+import { EXIF_VISIBILITY_OPTIONS, type ExifVisibility } from '@/domain/photography'
+import { useSetExifVisibility } from '@/hooks/usePhotography'
+import { useProfileByUsername } from '@/hooks/useSession'
 import {
   useAccount,
   useAccountSessions,
@@ -67,7 +70,14 @@ function SettingsInner() {
         </nav>
         <main className="g-settings-main" aria-labelledby={`settings-${activeTab}-title`}>
           {activeTab === 'profile' && <ProfileSettings account={account.data} />}
-          {activeTab === 'privacy' && <PrivacySettings account={account.data} />}
+          {activeTab === 'privacy' && (
+            <>
+              <PrivacySettings account={account.data} />
+              {/* 拍摄参数是摄影侧的独立设置（profiles.exif_visibility），
+                  与账户偏好不同接口，所以单独一块、单独保存，避免一次保存改两处而看不出来 */}
+              <ExifVisibilitySettings username={account.data.username} />
+            </>
+          )}
           {activeTab === 'security' && <SecuritySettings onDeleted={() => navigate('/', { replace: true })} />}
           {activeTab === 'blocks' && <BlockedUsersSettings />}
         </main>
@@ -197,6 +207,74 @@ function PrivacySettings({ account }: { account: NonNullable<ReturnType<typeof u
         <label className="g-settings-check"><input type="checkbox" checked={productUpdates} onChange={(event) => setProductUpdates(event.target.checked)} /><span><strong>产品动态</strong><small>接收功能更新和社区活动消息。</small></span></label>
       </fieldset>
       <Button onClick={() => void save()} loading={update.isPending}>保存隐私与通知</Button>
+    </section>
+  )
+}
+
+/**
+ * 拍摄参数公开范围（8.4a ①）。
+ *
+ * 账户级默认值存在 profiles.exif_visibility；单张作品还有自己的开关（发布/编辑页）。
+ * 有效可见性 = 账户隐藏 OR 单张隐藏，所以这里的文案必须说清「隐藏后所有作品都不显示」，
+ * 否则作者会以为单个作品的开关能把它打开。
+ */
+function ExifVisibilitySettings({ username }: { username: string }) {
+  const profile = useProfileByUsername(username)
+  const save = useSetExifVisibility()
+  const toast = useToast()
+  const current: ExifVisibility = profile.data?.exifVisibility === 'hidden' ? 'hidden' : 'public'
+  const [visibility, setVisibility] = useState<ExifVisibility>(current)
+  const [formError, setFormError] = useState('')
+
+  useEffect(() => {
+    setVisibility(current)
+  }, [current])
+
+  const submit = async () => {
+    setFormError('')
+    try {
+      await save.mutateAsync(visibility)
+      toast.show('success', '拍摄参数公开范围已保存')
+    } catch (error) {
+      setFormError(errorMessage(error))
+    }
+  }
+
+  return (
+    <section className="g-settings-panel" aria-labelledby="settings-exif-title">
+      <h2 id="settings-exif-title">拍摄参数公开范围</h2>
+      <p className="g-settings-intro">
+        控制作品详情里的相机、镜头与曝光参数。隐藏后每件作品都显示「作者未公开拍摄参数」，
+        单张作品的开关无法把它重新打开。
+      </p>
+      {formError && <p className="g-auth-error" role="alert">{formError}</p>}
+      <fieldset className="g-settings-fieldset">
+        <legend>默认范围</legend>
+        <div className="g-exif-visibility-options">
+          {EXIF_VISIBILITY_OPTIONS.map((option) => (
+            <label
+              key={option.value}
+              className="g-exif-visibility-option"
+              data-checked={visibility === option.value}
+            >
+              <input
+                type="radio"
+                name="exif-visibility"
+                value={option.value}
+                checked={visibility === option.value}
+                onChange={() => setVisibility(option.value)}
+              />
+              <span>
+                <strong>{option.label}</strong>
+                <small>{option.description}</small>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <Button onClick={() => void submit()} loading={save.isPending} disabled={visibility === current}>
+        保存拍摄参数设置
+      </Button>
     </section>
   )
 }

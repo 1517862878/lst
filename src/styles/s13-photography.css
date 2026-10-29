@@ -1,0 +1,384 @@
+/*
+ * 摄影专业化（8.4a）· 器材 / 地点 / 季节 / 拍摄参数隐私 / 主页代表作
+ * ────────────────────────────────────────────────────────
+ * 全部用既有令牌（--g-surface / --g-line / --g-space-*），不引入新颜色，
+ * 圆角保持 0，阴影保持硬阴影：这里是像素风，不是普通卡片风。
+ * 390px 约束：所有网格都从 minmax(0, 1fr) 起步并允许换行，卡片内文字
+ * 用 overflow-wrap 兜底，任何一格都不会把页面顶出横向滚动条。
+ */
+
+/* ── 页头次级导航：器材 / 地点 ─────────────────────────────
+   主导航固定 8 项不动（挤进去会把「作品墙/分类/周榜」推到换行），
+   新增的专业入口挂在页头下沿一条窄条里，桌面端一行、移动端折行。 */
+.g-subnav {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-3);
+  flex-wrap: wrap;
+  padding: var(--g-space-2) var(--g-space-4);
+  border-bottom: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+}
+
+.g-subnav-label {
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-2);
+  letter-spacing: 0.08em;
+}
+
+.g-subnav-link {
+  font-size: var(--g-text-sm);
+  color: var(--g-ink-2);
+  padding: 2px var(--g-space-2);
+  border: var(--g-border) solid transparent;
+  text-decoration: none;
+}
+
+.g-subnav-link:hover,
+.g-subnav-link:focus-visible {
+  color: var(--g-ink);
+  border-color: var(--g-line);
+  background: var(--g-surface-3);
+}
+
+.g-subnav-link-active {
+  color: var(--g-brand);
+  border-color: var(--g-brand);
+}
+
+/* ── 器材 / 地点总览 ─────────────────────────────────── */
+.g-gear-section {
+  margin-top: var(--g-space-5);
+}
+
+.g-gear-section-head {
+  margin-bottom: var(--g-space-3);
+}
+
+.g-gear-section-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: var(--g-space-2);
+  vertical-align: -2px;
+  color: var(--g-brand);
+}
+
+.g-gear-section-desc {
+  margin: var(--g-space-1) 0 0;
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-2);
+}
+
+/* auto-fill + minmax(0, …)：格子最小 0，长器材名只会内部换行，不会撑破容器 */
+.g-gear-grid,
+.g-place-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: var(--g-space-3);
+}
+
+.g-gear-card,
+.g-place-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--g-space-3);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  color: var(--g-ink);
+  text-decoration: none;
+  box-shadow: var(--g-shadow-hard, 3px 3px 0 var(--g-line));
+}
+
+.g-gear-card:hover,
+.g-gear-card:focus-visible,
+.g-place-card:hover,
+.g-place-card:focus-visible {
+  background: var(--g-surface-2);
+  border-color: var(--g-brand);
+}
+
+.g-gear-label,
+.g-place-label {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-1);
+  font-size: var(--g-text-sm);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.g-gear-meta,
+.g-place-date {
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-2);
+  overflow-wrap: anywhere;
+}
+
+.g-place-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--g-brand);
+  flex: none;
+}
+
+/* ── 季节 chips（作品墙） ─────────────────────────────── */
+.g-season-chips {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-2);
+  flex-wrap: wrap;
+  margin: var(--g-space-3) 0 var(--g-space-2);
+}
+
+.g-season-count {
+  margin-left: var(--g-space-1);
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-2);
+}
+
+/* ── 通用提示行（筛选范围 / 地点精度） ───────────────── */
+.g-photography-note {
+  margin: var(--g-space-2) 0 var(--g-space-3);
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-2);
+}
+
+.g-photography-feed {
+  min-width: 0;
+}
+
+/* ── 拍摄参数：隐藏态与器材链接 ───────────────────────── */
+.g-exif-hidden {
+  margin: var(--g-space-3) 0;
+  padding: var(--g-space-2) var(--g-space-3);
+  border: var(--g-border) dashed var(--g-line);
+  background: var(--g-surface-2);
+  font-size: var(--g-text-sm);
+  color: var(--g-ink-2);
+}
+
+.g-exif-link,
+.g-work-location-link {
+  color: var(--g-brand);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.g-exif-link:hover,
+.g-exif-link:focus-visible,
+.g-work-location-link:hover,
+.g-work-location-link:focus-visible {
+  color: var(--g-ink);
+}
+
+/* ── 拍摄参数公开范围（设置页单选项） ───────────────────
+   radio 用原生控件：方向键切换、读屏播报都是浏览器给的，不自己造。 */
+.g-exif-visibility-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: var(--g-space-2);
+}
+
+.g-exif-visibility-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--g-space-2);
+  padding: var(--g-space-2) var(--g-space-3);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+  cursor: pointer;
+}
+
+.g-exif-visibility-option input {
+  margin-top: 2px;
+  flex: none;
+}
+
+.g-exif-visibility-option strong {
+  display: block;
+  font-size: var(--g-text-sm);
+}
+
+.g-exif-visibility-option small {
+  display: block;
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-2);
+  overflow-wrap: anywhere;
+}
+
+.g-exif-visibility-option[data-checked='true'] {
+  border-color: var(--g-brand);
+  background: var(--g-surface-3);
+}
+
+/* ── 作品级开关（发布 / 编辑） ───────────────────────── */
+.g-exif-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--g-space-2);
+  padding: var(--g-space-2) var(--g-space-3);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+  font-size: var(--g-text-sm);
+}
+
+.g-exif-switch input {
+  margin-top: 2px;
+  flex: none;
+}
+
+.g-exif-switch small {
+  display: block;
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-2);
+}
+
+/* ── 主页代表作：置顶展示 + 选择器 ───────────────────── */
+.g-pinned-block {
+  margin: var(--g-space-4) 0;
+  padding: var(--g-space-3);
+  border: var(--g-border) solid var(--g-brand);
+  background: var(--g-surface-2);
+}
+
+.g-pinned-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--g-space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--g-space-2);
+}
+
+.g-pinned-title {
+  margin: 0;
+  font-size: var(--g-text-md);
+  color: var(--g-ink);
+}
+
+.g-pinned-sub {
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-2);
+}
+
+.g-pinned-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+  gap: var(--g-space-3);
+}
+
+.g-pinned-item {
+  position: relative;
+  min-width: 0;
+}
+
+.g-pinned-order {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-bottom: var(--g-space-1);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-3);
+  font-size: var(--g-text-xs);
+  color: var(--g-ink);
+}
+
+.g-pinned-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-1);
+  min-width: 0;
+  color: var(--g-ink);
+  text-decoration: none;
+}
+
+.g-pinned-card:hover .g-pinned-card-title,
+.g-pinned-card:focus-visible .g-pinned-card-title {
+  color: var(--g-brand);
+  text-decoration: underline;
+}
+
+.g-pinned-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-3);
+}
+
+.g-pinned-card-title {
+  font-size: var(--g-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.g-pinned-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-2);
+  flex-wrap: wrap;
+  margin: var(--g-space-3) 0;
+}
+
+.g-pinned-picker {
+  list-style: none;
+  margin: var(--g-space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.g-pinned-row {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-2);
+  flex-wrap: wrap;
+  padding: var(--g-space-2);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+}
+
+.g-pinned-row-title {
+  flex: 1 1 140px;
+  min-width: 0;
+  font-size: var(--g-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.g-pinned-row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-1);
+  flex-wrap: wrap;
+}
+
+/* 窄屏（≤ 480px）：置顶块内边距收一格，卡片单列，避免 390px 出现横向滚动 */
+@media (max-width: 480px) {
+  .g-subnav {
+    padding: var(--g-space-2) var(--g-space-3);
+    gap: var(--g-space-2);
+  }
+
+  .g-pinned-block {
+    padding: var(--g-space-2);
+  }
+
+  .g-gear-grid,
+  .g-place-grid,
+  .g-pinned-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -40,6 +40,7 @@ import { registerTagRoutes } from './tags.js'
 import { registerCollectionRoutes } from './collections.js'
 import { registerDiscoverRoutes } from './discover.js'
 import { registerStatsRoutes } from './stats.js'
+import { registerGearRoutes } from './gear.js'
 import { searchPhotos } from '../repositories/search.js'
 import { logSearch } from '../repositories/discover.js'
 import { requestIpHash } from '../lib/session.js'
@@ -103,7 +104,9 @@ export function publicLocation(
 }
 
 export function parsePhotoPatch(body: Record<string, unknown>) {
-  const allowed = new Set(['title', 'description', 'categorySlug', 'tags', 'locationName', 'license', 'status'])
+  const allowed = new Set([
+    'title', 'description', 'categorySlug', 'tags', 'locationName', 'license', 'status', 'exifHidden',
+  ])
   const unknown = Object.keys(body).filter((key) => !allowed.has(key))
   if (unknown.length > 0) throw validation('包含不可修改的作品字段', { fields: unknown })
   if (Object.keys(body).length === 0) throw validation('至少提供一个可修改字段')
@@ -139,6 +142,12 @@ export function parsePhotoPatch(body: Record<string, unknown>) {
     if (body.status !== 'removed') throw validation('status 只能用于撤回作品')
     patch.status = body.status
   }
+  // 0031：逐张隐藏拍摄参数。只认真正的布尔 —— "true"/1 一律 400，
+  // 隐私开关上「静默纠正」的代价是把用户以为藏住的东西放了出去。
+  if ('exifHidden' in body) {
+    if (typeof body.exifHidden !== 'boolean') throw validation('exifHidden 必须是布尔值')
+    patch.exifHidden = body.exifHidden
+  }
   return patch
 }
 
@@ -171,6 +180,11 @@ export async function registerRoutes(app: FastifyInstance) {
   // 创作者统计（0030）：本人作品数/互动数/粉丝数 + 单件作品数据 + 榜单通知触发
   // ==========================================================================
   await registerStatsRoutes(app)
+
+  // ==========================================================================
+  // 摄影专业化（0031）：器材 / 地点 / 季节的公开聚合
+  // ==========================================================================
+  await registerGearRoutes(app)
 
   // ==========================================================================
   // 作品

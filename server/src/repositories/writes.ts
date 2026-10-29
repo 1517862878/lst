@@ -56,6 +56,8 @@ export interface PhotoUpdateInput {
   locationName?: string
   license?: string
   status?: string
+  /** 0031：逐张隐藏拍摄参数（不影响账户级 exif_visibility 设置）。 */
+  exifHidden?: boolean
 }
 
 export async function updatePhoto(client: PoolClient, photoId: string, patch: PhotoUpdateInput) {

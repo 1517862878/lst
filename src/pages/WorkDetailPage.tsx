@@ -27,6 +27,7 @@ import { useInteractionSync } from '@/hooks/useInteractions'
 import { formatDate, relativeTime } from '@/lib/time'
 import { categoryName } from '@/domain/constants'
 import { LICENSE_DESCRIPTORS } from '@/domain/licenses'
+import { gearLabel } from '@/domain/photography'
 
 export function WorkDetailPage() {
   const { id = '' } = useParams()
@@ -65,6 +66,29 @@ export function WorkDetailPage() {
 
   const photo = photoQuery.data
   const isAuthor = session?.userId === photo.authorId
+
+  // 拍摄参数的三态与器材跳转：Make/Model 合并成一行「机身」，LensModel 单独一行「镜头」，
+  // 两者都能点进器材作品流（/gear/:kind?label=），因为它们是同一个聚合口径的两个视角。
+  const exifHidden = photo.exifHidden === true
+  const bodyLabel = gearLabel(photo.exif, 'body')
+  const lensLabel = gearLabel(photo.exif, 'lens')
+  const exifRows: Array<{ label: string; value: string; to?: string }> = []
+  for (const [key, value] of Object.entries(photo.exif ?? {})) {
+    if (key === 'Make') continue
+    if (key === 'Model') {
+      if (bodyLabel) {
+        exifRows.push({ label: '机身', value: bodyLabel, to: `/gear/body?label=${encodeURIComponent(bodyLabel)}` })
+      }
+      continue
+    }
+    if (key === 'LensModel') {
+      if (lensLabel) {
+        exifRows.push({ label: '镜头', value: lensLabel, to: `/gear/lens?label=${encodeURIComponent(lensLabel)}` })
+      }
+      continue
+    }
+    exifRows.push({ label: key, value: String(value) })
+  }
 
   async function handleWithdraw() {
     setWithdrawError('')
@@ -134,27 +158,43 @@ export function WorkDetailPage() {
 
           <TagChips tags={photo.tags} size="md" label="作品标签" className="g-work-tags" />
 
-          {photo.locationName && (
+          {photo.locationName && photo.locationPrecision !== 'hidden' && (
             <p className="g-work-location" aria-label="拍摄地点">
-              📍 {photo.locationName}
+              📍{' '}
+              <Link to={`/places/${encodeURIComponent(photo.locationName)}`} className="g-work-location-link">
+                {photo.locationName}
+              </Link>
             </p>
           )}
 
           <p className="g-work-description">{photo.description || '作者没有写心得。'}</p>
 
-          {photo.exif && (
+          {/* 三态：未公开 → 说明；公开且有值 → 表格；公开但没写 → 整块不出现（不留空表） */}
+          {exifHidden ? (
+            <p className="g-exif-hidden" role="note">
+              作者未公开拍摄参数
+            </p>
+          ) : exifRows.length > 0 ? (
             <details className="g-exif-panel">
               <summary>拍摄参数（EXIF 白名单）</summary>
               <dl className="g-exif-list">
-                {Object.entries(photo.exif).map(([k, v]) => (
-                  <div key={k} className="g-exif-row">
-                    <dt>{k}</dt>
-                    <dd>{String(v)}</dd>
+                {exifRows.map((row) => (
+                  <div key={row.label} className="g-exif-row">
+                    <dt>{row.label}</dt>
+                    <dd>
+                      {row.to ? (
+                        <Link to={row.to} className="g-exif-link">
+                          {row.value}
+                        </Link>
+                      ) : (
+                        row.value
+                      )}
+                    </dd>
                   </div>
                 ))}
               </dl>
             </details>
-          )}
+          ) : null}
 
           <div className="g-work-actions" aria-label="互动操作">
             <LikeButton

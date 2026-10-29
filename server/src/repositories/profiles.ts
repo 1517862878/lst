@@ -1,5 +1,6 @@
 import type pg from 'pg'
 import { withRls } from '../lib/db.js'
+import { mapExifVisibility, mapPinnedSummaries, type PinnedPhotoSummary } from '../lib/mappers.js'
 
 export interface OwnProfile {
   id: string
@@ -13,6 +14,10 @@ export interface OwnProfile {
   createdAt: string
   updatedAt: string
   deletedAt: string | null
+  /** 0031：账户级拍摄参数可见性（public | hidden）。 */
+  exifVisibility: 'public' | 'hidden'
+  /** 0031：主页代表作的摘要（顺序即展示顺序）。 */
+  pinned: PinnedPhotoSummary[]
 }
 
 export interface PublicProfile {
@@ -36,6 +41,10 @@ export interface PublicProfile {
    * 前端据此把主页切换成「你已拉黑该用户」并提供就地解除。
    */
   isBlocked: boolean
+  /** 0031：作者账户级 EXIF 可见性，前端用它在主页给「无拍摄参数」一句解释。 */
+  exifVisibility: 'public' | 'hidden'
+  /** 0031：主页代表作摘要（只含 id/title/thumbKey，不含作者 UUID）。 */
+  pinned: PinnedPhotoSummary[]
 }
 
 function iso(value: unknown): string {
@@ -59,6 +68,8 @@ export async function getOwnProfile(userId: string): Promise<OwnProfile | null> 
       created_at: unknown
       updated_at: unknown
       deleted_at: unknown
+      exif_visibility: string
+      pinned: unknown
     }>('select * from public.api_get_own_profile()')
     const row = r.rows[0]
     if (!row) return null
@@ -74,6 +85,8 @@ export async function getOwnProfile(userId: string): Promise<OwnProfile | null> 
       createdAt: iso(row.created_at),
       updatedAt: iso(row.updated_at),
       deletedAt: row.deleted_at == null ? null : iso(row.deleted_at),
+      exifVisibility: mapExifVisibility(row.exif_visibility),
+      pinned: mapPinnedSummaries(row.pinned),
     }
   })
 }
@@ -99,6 +112,8 @@ export async function getProfileByUsername(
       created_at: unknown
       is_owner: boolean
       is_blocked: boolean
+      exif_visibility: string
+      pinned: unknown
     }>
     try {
       r = await c.query(
@@ -129,6 +144,8 @@ export async function getProfileByUsername(
       createdAt: iso(row.created_at),
       isOwner: row.is_owner,
       isBlocked: row.is_blocked === true,
+      exifVisibility: mapExifVisibility(row.exif_visibility),
+      pinned: mapPinnedSummaries(row.pinned),
     }
   })
 }

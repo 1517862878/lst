@@ -10,6 +10,7 @@
 @import './s10-tags.css';
 @import './s11-collections.css';
 @import './s12-discover.css';
+@import './s13-photography.css';
 @import './pixel-theme.css';
 @import 'tailwindcss';
 
@@ -27,9 +28,13 @@
  * 取 88px = 页头 64px + 呼吸量 24px，两块都取自间距令牌，
  * 4 倍数体系不变，日后调 --g-space-* 会跟着走。
  * 只声明在 html 上：滚动容器是根元素，无需逐元素 scroll-margin。
+ *
+ * 2026-10（8.4a）：页头下沿新增「按器材 / 地点」次级导航条（.g-subnav，约 32px，
+ * 与页头一起 sticky），所以再补一格 --g-space-6；否则从目录或页内锚点跳转时，
+ * 目标标题会被次级导航压住。
  */
 html {
-  scroll-padding-top: calc(var(--g-space-8) + var(--g-space-5));
+  scroll-padding-top: calc(var(--g-space-8) + var(--g-space-5) + var(--g-space-6));
 }
 
 @layer components {

@@ -35,6 +35,17 @@ const NAV_ITEMS: NavItem[] = [
   { label: '通知', to: '/notifications' },
 ]
 
+/**
+ * 次级导航（8.4a）：摄影专业化的浏览入口。
+ *
+ * 不塞进 NAV_ITEMS —— 主导航已有 8 项，再加会把「作品墙/分类」挤到第二行；
+ * 器材与地点是「作品墙的下钻维度」，语义上属于同一条浏览动线，所以单独一行。
+ */
+const SUBNAV_ITEMS: NavItem[] = [
+  { label: '器材', to: '/gear' },
+  { label: '地点', to: '/places' },
+]
+
 export function Header({ sessionUser, role = null }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
@@ -181,9 +192,21 @@ export function Header({ sessionUser, role = null }: HeaderProps) {
           />
         </div>
       </div>
+      <nav className="g-subnav" aria-label="浏览维度">
+        <span className="g-subnav-label" aria-hidden="true">按器材/地点</span>
+        {SUBNAV_ITEMS.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) => cn('g-subnav-link', isActive && 'g-subnav-link-active')}
+          >
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
       {menuOpen && (
         <nav id="g-mobile-nav" className="g-mobile-nav" aria-label="移动端导航">
-          {NAV_ITEMS.map((item) => (
+          {[...NAV_ITEMS, ...SUBNAV_ITEMS].map((item) => (
             <NavLink key={item.to} to={item.to} end={item.match ?? false} className={({ isActive }) => cn('g-nav-link', isActive && 'g-nav-link-active')} onClick={() => setMenuOpen(false)}>
               {item.label}
             </NavLink>

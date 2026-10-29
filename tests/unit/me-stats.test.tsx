@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
+import { ToastProvider } from '@/components/ui/ToastProvider'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CreatorStats, Photo, PhotoStats, Session } from '@/domain/types'
 import { MePage } from '@/pages/MePage'
@@ -31,6 +32,8 @@ vi.mock('@/data', () => ({
 
 vi.mock('@/hooks/useSession', () => ({
   useSession: () => ({ data: mocks.session.value }),
+  // 8.4a：/me 多了「主页代表作」选择器，它按 username 读资料拿 pinnedPhotoIds
+  useProfileByUsername: () => ({ data: undefined, isLoading: false, error: null, refetch: () => undefined }),
 }))
 
 const session: Session = {
@@ -126,9 +129,11 @@ function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/me']}>
-        <MePage />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={['/me']}>
+          <MePage />
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   )
 }

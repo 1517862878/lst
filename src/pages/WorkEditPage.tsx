@@ -147,6 +147,26 @@ function WorkEditForm({ photo }: { photo: NonNullable<ReturnType<typeof usePhoto
           maxLength={80}
           {...(errors.locationName ? { error: errors.locationName } : {})}
         />
+        {/* 逐张开关：默认值来自作品当前状态（发布时按账户设置初始化），
+            作者可以只对这张关掉拍摄参数，不影响其他作品 */}
+        <div className="g-field">
+          <span className="g-label" id="work-edit-exif-label">拍摄参数</span>
+          <label className="g-exif-switch" htmlFor="work-edit-exif-hidden">
+            <input
+              id="work-edit-exif-hidden"
+              type="checkbox"
+              checked={!values.exifHidden}
+              onChange={(event) => setField('exifHidden', !event.target.checked)}
+              aria-describedby="work-edit-exif-hint"
+            />
+            <span>
+              <strong>公开这张作品的拍摄参数</strong>
+              <small id="work-edit-exif-hint">
+                关闭后详情页显示「作者未公开拍摄参数」；账户设置为隐藏时，这里打开也不生效。
+              </small>
+            </span>
+          </label>
+        </div>
         <div className="g-field">
           <label className="g-label" htmlFor="work-edit-license">作品许可</label>
           <select

@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Tabs, TabsPrimitive } from '@/components/ui/Tabs'
 import { AppError, ErrorCodes } from '@/data/contracts'
 import { PhotoGrid } from '@/features/photos/PhotoGrid'
+import { PinnedShowcase } from '@/features/profiles/PinnedShowcase'
 import { FollowButton } from '@/features/social/FollowButton'
 import { FollowStats } from '@/features/social/FollowStats'
 import { ProfileMoreMenu } from '@/features/social/ProfileMoreMenu'
@@ -18,7 +19,7 @@ import { usePhotoImage } from '@/hooks/usePhotoImage'
 import { usePhotosByUsername } from '@/hooks/usePhotos'
 import { useProfileByUsername, useSession } from '@/hooks/useSession'
 import { accountImageUrl } from '@/lib/account'
-import type { CollectionSummary, CollectionVisibility } from '@/domain/types'
+import type { CollectionSummary, CollectionVisibility, PinnedPhoto } from '@/domain/types'
 
 type ProfileTab = 'works' | 'likes' | 'favorites' | 'album'
 
@@ -28,6 +29,7 @@ type ExtendedProfile = NonNullable<ReturnType<typeof useProfileByUsername>['data
   showFavorites?: boolean
   discoverable?: boolean
   isOwner?: boolean
+  pinned?: PinnedPhoto[]
 }
 
 export function ProfilePage() {
@@ -127,6 +129,8 @@ export function ProfilePage() {
           {socialRow}
         </div>
       </header>
+      {/* 代表作置顶在作品流之上；未设置时整块不渲染（组件内部返回 null） */}
+      <PinnedShowcase pinned={profile.pinned} />
       <Tabs items={tabs} value={tab} onValueChange={(value) => setTab(value as ProfileTab)}>
         <TabsPrimitive.Content value="works" className="g-tabs-content"><PhotoGrid photos={worksQuery.data ?? []} loading={worksQuery.isLoading} error={worksQuery.error} onRetry={() => void worksQuery.refetch()} emptyTitle="还没有作品" {...(isOwner ? { emptyActions: [{ label: '去发布', to: '/publish' }] } : {})} /></TabsPrimitive.Content>
         <TabsPrimitive.Content value="likes" className="g-tabs-content"><PhotoGrid photos={likesQuery.data ?? []} loading={likesQuery.isLoading} error={likesQuery.error} onRetry={() => void likesQuery.refetch()} emptyTitle="还没有喜欢的作品" /></TabsPrimitive.Content>

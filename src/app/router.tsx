@@ -65,6 +65,11 @@ const LearnHomePage = lazyNamed(() => import('@/pages/LearnHomePage'), 'LearnHom
 const LearnTopicPage = lazyNamed(() => import('@/pages/LearnTopicPage'), 'LearnTopicPage')
 const ArticlePage = lazyNamed(() => import('@/pages/ArticlePage'), 'ArticlePage')
 const FeedPage = lazyNamed(() => import('@/pages/FeedPage'), 'FeedPage')
+// 摄影专业化（8.4a）：器材与地点各两页，独立分包（点进来的人才会付这份体积）
+const GearPage = lazyNamed(() => import('@/pages/GearPage'), 'GearPage')
+const GearDetailPage = lazyNamed(() => import('@/pages/GearDetailPage'), 'GearDetailPage')
+const PlacesPage = lazyNamed(() => import('@/pages/PlacesPage'), 'PlacesPage')
+const PlaceDetailPage = lazyNamed(() => import('@/pages/PlaceDetailPage'), 'PlaceDetailPage')
 const NotificationsPage = lazyNamed(() => import('@/pages/NotificationsPage'), 'NotificationsPage')
 
 // 法律页七合一打包（内容静态且相关，一次加载）
@@ -109,6 +114,11 @@ export const router = createRouter(
       children: [
         { index: true, element: <HomePage /> },
         { path: 'gallery', element: <GalleryPage /> },
+        // 器材 / 地点：次级浏览入口，不进主导航（主导航保持 5 项不变）
+        { path: 'gear', element: <GearPage /> },
+        { path: 'gear/:kind', element: <GearDetailPage /> },
+        { path: 'places', element: <PlacesPage /> },
+        { path: 'places/:label', element: <PlaceDetailPage /> },
         { path: 'works/:id', element: <WorkDetailPage /> },
         { path: 'works/:id/edit', element: <WorkEditPage /> },
         { path: 'categories', element: <CategoriesPage /> },

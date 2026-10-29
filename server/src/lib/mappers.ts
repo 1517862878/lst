@@ -95,6 +95,34 @@ export function mapPublicProfile(row: ProfileRow) {
   }
 }
 
+/** 0031：主页代表作摘要（只含 id/title/thumbKey，不含作者 UUID）。 */
+export interface PinnedPhotoSummary {
+  id: string
+  title: string
+  thumbKey: string
+}
+
+/**
+ * 把数据库返回的 jsonb 代表作摘要收敛成契约形状。
+ *
+ * 为什么逐字段挑而不是直接透传：jsonb 是数据库侧的产物，将来那边加字段不该
+ * 自动出现在公开载荷里（默认拒绝，与 mapPublicProfile 同一原则）。
+ */
+export function mapPinnedSummaries(value: unknown): PinnedPhotoSummary[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    if (typeof entry !== 'object' || entry === null) return []
+    const row = entry as Record<string, unknown>
+    if (typeof row.id !== 'string' || typeof row.title !== 'string') return []
+    return [{ id: row.id, title: row.title, thumbKey: String(row.thumbKey ?? '') }]
+  })
+}
+
+/** 0031：账户级拍摄参数可见性；未知值按 public 处理（与数据库默认值一致）。 */
+export function mapExifVisibility(value: unknown): 'public' | 'hidden' {
+  return value === 'hidden' ? 'hidden' : 'public'
+}
+
 export interface PhotoRow {
   id: string
   author_id: string
@@ -126,6 +154,10 @@ export interface PhotoRow {
   deleted_at: unknown
   /** 0029 起：编辑精选时间戳。可选，旧的行/测试构造对象可以没有这一列。 */
   featured_at?: unknown
+  /** 0031 起：逐张隐藏拍摄参数。可选，旧的行/测试构造对象可以没有这一列。 */
+  exif_hidden?: boolean
+  /** 0031：作者账户级拍摄参数可见性（由 join profiles 带出，可选）。 */
+  author_exif_visibility?: string | null
 }
 
 /** 对应前端 Photo */
@@ -152,6 +184,12 @@ function publicExif(value: unknown): Record<string, unknown> | null {
 export function mapPhoto(row: PhotoRow) {
   const exactLocation = row.location_precision === 'exact'
   const hiddenLocation = row.location_precision === 'hidden'
+  // 0031：隐藏拍摄参数时 exif 一律返回空对象（不是 null）——
+  // 契约 §3 规定 exifHidden=true 时 exif 为 {}，前端不必处理第三种形态。
+  // 有效可见性 = 逐张 exif_hidden OR 作者账户级 exif_visibility='hidden'。
+  // 器材/地点函数在 SQL 里已经算好有效值，但 /api/photos 直接 join profiles
+  // 取原始列，所以这里两种来源都要认，避免同一条作品在不同端点结论不同。
+  const exifHidden = row.exif_hidden === true || row.author_exif_visibility === 'hidden'
   return {
     id: row.id,
     authorId: row.author_id,
@@ -164,7 +202,8 @@ export function mapPhoto(row: PhotoRow) {
     locationLng: exactLocation ? numOrNull(row.location_lng) : null,
     locationPrecision: row.location_precision,
     shotAt: iso(row.shot_at),
-    exif: publicExif(row.exif),
+    exif: exifHidden ? {} : publicExif(row.exif),
+    exifHidden,
     imageKey: row.image_key,
     thumbKey: row.thumb_key,
     width: row.width,

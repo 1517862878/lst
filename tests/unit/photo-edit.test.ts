@@ -42,6 +42,7 @@ describe('作品编辑表单', () => {
       tags: '晨光 山野',
       locationName: '杭州',
       license: 'cc_by',
+      exifHidden: false,
     })
   })
 
@@ -75,6 +76,7 @@ describe('作品编辑表单', () => {
       tags: ['晨光', '人像'],
       locationName: '上海',
       license: 'cc_by_nc',
+      exifHidden: false,
     })
   })
 })

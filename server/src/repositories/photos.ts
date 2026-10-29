@@ -176,7 +176,8 @@ export async function listPhotos(
     select p.*,
              a.username as author_username,
              a.display_name as author_display_name,
-             a.avatar_key as author_avatar_key
+             a.avatar_key as author_avatar_key,
+            a.exif_visibility as author_exif_visibility
       from public.photos p
       left join public.profiles a on a.id = p.author_id
      where ${baseWhereSql}
@@ -220,7 +221,8 @@ export async function getPhoto(client: PoolClient, id: string) {
     `select p.*,
             a.username as author_username,
             a.display_name as author_display_name,
-            a.avatar_key as author_avatar_key
+            a.avatar_key as author_avatar_key,
+            a.exif_visibility as author_exif_visibility
        from public.photos p
        left join public.profiles a on a.id = p.author_id
       where p.id = $1`,
@@ -237,7 +239,8 @@ export async function relatedPhotos(client: PoolClient, id: string, limit = 6) {
     `select p.*,
             a.username as author_username,
             a.display_name as author_display_name,
-            a.avatar_key as author_avatar_key
+            a.avatar_key as author_avatar_key,
+            a.exif_visibility as author_exif_visibility
        from public.photos p
        left join public.profiles a on a.id = p.author_id
       where p.category_slug = (select category_slug from public.photos where id = $1)

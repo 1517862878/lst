@@ -24,6 +24,10 @@ import { mockTagRepository } from './mock/repositories/tags'
 import { mockCollectionRepository } from './mock/repositories/collections'
 import { mockDiscoverRepository } from './mock/repositories/discover'
 import { mockStatsRepository } from './mock/repositories/stats'
+import { mockGearRepository } from './mock/repositories/gear'
+import { mockPlaceRepository } from './mock/repositories/places'
+import { mockSeasonRepository } from './mock/repositories/seasons'
+import { mockProfileRepository } from './mock/repositories/profile'
 
 import { apiPhotoRepository } from './api/photos'
 import { apiCategoryRepository } from './api/categories'
@@ -40,6 +44,10 @@ import { apiTagRepository } from './api/tags'
 import { apiCollectionRepository } from './api/collections'
 import { apiDiscoverRepository } from './api/discover'
 import { apiStatsRepository } from './api/stats'
+import { apiGearRepository } from './api/gear'
+import { apiPlaceRepository } from './api/places'
+import { apiSeasonRepository } from './api/seasons'
+import { apiProfileRepository } from './api/profile'
 
 let cached: Repositories | null = null
 
@@ -69,6 +77,10 @@ export function createRepositories(): Repositories {
       collections: apiCollectionRepository,
       discover: apiDiscoverRepository,
       stats: apiStatsRepository,
+      gear: apiGearRepository,
+      places: apiPlaceRepository,
+      seasons: apiSeasonRepository,
+      profile: apiProfileRepository,
     }
   } else {
     cached = {
@@ -87,6 +99,10 @@ export function createRepositories(): Repositories {
       collections: mockCollectionRepository,
       discover: mockDiscoverRepository,
       stats: mockStatsRepository,
+      gear: mockGearRepository,
+      places: mockPlaceRepository,
+      seasons: mockSeasonRepository,
+      profile: mockProfileRepository,
     }
   }
 

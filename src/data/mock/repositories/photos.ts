@@ -3,9 +3,30 @@
  * 契约：PhotoRepository（data/contracts）；行为与 supabase 实现一致，契约测试同跑。
  */
 import { AppError, ErrorCodes, type Page, type PhotoCreateInput, type PhotoListQuery, type PhotoPatch, type PhotoRepository } from '@/data/contracts'
-import type { Photo } from '@/domain/types'
+import type { Photo, Profile } from '@/domain/types'
 import { findProfileByUsername } from '@/domain/social'
+import { exifVisibilityOf, withExifPrivacyAll } from '@/domain/photography'
 import { getDb, bumpDataVersion } from '../db'
+
+/**
+ * 读取时的拍摄参数掩码（8.4a）。
+ *
+ * 与后端投影同口径：隐藏时 `exif` 变 `{}` 且带 `exifHidden: true`，
+ * 页面据此显示「作者未公开拍摄参数」。放在数据层而不是页面里，是因为
+ * 聚合（器材）、列表（卡片）与详情（EXIF 表）都要用同一份判定。
+ */
+async function applyExifPrivacy(photos: Photo[]): Promise<Photo[]> {
+  const db = await getDb()
+  let profiles: Profile[] = []
+  try {
+    const rows = await db.getAll('profiles')
+    if (Array.isArray(rows)) profiles = rows
+  } catch {
+    profiles = []
+  }
+  const visibility = new Map(profiles.map((profile) => [profile.id, exifVisibilityOf(profile)]))
+  return withExifPrivacyAll(photos, (authorId) => visibility.get(authorId))
+}
 
 /** 游标编解码：base64url（photo.id 与 sort 键组成，防伪造直接按游标翻页即可） */
 function encodeCursor(key: string): string {
@@ -53,7 +74,7 @@ export const mockPhotoRepository: PhotoRepository = {
       else startIndex += 1
     }
 
-    const items = photos.slice(startIndex, startIndex + limit)
+    const items = await applyExifPrivacy(photos.slice(startIndex, startIndex + limit))
     const hasMore = startIndex + limit < photos.length
     const nextCursor = hasMore ? encodeCursor(items[items.length - 1]!.id) : null
 
@@ -65,7 +86,7 @@ export const mockPhotoRepository: PhotoRepository = {
     const photo = await db.get('photos', id)
     // 与真实 API/RLS 保持一致：软撤回记录仅供内部审计，公开详情按不存在处理。
     if (!photo || photo.status !== 'published') throw new AppError(ErrorCodes.NOT_FOUND, `作品不存在：${id}`)
-    return photo
+    return (await applyExifPrivacy([photo]))[0]!
   },
 
   async create(input: PhotoCreateInput, id = crypto.randomUUID()): Promise<Photo> {
@@ -126,6 +147,6 @@ export const mockPhotoRepository: PhotoRepository = {
       (p) => p.status === 'published' && p.categorySlug === photo.categorySlug && p.id !== id,
     )
     all.sort((a, b) => b.likeCount - a.likeCount)
-    return all.slice(0, limit)
+    return applyExifPrivacy(all.slice(0, limit))
   },
 }

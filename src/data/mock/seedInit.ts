@@ -17,8 +17,12 @@ import { buildSeedData } from './seed'
  *
  * 切片 3：8.2 治理（reports / sanctions / appeals / moderationActions）。
  * 同样只补播这四张表，不碰作品与互动。
+ *
+ * 切片 4：8.3d 通知语义（每条通知补 meta：回复 / 周榜）。老库里的通知是
+ * 没有 meta 的旧剧本，重播一遍通知表即可（id 确定，put 覆盖；会把这 7 条
+ * 的已读状态重置回种子值 —— 演示数据本来就是给人随手点的，可以接受）。
  */
-const SEED_SLICE = 3
+const SEED_SLICE = 4
 
 let seeding: Promise<void> | null = null
 
@@ -83,6 +87,13 @@ export async function ensureSeeded(): Promise<void> {
       for (const f of seed.follows) await tx.objectStore('follows').put(f)
       for (const n of seed.notifications) await tx.objectStore('notifications').put(n)
       await tx.done
+    }
+
+    // 8.3d 通知切片：通知表带上 meta（回复 / 周榜），只重播通知，不动其它表
+    if ((slice ?? 1) < 4) {
+      const notifyTx = db.transaction(['notifications'], 'readwrite')
+      for (const n of seed.notifications) await notifyTx.objectStore('notifications').put(n)
+      await notifyTx.done
     }
 
     // 8.2 治理切片：四张表全部按确定 id 写入，重复跑只会覆盖同一条演示记录

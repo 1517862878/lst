@@ -391,6 +391,21 @@ export async function listNotifications(
   )
   const hasMore = rows.length > limit
   const pageRows = hasMore ? rows.slice(0, limit) : rows
+
+  // 0030：meta（榜单名次、回复标记）不在 api_list_notifications 的返回列里，
+  // 用一次批量查询补上 —— 不是 N+1，也不必重写 0022 那段长函数。
+  if (pageRows.length > 0) {
+    const ids = pageRows.map((row) => row.id)
+    const metaRes = await client.query<{ id: string; meta: unknown }>(
+      'select id, meta from public.api_notification_meta($1::uuid[])',
+      [ids],
+    )
+    const metaById = new Map(metaRes.rows.map((row) => [row.id, row.meta]))
+    for (const row of pageRows) {
+      ;(row as NotificationRow & { meta?: unknown }).meta = metaById.get(row.id) ?? null
+    }
+  }
+
   const last = pageRows[pageRows.length - 1]
   return {
     items: pageRows.map(mapNotificationRow),

@@ -284,6 +284,143 @@
   gap: var(--g-space-3);
 }
 
+/* ── 通知筛选 Tab（8.3d）──
+   role=tablist：方角描边按钮组，选中项反色。不用下划线是因为列表本身已经有
+   一条上边框，两条横线叠在一起会显得脏。 */
+.g-notification-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-bottom: var(--g-space-3);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-3);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.g-notification-tab {
+  padding: var(--g-space-2) var(--g-space-4);
+  border: 0;
+  border-right: 1px solid var(--g-line);
+  background: transparent;
+  color: var(--g-ink-2);
+  font: inherit;
+  font-size: var(--g-text-sm);
+  cursor: pointer;
+}
+
+.g-notification-tab:last-child {
+  border-right: 0;
+}
+
+.g-notification-tab:hover {
+  background: var(--g-surface-2);
+  color: var(--g-ink);
+}
+
+.g-notification-tab-active,
+.g-notification-tab-active:hover {
+  background: var(--g-brand);
+  color: var(--g-brand-ink);
+}
+
+/* ── 评论折叠组（8.3d）── */
+.g-notification-bundle-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--g-space-3);
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.g-notification-bundle-head:focus-visible {
+  outline: 2px solid var(--g-brand);
+  outline-offset: 2px;
+}
+
+/* 折叠组的标题是「N 条新评论」，比单条通知更强调一档 */
+.g-notification-bundle-head .g-notification-text {
+  font-weight: 600;
+  color: var(--g-ink);
+}
+
+.g-notification-chevron {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 4px;
+  color: var(--g-ink-2);
+  transition: transform 120ms ease;
+}
+
+.g-notification-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+/* 部分已读的未读点：实心圆点 + 文字，颜色不是唯一通道 */
+.g-notification-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--g-brand);
+}
+
+.g-notification-dot[data-state='partial'] {
+  background: var(--g-ink-2);
+}
+
+.g-notification-bundle-photo {
+  color: var(--g-ink);
+}
+
+.g-notification-bundle-items {
+  list-style: none;
+  margin: var(--g-space-3) 0 0;
+  padding: 0 0 0 calc(48px + var(--g-space-3));
+  display: grid;
+  gap: var(--g-space-3);
+}
+
+.g-notification-bundle-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--g-space-2);
+  min-width: 0;
+}
+
+.g-notification-bundle-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.g-notification-bundle-link {
+  color: var(--g-brand);
+  font-size: var(--g-text-sm);
+  text-decoration: underline;
+  width: fit-content;
+}
+
+.g-notification-system-icon-sm {
+  width: 32px;
+  height: 32px;
+}
+
+.g-notification-system-icon-sm svg {
+  width: 16px;
+  height: 16px;
+}
+
 /* ── 拉黑菜单 / 黑名单设置 ── */
 .g-profile-more { position: relative; }
 .g-profile-more-popover { position: absolute; z-index: 20; top: calc(100% + 8px); right: 0; width: min(320px, calc(100vw - 32px)); padding: var(--g-space-2); border: var(--g-border) solid var(--g-line); background: var(--g-surface); box-shadow: var(--g-shadow-md); }

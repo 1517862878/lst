@@ -617,8 +617,7 @@ html {
 .g-me-stats>div { display: flex; flex-direction: column; align-items: center; padding: var(--g-space-4); background: var(--g-surface); border: var(--g-border) solid var(--g-line); }
 .g-me-stats strong { font-size: var(--g-text-2xl); }
 .g-me-stats span,.g-session-row small { color: var(--g-ink-2); }
-.g-me-section,.g-settings-section { margin-top: var(--g-space-6); }
-.g-settings-section { padding-top: var(--g-space-4); border-top: 1px solid var(--g-line); }
+.g-me-section,.g-settings-section { margin-top: var(--g-space-6); }.g-settings-section { padding-top: var(--g-space-4); border-top: 1px solid var(--g-line); }
 .g-settings-layout { display: grid; grid-template-columns: minmax(170px,220px) minmax(0,1fr); align-items: start; gap: var(--g-space-6); }
 .g-settings-nav { position: sticky; top: 92px; display: flex; flex-direction: column; border: var(--g-border) solid var(--g-line); background: var(--g-surface); }
 .g-settings-nav-link { padding: 12px; color: var(--g-ink-2); text-decoration: none; border-bottom: 1px solid var(--g-line); }
@@ -643,4 +642,48 @@ html {
 .g-profile-boundary { margin-block: var(--g-space-8); padding: var(--g-space-6); text-align: center; border: var(--g-border) solid var(--g-line); background: var(--g-surface); }
 .g-profile-boundary h1,.g-profile-boundary h2 { margin-top: 0; }
 @media (max-width: 700px) { .g-settings-layout { grid-template-columns: 1fr; gap: var(--g-space-4); } .g-settings-nav { position: static; flex-direction: row; overflow-x: auto; } .g-settings-nav-link { flex: 1 0 auto; text-align: center; border-bottom: 0; border-right: 1px solid var(--g-line); } .g-settings-link-row { grid-template-columns: 1fr; } }
-@media (max-width: 560px) { .g-account-popover { position: fixed; top: 72px; right: 12px; left: 12px; width: auto; } .g-me-stats { grid-template-columns: 1fr; } .g-dashboard-heading { align-items: flex-start; } .g-profile-header { align-items: flex-start; } .g-session-row { align-items: flex-start; flex-direction: column; } }
+
+/* ── /me「数据」区（8.3d）──────────────────────────────────────────────
+   九格统计卡：数字用 tabular-nums 等宽，千分位由 lib/format.ts 保证，
+   位数变化时卡片不跟着抖。窄屏 3 列 → 2 列，390px 也放得下。 */
+.g-me-stat-cards { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: var(--g-space-3); margin: var(--g-space-3) 0 0; padding: 0; }
+.g-me-stat-cards>li { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding: var(--g-space-3) var(--g-space-2); background: var(--g-surface); border: var(--g-border) solid var(--g-line); }
+.g-me-stat-value { font-size: var(--g-text-lg); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.g-me-stat-label { color: var(--g-ink-2); font-size: var(--g-text-sm); }
+.g-me-stats-degraded { display: flex; flex-wrap: wrap; align-items: center; gap: var(--g-space-3); margin: var(--g-space-3) 0 0; padding: var(--g-space-3) var(--g-space-4); border: 1px dashed var(--g-line); background: var(--g-surface-2); color: var(--g-ink-2); }
+.g-me-stats-empty,.g-photo-stats-note { margin: var(--g-space-3) 0 0; color: var(--g-ink-2); font-size: var(--g-text-sm); }
+.g-photo-stats-skeleton { display: grid; gap: var(--g-space-2); margin-top: var(--g-space-3); }
+
+/* 作品数据表。外层允许横向滚动只是兜底：真正的窄屏适配在下面把表格拆成卡片，
+   所以 390px 下不会出现需要左右拖的表格。 */
+.g-photo-stats-scroll { margin-top: var(--g-space-3); border: var(--g-border) solid var(--g-line); background: var(--g-surface); overflow-x: auto; }
+.g-photo-stats { width: 100%; border-collapse: collapse; font-size: var(--g-text-sm); }
+.g-photo-stats th,.g-photo-stats td { padding: var(--g-space-2) var(--g-space-3); border-bottom: 1px solid var(--g-line); text-align: left; vertical-align: top; }
+.g-photo-stats thead th { background: var(--g-surface-3); color: var(--g-ink-2); font-weight: 600; white-space: nowrap; }
+.g-photo-stats tbody tr:last-child th,.g-photo-stats tbody tr:last-child td { border-bottom: 0; }
+.g-photo-stats-title { font-weight: 400; min-width: 0; overflow-wrap: anywhere; }
+.g-photo-stats-title a { color: var(--g-ink); }
+.g-photo-stats-featured { margin-left: var(--g-space-2); padding: 0 6px; border: 1px solid var(--g-brand); background: var(--g-surface-3); color: var(--g-brand); font-size: var(--g-text-xs); white-space: nowrap; }
+.g-photo-stats-num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.g-photo-stats thead th:nth-child(n+4) { text-align: right; }
+
+@media (max-width: 560px) {
+  .g-account-popover { position: fixed; top: 72px; right: 12px; left: 12px; width: auto; }
+  .g-me-stats { grid-template-columns: 1fr; }
+  .g-dashboard-heading { align-items: flex-start; }
+  .g-profile-header { align-items: flex-start; }
+  .g-session-row { align-items: flex-start; flex-direction: column; }
+
+  /* 表格 → 一条一卡：表头隐藏，每个单元格用 data-label 自带列名。
+     这样一行作品的全部数字在一屏里纵向读完，不需要横向滚动。 */
+  .g-photo-stats-scroll { overflow-x: visible; border: 0; background: transparent; }
+  .g-photo-stats { display: block; }
+  .g-photo-stats thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .g-photo-stats tbody { display: grid; gap: var(--g-space-3); }
+  .g-photo-stats tr { display: grid; gap: var(--g-space-1); padding: var(--g-space-3); border: var(--g-border) solid var(--g-line); background: var(--g-surface); }
+  .g-photo-stats th,.g-photo-stats td { display: flex; justify-content: space-between; gap: var(--g-space-3); padding: 0; border-bottom: 0; text-align: left; }
+  .g-photo-stats td::before { content: attr(data-label); color: var(--g-ink-2); }
+  .g-photo-stats-num { text-align: right; }
+  .g-photo-stats thead th:nth-child(n+4) { text-align: left; }
+  .g-photo-stats-title { display: block; padding-bottom: var(--g-space-2); border-bottom: 1px solid var(--g-line); margin-bottom: var(--g-space-1); }
+}

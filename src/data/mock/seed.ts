@@ -10,6 +10,7 @@ import type {
   Follow,
   Interaction,
   NotificationKind,
+  NotificationMeta,
   Photo,
   Profile,
 } from '@/domain/types'
@@ -290,16 +291,43 @@ export function buildSeedData(): SeedResult {
     comments.find((c) => c.photoId === photoId && c.status === 'visible')?.id ?? null
 
   const notifications: NotificationRow[] = []
-  const NOTIFY_KINDS: NotificationKind[] = ['like', 'comment', 'follow', 'like', 'comment', 'system']
+  /**
+   * 通知剧本（8.3d 调整）：
+   *   · 第 2/3 条是**同一作品**上的两条评论 —— 通知中心会把相邻同作品的评论
+   *     折叠成「2 条新评论」，种子必须真造出这种相邻关系，否则折叠逻辑在
+   *     演示站上永远触发不了（之前两条评论落在不同作品上，等于没覆盖）；
+   *   · 其中一条带 reply 语义（回复了你的评论），用来演示新文案；
+   *   · 系统通知带 weekly_rank 语义，用来演示「《X》入选 2026-W44 周榜第 N 名」。
+   *
+   * 为什么是「剧本表」而不是继续用下标取模：折叠要求两条评论**指向同一作品且
+   * 时间相邻**，这只能显式写出来，靠 `ki % own.length` 取巧会随作品数变化而散架。
+   */
+  const NOTIFY_PLAN: ReadonlyArray<{ kind: NotificationKind; photoIndex?: number; meta?: NotificationMeta }> = [
+    { kind: 'like', photoIndex: 0 },
+    { kind: 'comment', photoIndex: 1, meta: { reply: true } },
+    { kind: 'comment', photoIndex: 1 },
+    { kind: 'follow' },
+    { kind: 'like', photoIndex: 2 },
+    { kind: 'comment', photoIndex: 3 },
+    { kind: 'system', photoIndex: 0, meta: { kind: 'weekly_rank', rank: 3, isoWeek: '2026-W44', score: 186 } },
+  ]
   profiles.slice(0, DEMO_ACCOUNTS.length).forEach((owner, oi) => {
-    const own = (photosByAuthor.get(owner.id) ?? []).slice(0, NOTIFY_KINDS.length)
+    const own = photosByAuthor.get(owner.id) ?? []
     if (own.length === 0) return
     const others = profiles.filter((p) => p.id !== owner.id)
-    NOTIFY_KINDS.forEach((kind, ki) => {
-      const photo = own[ki % own.length]!
+    NOTIFY_PLAN.forEach((plan, ki) => {
+      const { kind } = plan
+      const photo = own[(plan.photoIndex ?? ki) % own.length]!
       const actor = kind === 'system' ? null : others[(oi * 3 + ki) % others.length]!
       const createdAt = iso(now - (ki * 5 + 1) * 3600_000)
-      const isPhotoKind = kind === 'like' || kind === 'comment'
+      // 榜单通知虽然 kind='system'，但必须带 photoId —— 后端 api_notify_weekly_rank
+      // 就是按获奖作品插一条 photo_id 非空的系统通知，前端靠它取《作品名》。
+      const isPhotoKind = kind === 'like' || kind === 'comment' || plan.meta?.kind === 'weekly_rank'
+      // 回复通知要带被回复的评论 id：取该作品下一条真实评论，跳转才落得到实处。
+      // 找不到就不写这个键（exactOptionalPropertyTypes 下显式 undefined 不合法）
+      const parentCommentId = kind === 'comment' && plan.meta?.reply ? commentIdOnPhoto(photo.id) : null
+      const meta: AppNotification['meta'] =
+        plan.meta && parentCommentId ? { ...plan.meta, parentCommentId } : plan.meta ?? null
       const notification: AppNotification = {
         id: `seed-notify-${owner.id}-${ki + 1}`,
         kind,
@@ -309,6 +337,7 @@ export function buildSeedData(): SeedResult {
         // 最新的 3 条留未读：首次登录就能看到铃铛红点，点进去又能看到「未读」标记
         readAt: ki < 3 ? null : iso(now - (ki * 5 + 1) * 3600_000 + 3600_000),
         createdAt,
+        ...(meta ? { meta } : {}),
       }
       notifications.push({ ...notification, userId: owner.id })
     })

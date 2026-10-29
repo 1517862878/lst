@@ -4,6 +4,7 @@
 import type {
   ArticleListQuery,
   PhotoListQuery,
+  PhotoStatsQuery,
   SearchQuery,
   TagListQuery,
   TagPhotoSort,
@@ -80,6 +81,12 @@ export const queryKeys = {
   hotSearches: (limit: number) => ['discover', 'hot-searches', limit] as const,
   newAuthors: (limit: number) => ['discover', 'new-authors', limit] as const,
   featured: () => ['discover', 'featured'] as const,
+  // ===== 创作者统计（8.3d）=====
+  // 统一挂在 'stats' 前缀下：发布 / 下架 / 编辑作品、被别人点赞评论收藏都会
+  // 改变这些数字，一次 invalidate ['stats'] 全刷，避免逐个 key 点名漏掉一处
+  // （与发现、收藏夹同一约定）。两个方法的额外失效点见 hooks/useStats.ts。
+  creatorStats: () => ['stats', 'creator'] as const,
+  photoStats: (query: PhotoStatsQuery) => ['stats', 'photos', query] as const,
 }
 
 export type FollowListKind = 'followers' | 'following'

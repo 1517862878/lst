@@ -23,6 +23,7 @@ import {
   isBlockedBetween,
 } from '@/domain/social'
 import { bumpDataVersion, getDb, type NotificationRow } from '../db'
+import { isPublicPhoto } from '@/domain/discover'
 import { mockAuthRepository } from './auth'
 
 /** 出库前剥掉存储层的归属字段（契约里的 AppNotification 没有 userId） */
@@ -222,7 +223,22 @@ export const mockSocialRepository: SocialRepository = {
     )
     const ordered = sortByCreatedAtDesc(mine, (n) => n.id)
     const page = paginateByCursor(ordered, cursor, NOTIFICATION_PAGE_SIZE, (n) => n.id)
-    return { items: page.items.map(toNotification), nextCursor: page.nextCursor }
+    // 通知自带作品标题（8.3d）：榜单通知的文案要写「《X》入选…」。
+    // 与后端同一口径 —— 只给**当前可见**的作品标题，下架/隐藏/删除一律 null，
+    // 否则通知会泄露一件已经不该被看到的作品叫什么叫。
+    const photos = await db.getAll('photos')
+    const titles = new Map(
+      photos.filter((photo) => isPublicPhoto(photo)).map((photo) => [photo.id, photo.title] as const),
+    )
+    return {
+      items: page.items.map((row) => {
+        const notification = toNotification(row)
+        if (!notification.photoId) return notification
+        const title = titles.get(notification.photoId) ?? null
+        return { ...notification, photoTitle: title }
+      }),
+      nextCursor: page.nextCursor,
+    }
   },
 
   async unreadCount(): Promise<number> {

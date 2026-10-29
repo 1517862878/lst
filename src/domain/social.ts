@@ -329,11 +329,19 @@ export function notificationText(n: AppNotification, photoTitle?: string): strin
     case 'like':
       return n.actor ? `${who} 赞了${work}` : `你的作品收到了新的赞`
     case 'comment':
+      // 8.3d：回复通知（meta.reply）与「直接评论作品」是两件事，
+      // 前者落点在「你的那条评论」，文案必须区分，否则作者会去找错地方
+      if (isReplyNotification(n)) {
+        return n.actor ? `${who} 回复了你的评论` : '有人回复了你的评论'
+      }
       return n.actor ? `${who} 评论了${work}` : `你的作品收到了新评论`
     case 'follow':
       return n.actor ? `${who} 关注了你` : '有新的关注者'
-    default:
+    default: {
+      const rank = weeklyRankOf(n)
+      if (rank) return `你的作品${photoTitle ? `《${photoTitle}》` : ''}入选 ${rank.isoWeek} 周榜第 ${rank.rank} 名`
       return n.actor ? `${who} 发来一条系统通知` : '系统通知'
+    }
   }
 }
 
@@ -368,4 +376,107 @@ export function notificationIconName(kind: AppNotification['kind']): 'heart' | '
     default:
       return 'megaphone'
   }
+}
+
+// ===== 通知的附加语义（8.3d）=====
+
+/**
+ * 是否为「回复了我的评论」。
+ *
+ * 后端 meta 的形状是 `Record<string, unknown> | null`，字段永远稀疏且类型不可信，
+ * 所以这里既判存在性也判字面量（`reply: 'true'` 之类的脏数据不算）。
+ */
+export function isReplyNotification(n: AppNotification): boolean {
+  return n.kind === 'comment' && n.meta?.reply === true
+}
+
+/** 周榜入选的 (isoWeek, rank)；不是榜单通知或字段残缺时返回 null */
+export function weeklyRankOf(n: AppNotification): { isoWeek: string; rank: number } | null {
+  if (n.kind !== 'system') return null
+  const meta = n.meta
+  if (!meta || meta.kind !== 'weekly_rank') return null
+  const { isoWeek, rank } = meta
+  if (typeof isoWeek !== 'string' || isoWeek === '') return null
+  if (typeof rank !== 'number' || !Number.isInteger(rank) || rank < 1) return null
+  return { isoWeek, rank }
+}
+
+/**
+ * 互动聚合用的分组键：同一 photoId 的评论通知才可能折叠。
+ * 没有 photoId 的评论通知不参与聚合（拿不到作品就无法判断「同一处」）。
+ */
+function commentGroupKey(n: AppNotification): string | null {
+  return n.kind === 'comment' && n.photoId ? n.photoId : null
+}
+
+/**
+ * 相邻评论通知的折叠单元。
+ *
+ * 为什么是「相邻」而不是「按 photoId 全局合并」：
+ * 通知列表是按时间倒序的流水，把同一作品的评论从列表各处抽出来堆在一起，
+ * 会让时间线前后颠倒（上午的评论排在昨晚的点赞下面），用户读到的顺序就错了。
+ * 折叠只在**时间上连续**的一段里做，时间线始终单调。
+ */
+export type NotificationGroup =
+  | { type: 'single'; key: string; item: AppNotification }
+  | {
+      type: 'comment-bundle'
+      /** 组内第一条的 id：既是 key 也是展开状态的锚点 */
+      key: string
+      photoId: string
+      items: AppNotification[]
+    }
+
+/** 折叠下限：同一作品连续 2 条以上评论才值得折叠（1 条折叠等于没折叠） */
+export const COMMENT_BUNDLE_MIN = 2
+
+/** 把通知流水切成「单条 / 评论折叠组」。只合并相邻且同 photoId 的评论。 */
+export function groupNotifications(items: readonly AppNotification[]): NotificationGroup[] {
+  const groups: NotificationGroup[] = []
+  let index = 0
+  while (index < items.length) {
+    const item = items[index]
+    if (!item) break
+    const key = commentGroupKey(item)
+    if (key === null) {
+      groups.push({ type: 'single', key: item.id, item })
+      index += 1
+      continue
+    }
+    // 向后吃掉所有「相邻 + 同 photoId + 也是评论」的条目
+    let end = index + 1
+    while (end < items.length) {
+      const next = items[end]
+      if (!next || commentGroupKey(next) !== key) break
+      end += 1
+    }
+    const run = items.slice(index, end)
+    const first = run[0]!
+    groups.push(
+      run.length >= COMMENT_BUNDLE_MIN
+        ? { type: 'comment-bundle', key: first.id, photoId: key, items: run }
+        : { type: 'single', key: first.id, item: first },
+    )
+    index = end
+  }
+  return groups
+}
+
+/**
+ * 折叠组的已读状态：all = 全部已读，none = 全部未读，partial = 部分未读。
+ * 为什么要三态：组头和明细各需要一个「未读点」，只判「有没有未读」时
+ * 部分已读和全部未读长得一模一样，用户看不出组里还剩几条没看。
+ */
+export type BundleReadState = 'all' | 'none' | 'partial'
+
+export function bundleReadState(items: readonly AppNotification[]): BundleReadState {
+  let unread = 0
+  for (const item of items) if (item.readAt === null) unread += 1
+  if (unread === 0) return 'all'
+  return unread === items.length ? 'none' : 'partial'
+}
+
+/** 折叠组里还没读的 id（点开展开时把它们一次性标记已读） */
+export function bundleUnreadIds(items: readonly AppNotification[]): string[] {
+  return unreadNotificationIds(items)
 }

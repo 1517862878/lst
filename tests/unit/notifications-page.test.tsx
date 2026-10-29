@@ -6,7 +6,7 @@
  *  2. 标记已读后**不重取列表**——未读样式要留在屏幕上，用户才看得清哪几条是新的；
  *  3. 四种通知类型都能出文案与对应的跳转目标。
  */
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router'
@@ -172,11 +172,13 @@ describe('NotificationsPage', () => {
     expect(screen.getByRole('link', { name: '查看主页' })).toHaveAttribute('href', '/u/alice')
     expect(screen.queryByRole('link', { name: '查看' })).not.toBeInTheDocument()
 
-    // 类型标签也渲染出来了（不只靠图标区分）
-    expect(screen.getByText('点赞')).toBeInTheDocument()
-    expect(screen.getByText('评论')).toBeInTheDocument()
-    expect(screen.getByText('关注')).toBeInTheDocument()
-    expect(screen.getByText('系统')).toBeInTheDocument()
+    // 类型标签也渲染出来了（不只靠图标区分）。
+    // 在列表内查询：「系统」同时也是顶部筛选 Tab 的名字，全局查会撞成两个。
+    const list = within(screen.getByRole('list'))
+    expect(list.getByText('点赞')).toBeInTheDocument()
+    expect(list.getByText('评论')).toBeInTheDocument()
+    expect(list.getByText('关注')).toBeInTheDocument()
+    expect(list.getByText('系统')).toBeInTheDocument()
   })
 
   it('有下一页时给「加载更早的通知」，点了带游标再取一页', async () => {

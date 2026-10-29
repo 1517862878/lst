@@ -16,6 +16,7 @@ import type {
   CollectionSummary,
   CollectionVisibility,
   Comment,
+  CreatorStats,
   FollowCounts,
   HotSearch,
   Interaction,
@@ -28,6 +29,7 @@ import type {
   Photo,
   PhotoLicense,
   PhotoStatus,
+  PhotoStats,
   Profile,
   PublishDraft,
   PublishDraftPayload,
@@ -65,6 +67,9 @@ export type { BlockedUser, FollowCounts, Page, UserHit }
 
 /** 发现页（8.3c）的类型同样从契约层再导出，页面只认一个导入面 */
 export type { HotSearch, NewAuthor }
+
+/** 创作者统计（8.3d）的类型同样从契约层再导出 */
+export type { CreatorStats, NotificationMeta, PhotoStats } from '@/domain/types'
 
 /** 收藏夹与服务端草稿的类型也从契约层再导出（8.3b），页面只认一个导入面 */
 export type {
@@ -591,6 +596,27 @@ export interface DiscoverRepository {
   setEditorChoice(photoId: string, featured: boolean): Promise<EditorChoiceResult>
 }
 
+// ===== 创作者统计（8.3d）=====
+
+/** 作品数据表的翻页参数（后端：limit 1–100 缺省 50、offset ≥ 0，越界 400） */
+export interface PhotoStatsQuery {
+  limit?: number
+  offset?: number
+}
+
+/**
+ * 我的创作数据（私有：只有本人能读，未登录 401）。
+ *
+ * 两个方法都是**读当前会话**的，不带 username/id 参数 —— 与后端
+ * /api/me/stats 的授权口径一致：不允许用别人的 username 查别人的经营数据。
+ */
+export interface StatsRepository {
+  /** 汇总：作品数 / 在架 / 草稿 / 获赞 / 收藏 / 评论 / 浏览 / 粉丝 / 关注 */
+  creatorStats(): Promise<CreatorStats>
+  /** 每件作品一行（按在架优先 + 发布时间倒序） */
+  photoStats(query?: PhotoStatsQuery): Promise<PhotoStats[]>
+}
+
 export interface Repositories {
   photos: PhotoRepository
   tags: TagRepository
@@ -606,4 +632,5 @@ export interface Repositories {
   social: SocialRepository
   moderation: ModerationRepository
   discover: DiscoverRepository
+  stats: StatsRepository
 }

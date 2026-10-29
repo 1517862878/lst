@@ -39,6 +39,7 @@ import { registerSocialRoutes } from './social.js'
 import { registerTagRoutes } from './tags.js'
 import { registerCollectionRoutes } from './collections.js'
 import { registerDiscoverRoutes } from './discover.js'
+import { registerStatsRoutes } from './stats.js'
 import { searchPhotos } from '../repositories/search.js'
 import { logSearch } from '../repositories/discover.js'
 import { requestIpHash } from '../lib/session.js'
@@ -165,6 +166,11 @@ export async function registerRoutes(app: FastifyInstance) {
   // 发现增强（0029）：热门搜索 / 新作者推荐 / 编辑精选流 / staff 打标
   // ==========================================================================
   await registerDiscoverRoutes(app)
+
+  // ==========================================================================
+  // 创作者统计（0030）：本人作品数/互动数/粉丝数 + 单件作品数据 + 榜单通知触发
+  // ==========================================================================
+  await registerStatsRoutes(app)
 
   // ==========================================================================
   // 作品

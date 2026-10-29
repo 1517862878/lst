@@ -201,6 +201,33 @@ export interface BlockedUser {
 export type NotificationKind = 'like' | 'comment' | 'follow' | 'system'
 
 /**
+ * 通知的附加语义（8.3d，后端 0030 起每条都带 `meta`）。
+ *
+ * 后端返回的是 `Record<string, unknown> | null`：字段**永远稀疏**，
+ * 所以这里全部可选，读取一律走 domain/social.ts 的类型守卫
+ * （isReplyNotification / weeklyRankOf），不要在页面里裸读 `meta.rank`。
+ *
+ * 已知取值：
+ *   · 回复通知  { reply: true, parentCommentId }
+ *   · 榜单通知  { kind: 'weekly_rank', rank, isoWeek, score? }
+ *   · 其它      null 或 {}
+ */
+export interface NotificationMeta {
+  /** true = 这条评论通知是「回复了你某条评论」，而不是直接评论你的作品 */
+  reply?: boolean
+  /** 被回复的评论 id（reply 通知才有） */
+  parentCommentId?: string
+  /** 系统通知的子类型；目前只有周榜入选 */
+  kind?: 'weekly_rank'
+  /** 榜单名次（weekly_rank） */
+  rank?: number
+  /** ISO 周，形如 2026-W44 */
+  isoWeek?: string
+  /** 榜单得分（weekly_rank） */
+  score?: number
+}
+
+/**
  * 站内通知（DATA-MODEL 二期）。
  *
  * 注意：契约里**没有** userId 字段 —— 后端只返回「当前登录用户」的通知，
@@ -217,6 +244,21 @@ export interface AppNotification {
   /** null = 未读 */
   readAt: IsoDate | null
   createdAt: IsoDate
+  /**
+   * 关联作品的标题与缩略图（服务端按「当前可见性」过滤：下架/隐藏/删除时为 null）。
+   *
+   * 为什么通知要自带标题：榜单通知（system + weekly_rank）的文案是
+   * 「你的作品《X》入选 2026-W44 周榜第 3 名」，如果让前端再按 photoId 回查，
+   * 一条通知就多一次请求，而且下架后回查会 404 —— 服务端已经算好了可见性，
+   * 直接用。可选：老 mock 数据与测试桩不带这两个字段。
+   */
+  photoTitle?: string | null
+  photoThumbKey?: string | null
+  /**
+   * 附加语义（回复 / 榜单）。可选而不是必填：老版本 mock 数据与
+   * 未升级的测试桩里没有这个字段，读到时按「没有附加语义」处理。
+   */
+  meta?: NotificationMeta | null
 }
 
 export interface Comment {
@@ -497,4 +539,54 @@ export interface PublishDraftPayload {
 export interface PublishDraft {
   payload: PublishDraftPayload | null
   updatedAt: IsoDate | null
+}
+
+// ===== 创作者统计（8.3d）=====
+
+/**
+ * 我的创作数据汇总（GET /api/me/stats，仅本人可见）。
+ *
+ * 「在架」= publishedCount：已发布且未删除的行数。它与 photoCount 不等，
+ * 差额里既有草稿也有已下架/被移除的作品 —— 页面上这两张卡分开摆，
+ * 就是为了让作者一眼看出「我有几件在外面」。
+ */
+export interface CreatorStats {
+  /** 我的作品总数（含草稿、已下架） */
+  photoCount: number
+  /** 在架（已发布）数量 */
+  publishedCount: number
+  /** 草稿数量 */
+  draftCount: number
+  /** 全部作品的获赞总数 */
+  likeTotal: number
+  /** 全部作品的收藏总数 */
+  favoriteTotal: number
+  /** 全部作品的评论总数 */
+  commentTotal: number
+  /** 全部作品的浏览总数 */
+  viewTotal: number
+  /** 粉丝数 */
+  followerCount: number
+  /** 关注数 */
+  followingCount: number
+}
+
+/**
+ * 单件作品的数据行（GET /api/me/stats/photos）。
+ *
+ * 与 Photo 的区别：只带「数据表要显示的列」，不含图片地址、分类、标签等。
+ * 数据表一次渲染 50 行，带上 imageKey/description 只是让响应大一倍。
+ */
+export interface PhotoStats {
+  photoId: string
+  title: string
+  /** 后端只会返回这三种（hidden 在统计视图里并入 removed 口径） */
+  status: Extract<PhotoStatus, 'published' | 'draft' | 'removed'>
+  publishedAt: IsoDate | null
+  likeCount: number
+  favoriteCount: number
+  commentCount: number
+  viewCount: number
+  /** 非空 = 编辑精选（与 Photo.featuredAt 同一字段口径） */
+  featuredAt: IsoDate | null
 }

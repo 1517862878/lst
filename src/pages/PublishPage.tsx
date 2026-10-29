@@ -67,6 +67,8 @@ function PublishInner() {
   const [publicationAccepted, setPublicationAccepted] = useState(false)
   // 逐张拍摄参数开关（8.4a）：初值跟随账户设置，作者仍可只对这一张关掉
   const [exifHidden, setExifHidden] = useState(false)
+  // 允许评论（8.4b）：默认开。关掉的作品在详情页不渲染输入框，已有评论照常可读
+  const [allowComments, setAllowComments] = useState(true)
   const draftTimer = useRef<number | null>(null)
   const restoredRef = useRef(false)
 
@@ -251,6 +253,7 @@ function PublishInner() {
         shotAt: null,
         exif: exifPreview,
         exifHidden,
+        commentsLocked: !allowComments,
         imageKey,
         thumbKey,
         width: display.width,
@@ -260,6 +263,17 @@ function PublishInner() {
         credit: null,
       }, photoId)
       await repos.photos.publish(photo.id)
+
+      // 评论开关补写（8.4b）：创建接口只保证接受老字段，锁状态的权威入口是
+      // comments-lock。作品已经发布成功，这一步失败不能把整次发布判成失败，
+      // 所以单独兜住并提示作者去作品页重设。
+      if (!allowComments) {
+        try {
+          await repos.comments.setLocked(photo.id, true)
+        } catch {
+          toast.show('error', '作品已发布，但「关闭评论」没有保存成功，可在作品页重新关闭')
+        }
+      }
 
       // 发布成功即作废草稿：本地键 + 服务端（失败不影响发布结果）
       if (draftTimer.current) window.clearTimeout(draftTimer.current)
@@ -376,10 +390,27 @@ function PublishInner() {
           </label>
         </div>
         <div className="g-field">
+          <span className="g-label" id="publish-comments-label">评论</span>
+          <label className="g-switch-row" htmlFor="publish-comments-allowed">
+            <input
+              id="publish-comments-allowed"
+              type="checkbox"
+              checked={allowComments}
+              onChange={(e) => setAllowComments(e.target.checked)}
+              aria-describedby="publish-comments-hint"
+            />
+            <span>
+              <strong>允许评论</strong>
+              <small id="publish-comments-hint">
+                关闭后访客仍能看到已有评论，但不能再发表。发布后仍可在作品页随时打开。
+              </small>
+            </span>
+          </label>
+        </div>
+        <div className="g-field">
           <label className="g-label" htmlFor="publish-license">
             作品授权
-          </label>
-          <select
+          </label>          <select
             id="publish-license"
             className="g-select"
             value={license}

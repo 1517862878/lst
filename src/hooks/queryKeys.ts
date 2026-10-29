@@ -3,6 +3,7 @@
  */
 import type {
   ArticleListQuery,
+  CommentSort,
   PhotoListQuery,
   PhotoStatsQuery,
   SearchQuery,
@@ -28,7 +29,16 @@ export const queryKeys = {
     ['photos', 'username', username, kind] as const,
   categories: () => ['categories'] as const,
   category: (slug: string) => ['category', slug] as const,
-  comments: (photoId: string) => ['comments', photoId] as const,
+  /**
+   * 评论列表（8.4b 起带排序）。
+   *
+   * 排序是缓存的一部分：两种排序同一页的内容完全不同，共用一个 key 会让
+   * 切换后先闪出另一份顺序。失效时用 commentsAll（前缀）一次覆盖两种排序，
+   * 否则「刚发的评论」只会在当前排序里出现。
+   */
+  comments: (photoId: string, sort: CommentSort = 'latest') =>
+    ['comments', photoId, sort] as const,
+  commentsAll: (photoId: string) => ['comments', photoId] as const,
   likeState: (userId: string, photoId: string) => ['likeState', userId, photoId] as const,
   favoriteState: (userId: string, photoId: string) => ['favoriteState', userId, photoId] as const,
   ranking: (isoWeek: string, kind: 'live' | 'final') => ['ranking', isoWeek, kind] as const,

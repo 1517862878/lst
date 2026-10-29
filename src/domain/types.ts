@@ -129,6 +129,14 @@ export interface Photo {
    * 旧数据未返回时为 undefined，按 false 处理。
    */
   exifHidden?: boolean
+  /**
+   * 作者是否关闭了这件作品的评论（8.4b）。
+   *
+   * 关闭后详情页只留一句「作者已关闭这件作品的评论」而不渲染输入框；
+   * 已有评论照常可读；此时任何人（含作者自己）提交评论都会被 409 拒绝。
+   * 旧数据未返回时为 undefined，按「允许评论」处理。
+   */
+  commentsLocked?: boolean
   imageKey: string
   thumbKey: string
   /** >0，防 CLS 占位 */

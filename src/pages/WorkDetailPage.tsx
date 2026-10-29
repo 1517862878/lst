@@ -265,7 +265,12 @@ export function WorkDetailPage() {
         {withdrawError && <p className="g-auth-error" role="alert">{withdrawError}</p>}
       </Dialog>
 
-      <CommentSection photoId={photo.id} currentUserId={session?.userId ?? null} />
+      <CommentSection
+        photoId={photo.id}
+        currentUserId={session?.userId ?? null}
+        isAuthor={isAuthor}
+        commentsLocked={photo.commentsLocked === true}
+      />
 
       <section className="g-related" aria-labelledby="same-author-title">
         <h2 id="same-author-title" className="g-related-title">

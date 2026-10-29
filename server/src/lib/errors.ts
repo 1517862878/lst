@@ -106,6 +106,14 @@ export function translateDbError(err: unknown): ApiError | null {
     case '23503': // foreign_key_violation
       return new ApiError('VALIDATION', '关联数据不存在', e.detail)
     case '23514': {
+      // 0032：作者关闭评论时的写入闸门。数据库用 23514 + detail='COMMENTS_LOCKED'
+      // 抛出（选 23514 是因为它天然映射到「状态不允许写入」，与表 check 约束同类），
+      // 但对客户端而言这不是「参数不合法」，而是「当前状态不允许」，必须是 409：
+      // 前端据 status===409 显示「作者已关闭这件作品的评论」，而不是报参数错误。
+      // 只认 detail 标记，不认消息文本——文案将来改字不会影响状态码。
+      if (e.detail === 'COMMENTS_LOCKED') {
+        return new ApiError('CONFLICT', e.message || '作者已关闭这件作品的评论', e.detail)
+      }
       // check_violation。表约束撞车时 PostgreSQL 给的是英文样板
       // （new row for relation "photos" violates check constraint ...），
       // 迁移里 `raise exception '只能收藏已发布作品' using errcode='23514'` 的

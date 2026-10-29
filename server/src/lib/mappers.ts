@@ -158,6 +158,8 @@ export interface PhotoRow {
   exif_hidden?: boolean
   /** 0031：作者账户级拍摄参数可见性（由 join profiles 带出，可选）。 */
   author_exif_visibility?: string | null
+  /** 0032 起：作者是否关闭了评论。可选，旧的行/测试构造对象可以没有这一列（按未锁处理）。 */
+  comments_locked?: boolean
 }
 
 /** 对应前端 Photo */
@@ -215,6 +217,9 @@ export function mapPhoto(row: PhotoRow) {
     likeCount: row.like_count,
     favoriteCount: row.favorite_count,
     commentCount: row.comment_count,
+    // 0032：评论区锁定。缺列（旧投影函数、测试构造对象）按「未锁定」处理，
+    // 让前端拿到的永远是布尔值，不必区分 undefined。
+    commentsLocked: row.comments_locked === true,
     // 0029 编辑精选：未精选一律给 null（前端用 `featuredAt != null` 判断徽标）
     featuredAt: iso(row.featured_at),
     viewCount: row.view_count,

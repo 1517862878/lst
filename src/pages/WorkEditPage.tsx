@@ -18,6 +18,7 @@ import {
   type PhotoEditValues,
 } from '@/features/photos/photoEdit'
 import { usePhoto, useUpdatePhoto } from '@/hooks/usePhotos'
+import { useSetCommentsLocked } from '@/hooks/useInteractions'
 import { useSession } from '@/hooks/useSession'
 
 export function WorkEditPage() {
@@ -60,11 +61,18 @@ function WorkEditForm({ photo }: { photo: NonNullable<ReturnType<typeof usePhoto
   const navigate = useNavigate()
   const toast = useToast()
   const updatePhoto = useUpdatePhoto(photo.id)
+  const setCommentsLocked = useSetCommentsLocked(photo.id)
   const [values, setValues] = useState<PhotoEditValues>(() => photoToEditValues(photo))
+  // 评论开关（8.4b）：与标题等信息一起提交，但写入走 comments-lock 这条专门的路径，
+  // 保证「谁能改」只有一处判定（作者），不用改通用 PATCH 的授权口径。
+  const [allowComments, setAllowComments] = useState(photo.commentsLocked !== true)
   const [errors, setErrors] = useState<PhotoEditErrors>({})
   const [submitError, setSubmitError] = useState('')
 
-  useEffect(() => setValues(photoToEditValues(photo)), [photo])
+  useEffect(() => {
+    setValues(photoToEditValues(photo))
+    setAllowComments(photo.commentsLocked !== true)
+  }, [photo])
 
   function setField<K extends keyof PhotoEditValues>(key: K, value: PhotoEditValues[K]) {
     setValues((current) => ({ ...current, [key]: value }))
@@ -80,11 +88,24 @@ function WorkEditForm({ photo }: { photo: NonNullable<ReturnType<typeof usePhoto
 
     try {
       await updatePhoto.mutateAsync(photoEditPatch(values))
-      toast.show('success', '作品信息已更新')
-      navigate(`/works/${photo.id}`, { replace: true })
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '保存失败，请稍后重试')
+      return
     }
+
+    // 评论锁是独立端点，单独提交；失败时不能谎称「保存成功」把作者带离页面
+    if (!allowComments !== (photo.commentsLocked === true)) {
+      try {
+        await setCommentsLocked.mutateAsync(!allowComments)
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : ''
+        setSubmitError(detail ? `作品信息已保存，但评论设置未生效：${detail}` : '作品信息已保存，但评论设置未生效')
+        return
+      }
+    }
+
+    toast.show('success', '作品信息已更新')
+    navigate(`/works/${photo.id}`, { replace: true })
   }
 
   return (
@@ -167,6 +188,25 @@ function WorkEditForm({ photo }: { photo: NonNullable<ReturnType<typeof usePhoto
             </span>
           </label>
         </div>
+        {/* 允许评论（8.4b）：关闭后详情页不渲染输入框，已有评论照常可读 */}
+        <div className="g-field">
+          <span className="g-label" id="work-edit-comments-label">评论</span>
+          <label className="g-switch-row" htmlFor="work-edit-comments-allowed">
+            <input
+              id="work-edit-comments-allowed"
+              type="checkbox"
+              checked={allowComments}
+              onChange={(event) => setAllowComments(event.target.checked)}
+              aria-describedby="work-edit-comments-hint"
+            />
+            <span>
+              <strong>允许评论</strong>
+              <small id="work-edit-comments-hint">
+                关闭后访客仍能看到已有评论，但不能再发表。随「保存修改」一起生效。
+              </small>
+            </span>
+          </label>
+        </div>
         <div className="g-field">
           <label className="g-label" htmlFor="work-edit-license">作品许可</label>
           <select
@@ -181,7 +221,7 @@ function WorkEditForm({ photo }: { photo: NonNullable<ReturnType<typeof usePhoto
         {submitError && <p className="g-auth-error" role="alert">{submitError}</p>}
         <div className="g-work-edit-actions">
           <Button variant="secondary" onClick={() => navigate(`/works/${photo.id}`)} disabled={updatePhoto.isPending}>取消</Button>
-          <Button type="submit" loading={updatePhoto.isPending}>保存修改</Button>
+          <Button type="submit" loading={updatePhoto.isPending || setCommentsLocked.isPending}>保存修改</Button>
         </div>
       </form>
     </Container>

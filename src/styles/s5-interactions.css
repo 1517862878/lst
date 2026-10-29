@@ -175,6 +175,136 @@
   word-break: break-word;
 }
 
+/* ── 评论区治理（8.4b）：标题行 / 排序 / 作者开关 / 删除 ── */
+/* 标题与工具条同一行，窄屏（390px）自动折成两行 —— 不靠横向滚动解决拥挤 */
+.g-comments-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--g-space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--g-space-4);
+}
+
+.g-comments-head .g-comments-title {
+  margin: 0;
+}
+
+.g-comment-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-3);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.g-comment-sort {
+  display: inline-flex;
+  border: var(--g-border) solid var(--g-line);
+  overflow: hidden;
+}
+
+.g-comment-sort-btn {
+  background: transparent;
+  border: none;
+  padding: var(--g-space-1) var(--g-space-3);
+  /* 32px 高度：触屏手指点得中，也不至于把标题行撑高 */
+  min-height: 32px;
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-2);
+  cursor: pointer;
+}
+
+.g-comment-sort-btn + .g-comment-sort-btn {
+  border-left: var(--g-border) solid var(--g-line);
+}
+
+.g-comment-sort-btn[aria-pressed='true'] {
+  background: var(--g-brand);
+  color: var(--g-brand-ink);
+  font-weight: 600;
+}
+
+.g-comment-sort-btn:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: -2px;
+}
+
+.g-comment-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--g-space-2);
+  font-size: var(--g-text-sm);
+  color: var(--g-ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.g-comment-locked {
+  margin: 0 0 var(--g-space-5);
+  padding: var(--g-space-3) var(--g-space-4);
+  border: var(--g-border) dashed var(--g-line);
+  background: var(--g-surface-2);
+  border-radius: var(--g-radius-md);
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+}
+
+.g-comment-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-3);
+}
+
+.g-comment-delete-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--g-danger);
+  font-size: var(--g-text-xs);
+  cursor: pointer;
+}
+
+.g-comment-delete-btn:hover {
+  text-decoration: underline;
+}
+
+.g-comment-delete-copy {
+  margin: 0;
+  font-size: var(--g-text-sm);
+  color: var(--g-ink-2);
+  word-break: break-word;
+}
+
+.g-comment-delete-quote {
+  display: block;
+  margin-top: var(--g-space-2);
+  color: var(--g-ink);
+}
+
+/* 发布 / 编辑页的「允许评论」开关：与拍摄参数开关同一套外观，
+   只是文案与语义不同，所以用一个中性类名而不是复用 g-exif-switch */
+.g-switch-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--g-space-2);
+  padding: var(--g-space-2) var(--g-space-3);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+  font-size: var(--g-text-sm);
+}
+
+.g-switch-row input {
+  margin-top: 2px;
+  flex: none;
+}
+
+.g-switch-row small {
+  display: block;
+  font-size: var(--g-text-xs);
+  color: var(--g-ink-2);
+}
+
 /* 我的页面 */
 .g-me-menu {
   display: flex;

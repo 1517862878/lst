@@ -95,6 +95,9 @@ export const mockPhotoRepository: PhotoRepository = {
     const photo: Photo = {
       id,
       ...input,
+      // 评论开关默认允许（8.4b）：数据库列是 not null default false，
+      // 这里也显式落一个 false，避免 undefined 与 false 两种「允许」并存
+      commentsLocked: input.commentsLocked === true,
       status: 'draft',
       likeCount: 0,
       favoriteCount: 0,

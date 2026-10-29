@@ -53,4 +53,7 @@ export const apiCommentRepository: CommentRepository = {
   async softRemove() {
     throw notImplemented('删除评论')
   },
+  async setLocked() {
+    throw notImplemented('关闭作品评论')
+  },
 }

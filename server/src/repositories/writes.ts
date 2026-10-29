@@ -105,6 +105,36 @@ export async function createComment(
   return mapComment(rows[0]!)
 }
 
-export async function removeComment(client: PoolClient, commentId: string) {
-  await client.query('select public.api_remove_comment($1::uuid)', [commentId])
+export async function removeComment(client: PoolClient, commentId: string, actorId: string) {
+  // 0032：从 api_remove_comment（仅评论作者）换成 api_delete_comment
+  // （评论作者**或**作品作者）。权限判据在数据库函数里，路由层不重复实现，
+  // 否则 SQL 直调与管理端点会得到两套不同的越权结论。
+  const { rows } = await client.query<{ comment_id: string; deleted_at: string | null }>(
+    'select * from public.api_delete_comment($1::uuid, $2::uuid)',
+    [commentId, actorId],
+  )
+  const row = rows[0]
+  if (!row) throw notFound('评论不存在或无法删除')
+  return row
+}
+
+/**
+ * 0032：作者开关某件作品的评论。
+ *
+ * p_actor_id 只用于与 auth.uid() 交叉校验（二者不一致即 42501），
+ * 真正的授权判据是会话身份，不能让调用方自称是作者。
+ */
+export async function setCommentsLocked(
+  client: PoolClient,
+  photoId: string,
+  actorId: string,
+  locked: boolean,
+) {
+  const { rows } = await client.query<{ photo_id: string; comments_locked: boolean }>(
+    'select * from public.api_set_comments_locked($1::uuid, $2::uuid, $3::boolean)',
+    [photoId, actorId, locked],
+  )
+  const row = rows[0]
+  if (!row) throw notFound('作品不存在或已删除')
+  return { photoId: row.photo_id, commentsLocked: row.comments_locked }
 }

@@ -102,7 +102,11 @@ vi.mock('@/hooks/useSocial', () => ({
   useUnblockUser: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 
-vi.mock('@/hooks/useInteractions', () => ({ useInteractionSync: () => undefined }))
+vi.mock('@/hooks/useInteractions', () => ({
+  useInteractionSync: () => undefined,
+  // 编辑页 8.4b 起多了一个评论锁 mutation（评论锁与作品信息分开提交）
+  useSetCommentsLocked: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
+}))
 vi.mock('@/features/interactions/CommentSection', () => ({ CommentSection: () => null }))
 vi.mock('@/features/interactions/LikeFavoriteButtons', () => ({
   LikeButton: () => null,

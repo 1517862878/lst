@@ -25,6 +25,9 @@ vi.mock('@/hooks/useSession', () => ({
 vi.mock('@/hooks/useInteractions', () => ({
   useComments: () => ({ data: { items: h.comments.value }, isLoading: false, error: null }),
   usePostComment: () => ({ mutate: vi.fn(), isPending: false }),
+  // 评论区治理（8.4b）后 CommentSection 还会调这两个 hook，缺一个就会在渲染时炸掉
+  useDeleteComment: () => ({ mutate: vi.fn(), isPending: false }),
+  useSetCommentsLocked: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
 }))
 
 vi.mock('@/hooks/useModeration', () => ({

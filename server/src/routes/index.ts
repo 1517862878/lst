@@ -16,6 +16,7 @@ import {
   publishPhoto,
   removeComment,
   removePhoto,
+  setCommentsLocked,
   setFavorite,
   setLike,
   updatePhoto,
@@ -367,12 +368,17 @@ export async function registerRoutes(app: FastifyInstance) {
     return withRls(user.userId, (c) => listByPhoto(c, kind, req.params.id))
   })
 
-  app.get<{ Params: { id: string }; Querystring: { cursor?: string; limit?: string } }>('/api/photos/:id/comments', async (req) => {
+  app.get<{ Params: { id: string }; Querystring: { cursor?: string; limit?: string; sort?: string } }>('/api/photos/:id/comments', async (req) => {
     const user = await currentUser(req)
     const limit = req.query.limit ? Number(req.query.limit) : undefined
     if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) throw validation('limit 必须是正整数')
+    // 0032：排序白名单。非法值必须 400 —— 静默回落成 latest 会让前端
+    // 以为「最早」切换生效了，实际列表顺序没变，属于最难查的一类界面问题。
+    const sort = req.query.sort ?? 'latest'
+    if (sort !== 'latest' && sort !== 'oldest') throw validation('sort 只能是 latest 或 oldest')
     return withRls(user?.userId ?? null, (c) => listComments(c, {
       photoId: req.params.id,
+      sort,
       ...(req.query.cursor ? { cursor: req.query.cursor } : {}),
       ...(limit === undefined ? {} : { limit }),
     }))
@@ -390,9 +396,23 @@ export async function registerRoutes(app: FastifyInstance) {
     },
   )
 
+  // 0032：作者开关评论。非作者 403（42501），作品不存在/已删 404（P0002）。
+  app.put<{ Params: { id: string }; Body: { locked?: unknown } }>(
+    '/api/photos/:id/comments-lock',
+    { config: { rateLimit: MUTATION_RATE_LIMIT } },
+    async (req) => {
+      const user = await requireUser(req)
+      if (typeof req.body?.locked !== 'boolean') throw validation('locked 必须是布尔值')
+      return withRls(user.userId, (c) =>
+        setCommentsLocked(c, req.params.id, user.userId, req.body.locked as boolean),
+      )
+    },
+  )
+
   app.delete<{ Params: { id: string } }>('/api/comments/:id', async (req, reply) => {
     const user = await requireUser(req)
-    await withRls(user.userId, (c) => removeComment(c, req.params.id))
+    // 0032：评论作者或作品作者都能删；其它人 403，重复删幂等（不刷新时间戳）。
+    await withRls(user.userId, (c) => removeComment(c, req.params.id, user.userId))
     return reply.status(204).send()
   })
 

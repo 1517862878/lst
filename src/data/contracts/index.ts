@@ -161,10 +161,20 @@ export interface SearchQuery {
   limit?: number
 }
 
+/** 评论排序（8.4b）：最新在前 / 最早在前 */
+export type CommentSort = 'latest' | 'oldest'
+
 export interface CommentListQuery {
   photoId: string
   cursor?: string
   limit?: number
+  /**
+   * 排序（8.4b，缺省 latest）。
+   *
+   * 游标要跟着排序走：同一串 cursor 在两种排序下的含义不同，
+   * 所以翻页请求必须带上和首页相同的 sort，否则会重复或漏条。
+   */
+  sort?: CommentSort
 }
 
 export interface ArticleListQuery {
@@ -210,6 +220,13 @@ export interface PhotoCreateInput {
   credit: string | null
   /** 发布时是否隐藏这张的拍摄参数（8.4a 逐张覆盖；缺省取账户设置） */
   exifHidden?: boolean
+  /**
+   * 发布时是否关闭这件作品的评论（8.4b；缺省 false = 允许评论）。
+   *
+   * 发布页的开关映射到这里；mock 直接落库，api 模式随创建请求一起发，
+   * 服务端若尚未接受该字段，发布页会在创建成功后再补一次 comments-lock 写入。
+   */
+  commentsLocked?: boolean
 }
 
 export interface PhotoPatch {
@@ -260,8 +277,20 @@ export interface InteractionRepository {
 export interface CommentRepository {
   list(query: CommentListQuery): Promise<Page<Comment>>
   create(input: { photoId: string; authorId: string; parentId: string | null; body: string }): Promise<Comment>
-  /** 软删：置 status='removed' + deletedAt，保留占位 */
+  /**
+   * 软删：置 status='removed' + deletedAt，保留占位。
+   *
+   * 授权（8.4b）：评论作者本人，或该作品的作者。其他人一律 FORBIDDEN；
+   * 已删除的评论再删一次不报错（重试幂等）。
+   */
   softRemove(id: string): Promise<void>
+  /**
+   * 作者开关某件作品的评论（8.4b）。仅作品作者可用，其余人 FORBIDDEN。
+   *
+   * 返回落库后的状态而不是 void：乐观更新失败回滚时，页面需要以服务端
+   * 的值为准（两人同时操作时客户端猜的那个值可能就是错的）。
+   */
+  setLocked(photoId: string, locked: boolean): Promise<{ photoId: string; commentsLocked: boolean }>
 }
 
 export interface RankingRepository {

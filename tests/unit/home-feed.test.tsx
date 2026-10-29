@@ -1,10 +1,14 @@
 /**
- * 首页「发现 / 关注」双 Feed 与热门标签区块单测（src/pages/HomePage.tsx，8.3a）。
+ * 首页「发现 / 关注」双 Tab 与热门标签区块单测（src/pages/HomePage.tsx）。
  *
- * 首页是分享率最高的页面，所以 Feed 选择放在 URL（?feed=following）而不是组件状态：
- * 这里锁住「URL → 渲染」与「关注 Feed 的三种状态不能混成一片空白」。
+ * 8.3c 把两个入口从普通链接升级成 tablist（role=tab + aria-selected + 左右方向键），
+ * URL 参数也从 ?feed=following 换成 ?tab=following。这里锁住三件事：
+ *   1) URL → 选中态（收藏/刷新能还原）；
+ *   2) 键盘左右键能切换（tablist 的可达性底线）；
+ *   3) 关注视图的四种状态（未登录 / 加载 / 空 / 失败）不能混成一片空白。
  */
 import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Photo } from '@/domain/types'
@@ -14,6 +18,8 @@ const mocks = vi.hoisted(() => ({
   sessionLoading: false,
   feed: {} as Record<string, unknown>,
   hotTags: {} as Record<string, unknown>,
+  featured: [] as Photo[],
+  newAuthors: [] as unknown[],
 }))
 
 vi.mock('@/data', async (importOriginal) => {
@@ -51,6 +57,25 @@ vi.mock('@/hooks/useSocial', () => ({
 
 vi.mock('@/hooks/useSession', () => ({
   useSession: () => ({ data: mocks.session, isLoading: mocks.sessionLoading }),
+}))
+
+// 发现区的两个新块各有自己的请求；这里统一按「空数据」返回——空数据时整块隐藏，
+// 正好也让本文件专注在 Tab 与热门标签上（发现区另有独立测试文件）。
+vi.mock('@/hooks/useDiscover', () => ({
+  useFeaturedPhotos: () => ({
+    data: mocks.featured,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+  useNewAuthors: () => ({
+    data: mocks.newAuthors,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+  useHotSearches: () => ({ data: [], isLoading: false, isError: false }),
+  useSetEditorChoice: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
 vi.mock('@/features/photos/PhotoCard', () => ({
@@ -102,8 +127,11 @@ beforeEach(() => {
   mocks.feed = {
     data: { pages: [{ items: [] }] },
     isLoading: false,
+    hasNextPage: false,
+    isFetchingNextPage: false,
     error: null,
     refetch: vi.fn(),
+    fetchNextPage: vi.fn(),
   }
   mocks.hotTags = {
     data: [
@@ -115,6 +143,8 @@ beforeEach(() => {
     error: null,
     refetch: vi.fn(),
   }
+  mocks.featured = []
+  mocks.newAuthors = []
 })
 
 afterEach(cleanup)
@@ -127,64 +157,102 @@ function renderHome(url = '/') {
   )
 }
 
-describe('HomePage · 双 Feed 切换', () => {
-  it('默认是「发现」，两个入口都是真链接且只有当前项带 aria-current', () => {
+describe('HomePage · 发现 / 关注 双 Tab', () => {
+  it('默认是「发现」，tablist 里只有当前项 aria-selected=true 且可聚焦', () => {
     renderHome()
-    const discover = screen.getByRole('link', { name: '发现' })
-    const following = screen.getByRole('link', { name: '关注' })
+    const tablist = screen.getByRole('tablist', { name: '首页内容' })
+    const tabs = screen.getAllByRole('tab')
+    expect(tablist).toContainElement(tabs[0]!)
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['发现', '关注'])
 
+    const [discover, following] = tabs
+    expect(discover).toHaveAttribute('aria-selected', 'true')
+    expect(discover).toHaveAttribute('tabindex', '0')
     expect(discover).toHaveAttribute('href', '/')
-    expect(following).toHaveAttribute('href', '/?feed=following')
-    expect(discover).toHaveAttribute('aria-current', 'page')
-    expect(following).not.toHaveAttribute('aria-current')
+    expect(following).toHaveAttribute('aria-selected', 'false')
+    // roving tabindex：未选中的 Tab 不进入 Tab 键序列，但方向键能到达
+    expect(following).toHaveAttribute('tabindex', '-1')
+    expect(following).toHaveAttribute('href', '/?tab=following')
     expect(screen.getByRole('heading', { name: '本周精选' })).toBeInTheDocument()
   })
 
-  it('?feed=following 切到关注 Feed，发现段不渲染', () => {
-    renderHome('/?feed=following')
-    expect(screen.getByRole('link', { name: '关注' })).toHaveAttribute('aria-current', 'page')
+  it('?tab=following 切到关注视图，发现区不渲染', () => {
+    renderHome('/?tab=following')
+    expect(screen.getByRole('tab', { name: '关注' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('heading', { name: '关注动态' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: '本周精选' })).not.toBeInTheDocument()
   })
 
-  it('关注 Feed 未登录时给登录入口（带回跳参数），不是一句空白', () => {
-    mocks.session = null
+  it('老的 ?feed=following 书签被重定向到 ?tab=following，不静默落到发现页', async () => {
     renderHome('/?feed=following')
+    expect(await screen.findByRole('heading', { name: '关注动态' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '关注' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('键盘左右键在 tablist 内切换并激活（自动激活）', async () => {
+    const user = userEvent.setup()
+    renderHome()
+
+    const discover = screen.getByRole('tab', { name: '发现' })
+    discover.focus()
+    await user.keyboard('{ArrowRight}')
+    expect(screen.getByRole('tab', { name: '关注' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('heading', { name: '关注动态' })).toBeInTheDocument()
+
+    await user.keyboard('{ArrowLeft}')
+    expect(screen.getByRole('tab', { name: '发现' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('heading', { name: '本周精选' })).toBeInTheDocument()
+  })
+
+  it('关注视图未登录时给登录入口（回跳参数带回首页关注 Tab）', () => {
+    mocks.session = null
+    renderHome('/?tab=following')
     expect(screen.getByText(/登录后这里会显示你关注的作者/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '去登录' })).toHaveAttribute(
       'href',
-      '/login?next=%2F%3Ffeed%3Dfollowing',
+      '/login?next=%2F%3Ftab%3Dfollowing',
     )
   })
 
-  it('关注 Feed 已登录且有数据时渲染作品并去重', () => {
+  it('关注视图已登录且有数据时渲染作品并去重（游标翻页的重复项只留一张）', () => {
     mocks.session = { userId: 'u1', username: 'me' }
     mocks.feed = {
       data: { pages: [{ items: [photo('p1'), photo('p2')] }, { items: [photo('p1')] }] },
       isLoading: false,
+      hasNextPage: true,
+      isFetchingNextPage: false,
       error: null,
       refetch: vi.fn(),
+      fetchNextPage: vi.fn(),
     }
-    renderHome('/?feed=following')
+    renderHome('/?tab=following')
 
     const cards = screen.getAllByTestId('photo-card')
     expect(cards.map((card) => card.getAttribute('data-id'))).toEqual(['p1', 'p2'])
   })
 
-  it('关注 Feed 已登录但为空时给两个出口（作品墙 / 标签页）', () => {
+  it('关注视图已登录但为空时给两个出口（作品墙 / 周榜）', () => {
     mocks.session = { userId: 'u1', username: 'me' }
-    renderHome('/?feed=following')
+    renderHome('/?tab=following')
 
-    expect(screen.getByText(/你关注的作者还没有新作品/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '浏览作品墙' })).toHaveAttribute('href', '/gallery')
-    expect(screen.getByRole('link', { name: '按标签发现' })).toHaveAttribute('href', '/tags')
+    expect(screen.getByText('关注动态还是空的')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '去作品墙发现作者' })).toHaveAttribute('href', '/gallery')
+    expect(screen.getByRole('link', { name: '看看周榜' })).toHaveAttribute('href', '/rankings/weekly')
   })
 
-  it('关注 Feed 加载失败时显示错误并可重试', () => {
+  it('关注视图加载失败时显示错误并可重试', () => {
     mocks.session = { userId: 'u1', username: 'me' }
-    mocks.feed = { data: undefined, isLoading: false, error: new Error('boom'), refetch: vi.fn() }
-    renderHome('/?feed=following')
-    expect(screen.getByText('关注动态加载失败')).toBeInTheDocument()
+    mocks.feed = {
+      data: undefined,
+      isLoading: false,
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      error: new Error('boom'),
+      refetch: vi.fn(),
+      fetchNextPage: vi.fn(),
+    }
+    renderHome('/?tab=following')
+    expect(screen.getByText('作品加载失败')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /重试/ })).toBeInTheDocument()
   })
 })

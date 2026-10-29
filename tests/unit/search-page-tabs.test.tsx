@@ -11,6 +11,12 @@ vi.mock('@/hooks/useSearch', () => ({
   useSearch: () => ({ data: { items: [], nextCursor: null, total: 0 }, isLoading: false, isFetching: false, isError: false, error: null, refetch: vi.fn() }),
   useUserSearch: (q: string) => mocks.userSearch(q),
 }))
+vi.mock('@/hooks/useDiscover', () => ({
+  useHotSearches: () => ({ data: [], isLoading: false, isError: false, error: null }),
+  useFeaturedPhotos: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }),
+  useNewAuthors: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }),
+  useSetEditorChoice: () => ({ mutate: vi.fn(), isPending: false }),
+}))
 vi.mock('@/features/social/FollowButton', () => ({ FollowButton: ({ username }: { username: string }) => <button>关注 {username}</button> }))
 
 afterEach(cleanup)

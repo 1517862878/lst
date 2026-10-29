@@ -95,6 +95,10 @@ export function buildSeedData(): SeedResult {
     const category = pick(CATEGORIES)
     const publishedAt = now - Math.floor(rand() * 60) * DAY - Math.floor(rand() * DAY)
     const w = 1600 + Math.floor(rand() * 800)
+    // 8.3c：前 3 件作品预先标为「编辑精选」，首页区块开箱即有内容。
+    // 注意不要为它调用 rand()——rand 是固定种子的序列，插一次调用就会把后面
+    // 所有作者的 likeCount/发布时间整体错位，平静的演示数据会突然变得不可复现。
+    const featuredAt = i < 3 ? iso(now - (i + 1) * DAY) : null
     const h = Math.round(w * (rand() * 0.5 + 0.6))
     return {
       id: `seed-photo-${String(i + 1).padStart(3, '0')}`,
@@ -132,6 +136,7 @@ export function buildSeedData(): SeedResult {
       createdAt: iso(publishedAt),
       updatedAt: iso(publishedAt),
       deletedAt: null,
+      featuredAt,
     }
   })
 

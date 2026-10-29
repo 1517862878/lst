@@ -120,6 +120,11 @@ export function WorkDetailPage() {
             variant="card"
           />
           <div className="g-work-meta">
+            {photo.featuredAt && (
+              <Badge tone="warning" className="g-featured-mark">
+                编辑精选
+              </Badge>
+            )}
             <Badge tone="info">{categoryName(photo.categorySlug)}</Badge>
             {photo.credit && <Badge tone="warning">{photo.credit}</Badge>}
             <span className="g-work-time" title={formatDate(photo.publishedAt ?? photo.createdAt)}>
@@ -177,7 +182,12 @@ export function WorkDetailPage() {
             >
               加入收藏夹
             </Button>
-            <WorkMoreMenu photoId={photo.id} title={photo.title} isAuthor={isAuthor} />
+            <WorkMoreMenu
+              photoId={photo.id}
+              title={photo.title}
+              isAuthor={isAuthor}
+              featured={Boolean(photo.featuredAt)}
+            />
           </div>
 
           <LicenseBadge license={photo.license} />

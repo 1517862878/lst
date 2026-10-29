@@ -109,6 +109,40 @@ export interface Photo {
   createdAt: IsoDate
   updatedAt: IsoDate
   deletedAt: IsoDate | null
+  /**
+   * 编辑精选时间（8.3c）：非空 = 该作品被 staff 打过「编辑精选」标，值为打标时间。
+   *
+   * 可选而不是必填：api 模式的公开投影在旧服务端可能不带这一列（契约里
+   * `api_list_photos` 的列清单由后端决定），前端把 undefined 与 null 一样
+   * 当成「未精选」处理，避免多一个必填字段就把所有 list 接口卡在类型上。
+   */
+  featuredAt?: IsoDate | null
+}
+
+/** 热门搜索词（8.3c：「搜索页」的 chips）。服务端按近 N 天搜索日志聚合。 */
+export interface HotSearch {
+  /** 展示用的原始写法（保留大小写，取该词最近一次的写法） */
+  term: string
+  /** 近 N 天被搜索的次数 */
+  searchCount: number
+}
+
+/**
+ * 新作者推荐（8.3c：首页「新作者」区块）。
+ *
+ * 不带 userId：公开接口延续「不暴露用户 UUID」的约定，username 才是稳定标识，
+ * 因此列表 key 与主页跳转都只用 username。
+ */
+export interface NewAuthor {
+  username: string
+  displayName: string
+  avatarKey: string | null
+  /** 在架作品数 */
+  photoCount: number
+  /** 在架作品的总获赞数 */
+  likeTotal: number
+  /** 注册时间（判「新」的口径由服务端窗口决定） */
+  createdAt: IsoDate
 }
 
 /** likes 与 favorites 共用结构 */

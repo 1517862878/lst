@@ -74,6 +74,12 @@ export const queryKeys = {
   userCollections: (username: string) => ['collections', 'user', username] as const,
   collection: (id: string) => ['collections', 'detail', id] as const,
   collectionItems: (id: string) => ['collections', 'items', id] as const,
+  // ===== 发现（8.3c）=====
+  // 统一挂在 'discover' 前缀下：设为/取消精选、发布、下架都会影响三个区块，
+  // 一次 invalidate ['discover'] 全刷，避免只刷精选而漏掉热门搜索的词频。
+  hotSearches: (limit: number) => ['discover', 'hot-searches', limit] as const,
+  newAuthors: (limit: number) => ['discover', 'new-authors', limit] as const,
+  featured: () => ['discover', 'featured'] as const,
 }
 
 export type FollowListKind = 'followers' | 'following'

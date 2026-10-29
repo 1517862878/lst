@@ -10,6 +10,7 @@ import {
   normalizeSearchTerm,
   pushRecentSearch,
   readRecentSearches,
+  removeRecentSearch,
 } from '@/lib/recentSearches'
 
 beforeEach(() => {
@@ -57,12 +58,37 @@ describe('lib/recentSearches', () => {
   })
 
   it('存储里是坏 JSON / 非数组时降级成空数组，不抛错', () => {
-    window.localStorage.setItem('g.recent-searches', '{oops')
+    // 键名在 8.3c 冻结为 gy:recent-searches（与 gy:session 同一命名空间）
+    window.localStorage.setItem('gy:recent-searches', '{oops')
     expect(readRecentSearches()).toEqual([])
-    window.localStorage.setItem('g.recent-searches', '{"a":1}')
+    window.localStorage.setItem('gy:recent-searches', '{"a":1}')
     expect(readRecentSearches()).toEqual([])
-    window.localStorage.setItem('g.recent-searches', '[1,"夜景",null]')
+    window.localStorage.setItem('gy:recent-searches', '[1,"夜景",null]')
     expect(readRecentSearches()).toEqual(['夜景'])
+  })
+
+  it('写入的是冻结键名 gy:recent-searches', () => {
+    pushRecentSearch('夜景')
+    expect(window.localStorage.getItem('gy:recent-searches')).toBe('["夜景"]')
+  })
+
+  it('删除单条：大小写不敏感，只删目标项，其余顺序不变', () => {
+    pushRecentSearch('夜景')
+    pushRecentSearch('Landscape')
+    pushRecentSearch('街头')
+    expect(removeRecentSearch('landscape')).toEqual(['街头', '夜景'])
+    expect(readRecentSearches()).toEqual(['街头', '夜景'])
+  })
+
+  it('删除最后一条后清掉存储键，不留下空数组', () => {
+    pushRecentSearch('夜景')
+    expect(removeRecentSearch('夜景')).toEqual([])
+    expect(window.localStorage.getItem('gy:recent-searches')).toBeNull()
+  })
+
+  it('删除不存在的词是幂等的', () => {
+    pushRecentSearch('夜景')
+    expect(removeRecentSearch('nope')).toEqual(['夜景'])
   })
 
   it('空白关键词不写入存储', () => {

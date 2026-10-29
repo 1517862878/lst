@@ -35,9 +35,15 @@ vi.mock('@/hooks/useSocial', () => ({
   useBlockUser: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
+// 作品更多菜单里的「编辑精选」开关（8.3c）会用到这两个 hook：
+// 普通用户看不到该入口，这里只需保证 hook 存在、不会因为缺少 Provider 抛错。
+vi.mock('@/hooks/useDiscover', () => ({
+  useSetEditorChoice: () => ({ mutate: vi.fn(), isPending: false }),
+}))
+
 // 个人主页菜单里拉黑成功会弹 toast；这里不关心提示本身，只要 hook 可用
 vi.mock('@/components/ui/useToast', () => ({
-  useToast: () => ({ toast: vi.fn() }),
+  useToast: () => ({ show: vi.fn() }),
 }))
 
 const { WorkMoreMenu } = await import('@/features/moderation/WorkMoreMenu')

@@ -1,9 +1,16 @@
 /**
- * 首页 /（FRONTEND-WORK §2.1 + 8.3a 发现/关注双 Feed）。
- * 「发现」= 全站精选；「关注」= 我关注的作者动态。两种 Feed 用 URL 上的
- * ?feed=following 区分：首页是分享率最高的页面，Feed 选择必须能被收藏/回退键还原。
+ * 首页 /（FRONTEND-WORK §2.1 + 8.3c 发现/关注双 Tab）。
+ *
+ * 「发现」= 全站内容（本周精选 / 编辑精选 / 新作者 / 排行榜 / 教程 / 分类 / 标签）；
+ * 「关注」= 我关注的作者的动态。两种视图用 URL 上的 ?tab=following 区分：
+ * 首页是分享率最高的页面，视图选择必须能被收藏/回退键还原。
+ *
+ * 8.3c 的两处变化：
+ *   · Tab 从「两个链接」升级为 tablist + 左右方向键（见 features/discover/HomeTabs）；
+ *   · 关注视图复用 features/social/FollowingFeed（与 /feed 同一套组件，不复制逻辑），
+ *     首页只取前 6 条，「查看全部」仍指向 /feed。
  */
-import { Link, useSearchParams } from 'react-router'
+import { Link, Navigate, useSearchParams } from 'react-router'
 import { Container } from '@/components/layout/Container'
 import { dataSource } from '@/data'
 import { Section } from '@/components/layout/Section'
@@ -11,41 +18,25 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { PhotoCard } from '@/features/photos/PhotoCard'
 import { TagLink } from '@/features/tags/TagLink'
+import { FeaturedSection } from '@/features/discover/FeaturedSection'
+import { NewAuthorsSection } from '@/features/discover/NewAuthorsSection'
+import { HomeTabs, type HomeTab } from '@/features/discover/HomeTabs'
+import { FollowingFeed } from '@/features/social/FollowingFeed'
 import { useArticles, useCategories, useWeeklyRanking } from '@/hooks/useContent'
 import { useTags } from '@/hooks/useTags'
 import { usePhotos, usePhoto } from '@/hooks/usePhotos'
-import { useFeed } from '@/hooks/useSocial'
-import { useSession } from '@/hooks/useSession'
 import { currentIsoWeek } from '@/lib/time'
-
-type FeedMode = 'discover' | 'following'
-
-/** 双 Feed 切换：真链接 + aria-current，键盘直接 Tab 可达 */
-function FeedSwitch({ mode }: { mode: FeedMode }) {
-  return (
-    <nav className="g-feed-switch" aria-label="首页内容">
-      <Link
-        to="/"
-        className="g-feed-switch-link"
-        aria-current={mode === 'discover' ? 'page' : undefined}
-      >
-        发现
-      </Link>
-      <Link
-        to="/?feed=following"
-        className="g-feed-switch-link"
-        aria-current={mode === 'following' ? 'page' : undefined}
-      >
-        关注
-      </Link>
-    </nav>
-  )
-}
 
 export function HomePage() {
   const isApi = dataSource() === 'api'
   const [params] = useSearchParams()
-  const mode: FeedMode = params.get('feed') === 'following' ? 'following' : 'discover'
+
+  // 8.3a 的旧参数 ?feed=following 仍然有人收藏着：直接换到 ?tab=following，
+  // 而不是让老链接静默落到「发现」上（用户会以为关注动态丢了）。
+  // 判断放在所有 hook 之后：提前 return 会让下面的 hooks 变成条件调用
+  // （eslint rules-of-hooks 也会拦下来）。
+  const legacyFollowing = params.get('feed') === 'following'
+  const mode: HomeTab = params.get('tab') === 'following' ? 'following' : 'discover'
 
   const featuredQuery = usePhotos({ sort: 'popular', limit: 6 })
   const rankingQuery = useWeeklyRanking(currentIsoWeek(), 'live')
@@ -55,6 +46,8 @@ export function HomePage() {
 
   const featured = featuredQuery.data?.pages.flatMap((p) => p.items).slice(0, 6) ?? []
   const hotTags = hotTagsQuery.data ?? []
+
+  if (legacyFollowing) return <Navigate to="/?tab=following" replace />
 
   return (
     <Container>
@@ -76,207 +69,140 @@ export function HomePage() {
         </div>
       </section>
 
-      <FeedSwitch mode={mode} />
-
-      {mode === 'following' ? (
-        <HomeFollowingFeed />
-      ) : (
-        <Section title="本周精选" action={{ label: '作品墙', to: '/gallery' }}>
-          {featuredQuery.isLoading ? (
-            <div className="g-home-grid" aria-hidden="true">
-              {Array.from({ length: 6 }, (_, i) => (
-                <Skeleton key={i} variant="rect" height={220} />
-              ))}
-            </div>
-          ) : featuredQuery.isError ? (
-            <ErrorState
-              title="精选作品加载失败"
-              error={featuredQuery.error}
-              onRetry={() => void featuredQuery.refetch()}
-            />
-          ) : (
-            <div className="g-home-grid">
-              {featured.map((photo) => (
-                <PhotoCard
-                  key={photo.id}
-                  photo={photo}
-                  showAuthor
-                  showDemoBadge={photo.credit === '示例素材'}
+      <HomeTabs mode={mode}>
+        {mode === 'following' ? (
+          <Section title="关注动态" action={{ label: '查看全部', to: '/feed' }}>
+            <FollowingFeed limit={6} />
+          </Section>
+        ) : (
+          <>
+            <Section title="本周精选" action={{ label: '作品墙', to: '/gallery' }}>
+              {featuredQuery.isLoading ? (
+                <div className="g-home-grid" aria-hidden="true">
+                  {Array.from({ length: 6 }, (_, i) => (
+                    <Skeleton key={i} variant="rect" height={220} />
+                  ))}
+                </div>
+              ) : featuredQuery.isError ? (
+                <ErrorState
+                  title="精选作品加载失败"
+                  error={featuredQuery.error}
+                  onRetry={() => void featuredQuery.refetch()}
                 />
-              ))}
-            </div>
-          )}
-        </Section>
-      )}
+              ) : (
+                <div className="g-home-grid">
+                  {featured.map((photo) => (
+                    <PhotoCard
+                      key={photo.id}
+                      photo={photo}
+                      showAuthor
+                      showDemoBadge={photo.credit === '示例素材'}
+                    />
+                  ))}
+                </div>
+              )}
+            </Section>
 
-      <Section title="本周排行榜" action={{ label: '查看完整榜单', to: '/rankings/weekly' }}>
-        {rankingQuery.isLoading ? (
-          <div className="g-home-grid" aria-hidden="true">
-            {Array.from({ length: 5 }, (_, i) => (
-              <Skeleton key={i} variant="rect" height={80} />
-            ))}
-          </div>
-        ) : rankingQuery.isError ? (
-          <ErrorState
-            title="排行榜加载失败"
-            error={rankingQuery.error}
-            onRetry={() => void rankingQuery.refetch()}
-          />
-        ) : (
-          <ol className="g-rank-mini" aria-label="本周排行榜前五">
-            {rankingQuery.data?.entries.slice(0, 5).map((entry) => (
-              <RankMiniItem key={entry.photoId} photoId={entry.photoId} rank={entry.rank} score={entry.score} />
-            ))}
-          </ol>
-        )}
-      </Section>
+            <FeaturedSection />
+            <NewAuthorsSection />
 
-      <Section title="最新教程" action={{ label: '学习板块', to: '/learn' }}>
-        {articlesQuery.isLoading ? (
-          <Skeleton variant="rect" height={80} />
-        ) : articlesQuery.isError ? (
-          <ErrorState
-            title="教程加载失败"
-            error={articlesQuery.error}
-            onRetry={() => void articlesQuery.refetch()}
-          />
-        ) : (
-          <ul className="g-learn-teaser" aria-label="最新教程列表">
-            {articlesQuery.data?.items.slice(0, 3).map((a) => (
-              <li key={a.id}>
-                <Link to={`/learn/${a.slug}`} className="g-learn-teaser-item">
-                  <span className="g-learn-teaser-title">{a.title}</span>
-                  <span className="g-learn-teaser-meta">{a.difficulty}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
+            <Section title="本周排行榜" action={{ label: '查看完整榜单', to: '/rankings/weekly' }}>
+              {rankingQuery.isLoading ? (
+                <div className="g-home-grid" aria-hidden="true">
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <Skeleton key={i} variant="rect" height={80} />
+                  ))}
+                </div>
+              ) : rankingQuery.isError ? (
+                <ErrorState
+                  title="排行榜加载失败"
+                  error={rankingQuery.error}
+                  onRetry={() => void rankingQuery.refetch()}
+                />
+              ) : (
+                <ol className="g-rank-mini" aria-label="本周排行榜前五">
+                  {rankingQuery.data?.entries.slice(0, 5).map((entry) => (
+                    <RankMiniItem
+                      key={entry.photoId}
+                      photoId={entry.photoId}
+                      rank={entry.rank}
+                      score={entry.score}
+                    />
+                  ))}
+                </ol>
+              )}
+            </Section>
 
-      <Section title="浏览分类">
-        {categoriesQuery.isError ? (
-          <ErrorState
-            title="分类加载失败"
-            error={categoriesQuery.error}
-            onRetry={() => void categoriesQuery.refetch()}
-          />
-        ) : (
-          <div className="g-category-chips" aria-label="分类快捷入口">
-            {(categoriesQuery.data ?? []).map((c) => (
-              <Link key={c.slug} to={`/categories/${c.slug}`} className="g-category-chip">
-                {c.name}
-              </Link>
-            ))}
-          </div>
-        )}
-      </Section>
+            <Section title="最新教程" action={{ label: '学习板块', to: '/learn' }}>
+              {articlesQuery.isLoading ? (
+                <Skeleton variant="rect" height={80} />
+              ) : articlesQuery.isError ? (
+                <ErrorState
+                  title="教程加载失败"
+                  error={articlesQuery.error}
+                  onRetry={() => void articlesQuery.refetch()}
+                />
+              ) : (
+                <ul className="g-learn-teaser" aria-label="最新教程列表">
+                  {articlesQuery.data?.items.slice(0, 3).map((a) => (
+                    <li key={a.id}>
+                      <Link to={`/learn/${a.slug}`} className="g-learn-teaser-item">
+                        <span className="g-learn-teaser-title">{a.title}</span>
+                        <span className="g-learn-teaser-meta">{a.difficulty}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
 
-      <Section title="热门标签" action={{ label: '全部标签', to: '/tags' }}>
-        {hotTagsQuery.isError ? (
-          <ErrorState
-            title="热门标签加载失败"
-            error={hotTagsQuery.error}
-            onRetry={() => void hotTagsQuery.refetch()}
-          />
-        ) : hotTagsQuery.isLoading ? (
-          <div className="g-tag-chips" aria-hidden="true">
-            {Array.from({ length: 8 }, (_, i) => (
-              <Skeleton key={i} variant="rect" width={64 + (i % 3) * 16} height={28} />
-            ))}
-          </div>
-        ) : hotTags.length === 0 ? (
-          <p className="g-placeholder-text">还没有标签，发布作品时填写标签即可出现在这里。</p>
-        ) : (
-          <ul className="g-tag-chips g-tag-chips-home" aria-label="热门标签">
-            {hotTags.map((tag) => (
-              <li key={tag.tag}>
-                <TagLink tag={tag.tag} count={tag.photoCount} size="md" />
-              </li>
-            ))}
-          </ul>
+            <Section title="浏览分类">
+              {categoriesQuery.isError ? (
+                <ErrorState
+                  title="分类加载失败"
+                  error={categoriesQuery.error}
+                  onRetry={() => void categoriesQuery.refetch()}
+                />
+              ) : (
+                <div className="g-category-chips" aria-label="分类快捷入口">
+                  {(categoriesQuery.data ?? []).map((c) => (
+                    <Link key={c.slug} to={`/categories/${c.slug}`} className="g-category-chip">
+                      {c.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </Section>
+
+            <Section title="热门标签" action={{ label: '全部标签', to: '/tags' }}>
+              {hotTagsQuery.isError ? (
+                <ErrorState
+                  title="热门标签加载失败"
+                  error={hotTagsQuery.error}
+                  onRetry={() => void hotTagsQuery.refetch()}
+                />
+              ) : hotTagsQuery.isLoading ? (
+                <div className="g-tag-chips" aria-hidden="true">
+                  {Array.from({ length: 8 }, (_, i) => (
+                    <Skeleton key={i} variant="rect" width={64 + (i % 3) * 16} height={28} />
+                  ))}
+                </div>
+              ) : hotTags.length === 0 ? (
+                <p className="g-placeholder-text">还没有标签，发布作品时填写标签即可出现在这里。</p>
+              ) : (
+                <ul className="g-tag-chips g-tag-chips-home" aria-label="热门标签">
+                  {hotTags.map((tag) => (
+                    <li key={tag.tag}>
+                      <TagLink tag={tag.tag} count={tag.photoCount} size="md" />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+          </>
         )}
-      </Section>
+      </HomeTabs>
     </Container>
-  )
-}
-
-/**
- * 首页「关注」Feed。
- *
- * 三个状态必须分开表达：未登录（给登录入口）、加载中（骨架）、空（还没关注人）。
- * 全都渲染成「空着」会让用户以为关注功能坏了。
- */
-function HomeFollowingFeed() {
-  const { data: session, isLoading: sessionLoading } = useSession()
-
-  return (
-    <Section title="关注动态" action={{ label: '查看全部', to: '/feed' }}>
-      {sessionLoading ? (
-        <div className="g-home-grid" aria-hidden="true">
-          {Array.from({ length: 3 }, (_, i) => (
-            <Skeleton key={i} variant="rect" height={220} />
-          ))}
-        </div>
-      ) : session ? (
-        <FollowingFeedGrid />
-      ) : (
-        <div className="g-feed-switch-guest">
-          <p>登录后这里会显示你关注的作者最近发布的作品。</p>
-          <div className="g-hero-actions">
-            <Link to={`/login?next=${encodeURIComponent('/?feed=following')}`} className="g-btn g-btn-primary g-btn-sm">
-              去登录
-            </Link>
-            <Link to="/gallery" className="g-btn g-btn-secondary g-btn-sm">
-              先去发现作者
-            </Link>
-          </div>
-        </div>
-      )}
-    </Section>
-  )
-}
-
-function FollowingFeedGrid() {
-  const { data, isLoading, error, refetch } = useFeed()
-  // 游标翻页在边界上可能返回重复项，按 id 去重后再渲染（重复 key 会让 React 报错）
-  const photos = (data?.pages.flatMap((page) => page.items) ?? []).filter(
-    (photo, index, all) => all.findIndex((other) => other.id === photo.id) === index,
-  )
-
-  if (error) {
-    return <ErrorState title="关注动态加载失败" error={error} onRetry={() => void refetch()} />
-  }
-  if (isLoading) {
-    return (
-      <div className="g-home-grid" aria-hidden="true">
-        {Array.from({ length: 3 }, (_, i) => (
-          <Skeleton key={i} variant="rect" height={220} />
-        ))}
-      </div>
-    )
-  }
-  if (photos.length === 0) {
-    return (
-      <div className="g-feed-switch-guest">
-        <p>你关注的作者还没有新作品。去作品墙或标签页找到想关注的人。</p>
-        <div className="g-hero-actions">
-          <Link to="/gallery" className="g-btn g-btn-secondary g-btn-sm">
-            浏览作品墙
-          </Link>
-          <Link to="/tags" className="g-btn g-btn-secondary g-btn-sm">
-            按标签发现
-          </Link>
-        </div>
-      </div>
-    )
-  }
-  return (
-    <div className="g-home-grid">
-      {photos.slice(0, 6).map((photo) => (
-        <PhotoCard key={photo.id} photo={photo} showAuthor />
-      ))}
-    </div>
   )
 }
 

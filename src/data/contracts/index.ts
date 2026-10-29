@@ -17,11 +17,13 @@ import type {
   CollectionVisibility,
   Comment,
   FollowCounts,
+  HotSearch,
   Interaction,
   IsoDate,
   ModerationAction,
   MyReport,
   MySanction,
+  NewAuthor,
   Page,
   Photo,
   PhotoLicense,
@@ -60,6 +62,9 @@ export type {
 }
 
 export type { BlockedUser, FollowCounts, Page, UserHit }
+
+/** 发现页（8.3c）的类型同样从契约层再导出，页面只认一个导入面 */
+export type { HotSearch, NewAuthor }
 
 /** 收藏夹与服务端草稿的类型也从契约层再导出（8.3b），页面只认一个导入面 */
 export type {
@@ -541,6 +546,51 @@ export interface CollectionRepository {
 }
 
 /** 所有仓储的集合（data/index.ts 工厂产出） */
+// ===== 发现（8.3c：热门搜索 / 新作者 / 编辑精选）=====
+
+/** 热门搜索查询参数（服务端会再夹一次范围，见 domain/discover.ts 的常量） */
+export interface HotSearchQuery {
+  /** 统计窗口（天）；默认 7，服务端夹到 1–30 */
+  days?: number
+  /** 条数；默认 10，服务端夹到 1–20 */
+  limit?: number
+}
+
+/** 新作者查询参数 */
+export interface NewAuthorQuery {
+  /** 注册时间窗口（天）；默认 90，服务端夹到 7–365 */
+  days?: number
+  /** 条数；默认 6，服务端夹到 1–20 */
+  limit?: number
+}
+
+/** 设为 / 取消编辑精选的回执 */
+export interface EditorChoiceResult {
+  photoId: string
+  /** null = 已取消 */
+  featuredAt: IsoDate | null
+}
+
+export interface DiscoverRepository {
+  /**
+   * 热门搜索词（近 N 天搜索日志聚合，出现次数 ≥ 3）。
+   *
+   * 返回空数组是正常状态（新站还没有搜索量），页面必须整块隐藏而不是显示空壳。
+   */
+  hotSearches(query?: HotSearchQuery): Promise<HotSearch[]>
+  /** 新作者推荐（近 N 天注册、非 staff、至少 1 件在架作品） */
+  newAuthors(query?: NewAuthorQuery): Promise<NewAuthor[]>
+  /** 编辑精选作品流（featuredAt 非空 + 在架，按精选时间倒序；游标分页） */
+  featured(cursor?: string, limit?: number): Promise<CursorListPage<Photo>>
+  /**
+   * 设为 / 取消编辑精选（staff only）。
+   *
+   * 服务端以「当前会话是否为 editor/admin」授权；非 staff 一律 403（不止是 UI 隐藏），
+   * 因此页面也必须在失败时回滚乐观更新，而不是假装成功。
+   */
+  setEditorChoice(photoId: string, featured: boolean): Promise<EditorChoiceResult>
+}
+
 export interface Repositories {
   photos: PhotoRepository
   tags: TagRepository
@@ -555,4 +605,5 @@ export interface Repositories {
   search: SearchRepository
   social: SocialRepository
   moderation: ModerationRepository
+  discover: DiscoverRepository
 }

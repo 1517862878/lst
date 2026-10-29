@@ -19,6 +19,7 @@ import { FollowButton } from '@/features/social/FollowButton'
 import { HighlightedText } from '@/features/search/HighlightedText'
 import { SearchCombobox } from '@/features/search/SearchCombobox'
 import { TagLink } from '@/features/tags/TagLink'
+import { useHotSearches } from '@/hooks/useDiscover'
 import { useRecentSearches } from '@/hooks/useRecentSearches'
 import { useSearch, useUserSearch } from '@/hooks/useSearch'
 import { useTagSearchList } from '@/hooks/useTags'
@@ -41,6 +42,7 @@ export function SearchPage() {
   const locationName = params.get('location') ?? ''
   const sort = parseSort(params.get('sort'))
   const recent = useRecentSearches()
+  const hot = useHotSearches(8)
 
   const tags = useMemo(() => parseTags(tagsText), [tagsText])
   const query: SearchQuery = {
@@ -105,19 +107,57 @@ export function SearchPage() {
       {recent.items.length > 0 && (
         <div className="g-search-recent" role="group" aria-label="最近搜索">
           <span className="g-search-recent-label">最近搜索</span>
-          {recent.items.map((term) => (
-            <button
-              key={term}
-              type="button"
-              className="g-search-recent-chip"
-              onClick={() => submitTerm(term)}
-            >
-              {term}
-            </button>
-          ))}
+          <ul className="g-search-recent-list">
+            {recent.items.map((term) => (
+              <li key={term} className="g-search-recent-item">
+                <button
+                  type="button"
+                  className="g-search-recent-chip"
+                  onClick={() => submitTerm(term)}
+                >
+                  {term}
+                </button>
+                <button
+                  type="button"
+                  className="g-search-recent-remove"
+                  aria-label={`删除最近搜索「${term}」`}
+                  onClick={() => recent.remove(term)}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
           <Button variant="ghost" size="sm" onClick={recent.clear}>
             清空
           </Button>
+        </div>
+      )}
+
+      {/**
+       * 热门搜索：只在「搜索框空着 + 没有最近搜索」时出现——有最近搜索时用户
+       * 的下一步几乎总是点历史，再摆一排热词只是抢注意力。数据为空/失败时整块
+       * 隐藏（新站没有搜索量是正常状态，不是错误）。
+       */}
+      {recent.items.length === 0 && !q.trim() && (hot.data?.length ?? 0) > 0 && (
+        <div className="g-search-hot" role="group" aria-label="热门搜索">
+          <span className="g-search-recent-label">热门搜索</span>
+          <ul className="g-search-hot-list">
+            {(hot.data ?? []).map((item) => (
+              <li key={item.term}>
+                <button
+                  type="button"
+                  className="g-search-hot-chip"
+                  onClick={() => submitTerm(item.term)}
+                >
+                  {item.term}
+                  <span className="g-search-hot-count" aria-label={`${item.searchCount} 次搜索`}>
+                    {item.searchCount}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

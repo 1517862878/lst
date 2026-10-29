@@ -4,14 +4,15 @@
  * 搜索页的状态全在 URL 上，所以断言都尽量落到「点了之后 URL 变成什么」——
  * 只断言渲染结果会漏掉「刷新后筛选丢失」这类问题。
  */
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   tagList: {} as Record<string, unknown>,
-  recent: { items: [] as string[], push: vi.fn(), clear: vi.fn() },
+  recent: { items: [] as string[], push: vi.fn(), remove: vi.fn(), clear: vi.fn() },
+  hot: {} as Record<string, unknown>,
   tagListArgs: [] as Array<[string, number]>,
 }))
 
@@ -42,6 +43,13 @@ vi.mock('@/hooks/useRecentSearches', () => ({
   useRecentSearches: () => mocks.recent,
 }))
 
+vi.mock('@/hooks/useDiscover', () => ({
+  useHotSearches: () => mocks.hot,
+  useFeaturedPhotos: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }),
+  useNewAuthors: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }),
+  useSetEditorChoice: () => ({ mutate: vi.fn(), isPending: false }),
+}))
+
 const { SearchPage } = await import('@/pages/SearchPage')
 
 function LocationProbe() {
@@ -69,7 +77,8 @@ beforeEach(() => {
     isLoading: false,
     error: null,
   }
-  mocks.recent = { items: [], push: vi.fn(), clear: vi.fn() }
+  mocks.recent = { items: [], push: vi.fn(), remove: vi.fn(), clear: vi.fn() }
+  mocks.hot = { data: [], isLoading: false, isError: false, error: null }
 })
 
 afterEach(cleanup)
@@ -121,7 +130,7 @@ describe('SearchPage · 最近搜索', () => {
   })
 
   it('点最近搜索的胶囊写回 URL 的 q', async () => {
-    mocks.recent = { items: ['夜景', '街头'], push: vi.fn(), clear: vi.fn() }
+    mocks.recent = { items: ['夜景', '街头'], push: vi.fn(), remove: vi.fn(), clear: vi.fn() }
     const url = renderPage('/search')
 
     const group = screen.getByRole('group', { name: '最近搜索' })
@@ -133,9 +142,61 @@ describe('SearchPage · 最近搜索', () => {
   })
 
   it('「清空」调用 clear', async () => {
-    mocks.recent = { items: ['夜景'], push: vi.fn(), clear: vi.fn() }
+    mocks.recent = { items: ['夜景'], push: vi.fn(), remove: vi.fn(), clear: vi.fn() }
     renderPage()
     await userEvent.setup().click(screen.getByRole('button', { name: '清空' }))
     expect(mocks.recent.clear).toHaveBeenCalledTimes(1)
+  })
+
+  it('单条删除按钮调用 remove，且不改变 URL', async () => {
+    mocks.recent = { items: ['夜景', '街头'], push: vi.fn(), remove: vi.fn(), clear: vi.fn() }
+    const url = renderPage('/search')
+
+    await userEvent.setup().click(screen.getByRole('button', { name: '删除最近搜索「夜景」' }))
+    expect(mocks.recent.remove).toHaveBeenCalledWith('夜景')
+    expect(mocks.recent.push).not.toHaveBeenCalled()
+    expect(url).toHaveTextContent('/search')
+  })
+})
+
+describe('SearchPage · 热门搜索', () => {
+  it('没有最近搜索时展示热门搜索 chips，点一下写入 q 并记入最近搜索', async () => {
+    mocks.hot = {
+      data: [
+        { term: '长曝', searchCount: 9 },
+        { term: '城市', searchCount: 4 },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+    }
+    const url = renderPage('/search')
+
+    const group = screen.getByRole('group', { name: '热门搜索' })
+    expect(group).toHaveTextContent('长曝')
+
+    await userEvent.setup().click(within(group).getAllByRole('button')[0]!)
+    await waitFor(() => expect(url).toHaveTextContent('q=%E9%95%BF%E6%9B%9D'))
+    expect(mocks.recent.push).toHaveBeenCalledWith('长曝')
+  })
+
+  it('没有热搜数据时整块隐藏（不是空壳）', () => {
+    mocks.hot = { data: [], isLoading: false, isError: false, error: null }
+    renderPage('/search')
+    expect(screen.queryByRole('group', { name: '热门搜索' })).not.toBeInTheDocument()
+  })
+
+  it('热搜加载失败时静默隐藏，不影响搜索本身', () => {
+    mocks.hot = { data: undefined, isLoading: false, isError: true, error: new Error('boom') }
+    renderPage('/search')
+    expect(screen.queryByRole('group', { name: '热门搜索' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0)
+  })
+
+  it('有最近搜索时不再挤占空间展示热搜', () => {
+    mocks.recent = { items: ['夜景'], push: vi.fn(), remove: vi.fn(), clear: vi.fn() }
+    mocks.hot = { data: [{ term: '长曝', searchCount: 9 }], isLoading: false, isError: false, error: null }
+    renderPage('/search')
+    expect(screen.queryByRole('group', { name: '热门搜索' })).not.toBeInTheDocument()
   })
 })

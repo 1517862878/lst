@@ -6,7 +6,14 @@
  * 存储失败（隐私模式 / 配额满 / 手工禁用 localStorage）一律静默降级成空列表 ——
  * 搜索本身不能因为「记不住历史」而不可用。
  */
-const STORAGE_KEY = 'g.recent-searches'
+/**
+ * 存储键（8.3c 起冻结为 `gy:recent-searches`）。
+ *
+ * 老版本用的是 `g.recent-searches`；换前缀是为了让「本机历史」和站内其它
+ * localStorage 键（gy:session 等）统一在 gy: 命名空间下，清除站点数据时
+ * 不会漏掉某一类。
+ */
+const STORAGE_KEY = 'gy:recent-searches'
 /** 最多保留条数（冻结契约要求 10）：超过后丢最旧的 */
 export const RECENT_SEARCH_MAX = 10
 /** 单条关键词长度上限（与标签上限对齐，避免存进超长串） */
@@ -58,6 +65,25 @@ export function pushRecentSearch(term: string): string[] {
     store?.setItem(STORAGE_KEY, JSON.stringify(next))
   } catch {
     // 配额或权限问题：内存里的返回值仍然正确，只是不持久
+  }
+  return next
+}
+
+/**
+ * 删除单条（8.3c）：按大小写不敏感匹配，删完立即落盘。
+ *
+ * 最近搜索是「我搜过什么」，用户误点/不想留痕时应该能只删一条，
+ * 而不是只有「清空」这一种粗暴操作。
+ */
+export function removeRecentSearch(term: string): string[] {
+  const key = normalizeSearchTerm(term).toLocaleLowerCase()
+  const next = readRecentSearches().filter((item) => item.toLocaleLowerCase() !== key)
+  const store = storage()
+  try {
+    if (next.length === 0) store?.removeItem(STORAGE_KEY)
+    else store?.setItem(STORAGE_KEY, JSON.stringify(next))
+  } catch {
+    // 忽略：删不掉也不该让页面报错
   }
   return next
 }

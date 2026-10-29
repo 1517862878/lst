@@ -70,6 +70,18 @@ try {
       `api-e2e/${OWNER_ID}/${WITHDRAW_PHOTO_ID}/thumb.webp`,
     ],
   )
+  // 8.3c 发现增强：把主作品设为编辑精选，并造 3 条同词搜索日志，
+  // 让「编辑精选」区块与「热门搜索」在真实 API 模式下有确定数据可断言。
+  await client.query('update public.photos set featured_at = clock_timestamp() where id = $1', [
+    PHOTO_ID,
+  ])
+  await client.query(
+    `insert into public.search_logs (term, term_key, ip_hash, created_at) values
+       ('山','山','seed-ip-1', clock_timestamp() - interval '2 hours'),
+       ('山','山','seed-ip-2', clock_timestamp() - interval '1 hour'),
+       ('山','山','seed-ip-3', clock_timestamp() - interval '10 minutes')`,
+  )
+
   await client.query('commit')
 } catch (error) {
   await client.query('rollback')

@@ -124,6 +124,8 @@ export interface PhotoRow {
   created_at: unknown
   updated_at: unknown
   deleted_at: unknown
+  /** 0029 起：编辑精选时间戳。可选，旧的行/测试构造对象可以没有这一列。 */
+  featured_at?: unknown
 }
 
 /** 对应前端 Photo */
@@ -174,6 +176,8 @@ export function mapPhoto(row: PhotoRow) {
     likeCount: row.like_count,
     favoriteCount: row.favorite_count,
     commentCount: row.comment_count,
+    // 0029 编辑精选：未精选一律给 null（前端用 `featuredAt != null` 判断徽标）
+    featuredAt: iso(row.featured_at),
     viewCount: row.view_count,
     publishedAt: iso(row.published_at),
     createdAt: iso(row.created_at),

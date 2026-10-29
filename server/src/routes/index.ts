@@ -38,7 +38,10 @@ import { registerModerationRoutes } from './moderation.js'
 import { registerSocialRoutes } from './social.js'
 import { registerTagRoutes } from './tags.js'
 import { registerCollectionRoutes } from './collections.js'
+import { registerDiscoverRoutes } from './discover.js'
 import { searchPhotos } from '../repositories/search.js'
+import { logSearch } from '../repositories/discover.js'
+import { requestIpHash } from '../lib/session.js'
 
 /**
  * authorUsername 的输入护栏。
@@ -157,6 +160,11 @@ export async function registerRoutes(app: FastifyInstance) {
   // 服务端草稿 + 收藏夹/公开相册（0028）：草稿跨设备恢复、夹的增删改与条目分页
   // ==========================================================================
   await registerCollectionRoutes(app)
+
+  // ==========================================================================
+  // 发现增强（0029）：热门搜索 / 新作者推荐 / 编辑精选流 / staff 打标
+  // ==========================================================================
+  await registerDiscoverRoutes(app)
 
   // ==========================================================================
   // 作品
@@ -378,7 +386,7 @@ export async function registerRoutes(app: FastifyInstance) {
     if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
       throw validation('limit 必须是正整数')
     }
-    return withAnonymous((c) =>
+    const result = await withAnonymous((c) =>
       searchPhotos(c, {
         text,
         sort: req.query.sort === 'popular' ? 'popular' : 'latest',
@@ -386,6 +394,17 @@ export async function registerRoutes(app: FastifyInstance) {
         ...(limit === undefined ? {} : { limit }),
       }),
     )
+
+    // 热门搜索的来源只有这里。故意不 await：写日志失败（磁盘满、锁等待）绝不能
+    // 让一次正常的搜索变成 500；用户拿到的是搜索结果，日志是副产品。
+    const userId = (await currentUser(req).catch(() => null))?.userId ?? null
+    void withAnonymous((c) =>
+      logSearch(c, { term: text, userId, ipHash: requestIpHash(req) }),
+    ).catch((error: unknown) => {
+      app.log.warn({ err: error }, '记录搜索词失败（不影响搜索响应）')
+    })
+
+    return result
   })
 
   app.get<{ Params: { id: string }; Querystring: { limit?: string } }>(

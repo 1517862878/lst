@@ -134,10 +134,16 @@ describe('mock 地点仓储', () => {
     h.photos.set('p3', photo('p3', { locationName: '上海·外滩' }))
 
     const list = await mockPlaceRepository.list()
-    // 作品数相同 → 同发布时间 → 按名称 localeCompare（中文按拼音，杭 < 上）
+    // 并列次序固定为：作品数 → 最新发布时间 → 名称（**逐码位**比较，见 compareLabel）。
+    // 码位序里「上」(U+4E0A) 在「杭」(U+676D) 之前，所以上海在前。
+    //
+    // 这里刻意不用 localeCompare：它的结果取决于运行环境的 ICU 排序规则 ——
+    // Windows 中文系统按拼音给出「杭州在前」，Linux/CI 按码位给出「上海在前」。
+    // 上一版断言「杭州在前」在本地通过、在 CI 上变红（2026-10-30 真实发生）。
+    // 数据库侧对应迁移 0035 把同名兜底改成 collate "C"，两套实现同序。
     expect(list.map((item) => [item.label, item.photoCount])).toEqual([
-      ['杭州·西湖', 1],
       ['上海·外滩', 1],
+      ['杭州·西湖', 1],
     ])
 
     const page = await mockPlaceRepository.photos('杭州·西湖')

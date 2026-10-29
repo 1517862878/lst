@@ -156,9 +156,23 @@ export function buildGearSummary(
       (a, b) =>
         GEAR_KINDS.indexOf(a.kind) - GEAR_KINDS.indexOf(b.kind) ||
         b.photoCount - a.photoCount ||
-        a.label.localeCompare(b.label),
+        compareLabel(a.label, b.label),
     )
     .slice(0, size)
+}
+
+/**
+ * 名称兜底排序：逐码位比较，**不用 localeCompare**。
+ *
+ * localeCompare 的结果取决于运行环境的 ICU 排序规则：Windows 中文系统按拼音
+ * （杭州 < 上海），Linux/CI 常见排序按码位（上海 < 杭州）。同一个「热门地点」
+ * 列表因此在本地预览和线上演示里顺序不同，单测也会在 CI 上莫名变红。
+ * 数据库侧已在迁移 0035 里把对应的 `label asc` 固定为 `collate "C"`（UTF-8 下
+ * 即码位序），两套实现因此逐字一致。
+ */
+export function compareLabel(a: string, b: string): number {
+  if (a === b) return 0
+  return a < b ? -1 : 1
 }
 
 /** 某器材下的在架作品（按发布时间倒序，同时间用 id 兜底成全序，保证游标翻页不重不漏） */
@@ -235,7 +249,7 @@ export function buildPlaceSummary(
       (a, b) =>
         b.photoCount - a.photoCount ||
         (b.latestPublishedAt ?? '').localeCompare(a.latestPublishedAt ?? '') ||
-        a.label.localeCompare(b.label),
+        compareLabel(a.label, b.label),
     )
     .slice(0, size)
 }

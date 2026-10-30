@@ -57,6 +57,20 @@ export function Header({ sessionUser, role = null }: HeaderProps) {
   const menuId = useId()
   const { signOut } = useSignOut()
 
+  /**
+   * 当前是否在「器材 / 地点」板块（含其详情页）。
+   * 次级导航只在这两个板块里出现：它描述的是「作品墙的下钻维度」，
+   * 挂在其它页面上既无意义又占掉一行首屏空间。
+   *
+   * 路由兼容：HashRouter（GitHub Pages）下 location.pathname 恒为 /lst/，
+   * 真正的路由路径在 location.hash 里（如 #/gear / #/places/abc）；
+   * BrowserRouter（本地 dev / 直连 Nginx）下路径在 pathname 里。
+   * 两个都试，任一命中就算。
+   */
+  const isPhotographySection =
+    /^\/(gear|places)(\/|$)/.test(location.pathname) ||
+    /^#\/(gear|places)(\/|$)/.test(window.location.hash)
+
   const closeAccountMenu = (restoreFocus = false) => {
     setAccountOpen(false)
     if (restoreFocus) window.requestAnimationFrame(() => triggerRef.current?.focus())
@@ -192,18 +206,25 @@ export function Header({ sessionUser, role = null }: HeaderProps) {
           />
         </div>
       </div>
-      <nav className="g-subnav" aria-label="浏览维度">
-        <span className="g-subnav-label" aria-hidden="true">按器材/地点</span>
-        {SUBNAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) => cn('g-subnav-link', isActive && 'g-subnav-link-active')}
-          >
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
+      {/* 次级导航只在「器材 / 地点」这两个板块内出现。
+          它曾经无条件渲染，导致全站页头下方常驻一行「按器材/地点 器材 地点」，
+          与当前页面毫无关系的浏览维度反而成了最强的视觉噪音。 */}
+      {isPhotographySection && (
+        <nav className="g-subnav" aria-label="浏览维度">
+          <div className="g-subnav-inner">
+            <span className="g-subnav-label" aria-hidden="true">按器材/地点</span>
+            {SUBNAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => cn('g-subnav-link', isActive && 'g-subnav-link-active')}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+      )}
       {menuOpen && (
         <nav id="g-mobile-nav" className="g-mobile-nav" aria-label="移动端导航">
           {[...NAV_ITEMS, ...SUBNAV_ITEMS].map((item) => (

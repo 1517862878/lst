@@ -42,14 +42,14 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "迁移失败：$($migration.Name)" }
   }
 
-  $test = Join-Path $PSScriptRoot '..\supabase\test-photo-owner-api.sql'
+  $test = Join-Path $PSScriptRoot '..\supabase\tests/test-photo-owner-api.sql'
   Write-Host '[test] test-photo-owner-api.sql'
   & $Psql -X -h $HostName -p $Port -U $AdminUser -d $testDatabase -v ON_ERROR_STOP=1 -f $test
   if ($LASTEXITCODE -ne 0) { throw '作品 owner-only SQL 回归失败' }
 
   # 图片清理队列必须以 app_user 身份验证：0020 把队列表从应用角色完全收回，
   # 而 worker 用的正是 app_user，用管理员身份跑是测不出来的。
-  $cleanupTest = Join-Path $PSScriptRoot '..\supabase\test-photo-storage-cleanup-app-role.sql'
+  $cleanupTest = Join-Path $PSScriptRoot '..\supabase\tests/test-photo-storage-cleanup-app-role.sql'
   Write-Host '[test] test-photo-storage-cleanup-app-role.sql'
   & $Psql -X -h $HostName -p $Port -U $AdminUser -d $testDatabase -v ON_ERROR_STOP=1 -f $cleanupTest
   if ($LASTEXITCODE -ne 0) { throw '图片清理队列 app_user 边界回归失败' }

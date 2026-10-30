@@ -95,7 +95,7 @@
 | P0-02 历史浏览器验收 | 普通生产 E2E 16/16、子路径 E2E 7/7、单元测试 8/8 | 支持“作者身份第一切片完成”；不外推到本轮编辑/撤回或其他条目 |
 | 生产 E2E | mock 生产构建完整主链路 17/17；API 模式新增隔离临时库旅程，覆盖作者编辑/撤回、非作者隔离、匿名不可见，并关闭 cleanup worker 避免图片清理冲突 | 仍需在具备 PostgreSQL 管理员/app_user 凭据的环境执行 `pnpm test:e2e:api` 并保存通过日志 |
 | 服务端 test/typecheck/build/start | 作品边界与图片清理单测覆盖；真实 Fastify + Cookie/CSRF + app_user/RLS + PostgreSQL 作品管理集成 4/4 通过 | 继续补 0020 真实数据库并发/回滚、独立健康检查启动冒烟、429 与代理隔离 |
-| 迁移验证 | PostgreSQL 17 临时空库全链 apply、`supabase/test-photo-owner-api.sql` 与真实 HTTP 集成均通过（证据截至 0019）；0020 图片清理迁移已完成静态校验 | 已覆盖 owner-only、越权拒绝、软撤回幂等和 RLS 可见性；0020 仍需真实 PostgreSQL 验证可靠入队、回滚及 `SKIP LOCKED` 并发领取 |
+| 迁移验证 | PostgreSQL 17 临时空库全链 apply、`supabase/tests/test-photo-owner-api.sql` 与真实 HTTP 集成均通过（证据截至 0019）；0020 图片清理迁移已完成静态校验 | 已覆盖 owner-only、越权拒绝、软撤回幂等和 RLS 可见性；0020 仍需真实 PostgreSQL 验证可靠入队、回滚及 `SKIP LOCKED` 并发领取 |
 | 搜索契约 | C-1～C-8 缺失，mock/API 契约漂移 | S6 不得标完成；建立共享 adapter contract suite |
 | 学习内容 | 十二篇种子正文仍是明确占位骨架 | S7 不得标完成；完成真实正文、图片登记、目录锚点、安全链接、练习/关联内容验收 |
 | 合规 | 法律路由存在；发布同意证据、许可正确呈现/机器可读元数据、完整 DMCA 渠道、第三方 notices 自动化仍缺 | 不以页面存在等同完整合规 |

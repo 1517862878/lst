@@ -89,7 +89,7 @@ sudo -u postgres psql -d gongke -v app_password='app_user强密码' -f supabase/
 PGPASSWORD='postgres强密码' node scripts/apply-migrations.mjs
 
 # 3.3 结构自检（这个脚本自带期望值，会核对表/触发器/RLS 策略数量）
-PGPASSWORD='postgres强密码' psql -h 127.0.0.1 -U postgres -d gongke -f supabase/verify-schema.sql
+PGPASSWORD='postgres强密码' psql -h 127.0.0.1 -U postgres -d gongke -f supabase/tests/verify-schema.sql
 ```
 
 > ⚠️ `grant-app-role.sql` 是早期「一把梭」授权脚本，**不要**用它引导新集群——它的授权面

@@ -1,0 +1,635 @@
+/* ══ 8.4d · 每周主题 ──────────────────────────────────────────────────────
+   覆盖范围：/themes 列表、/themes/:slug 详情、首页「本周主题」条、
+   投稿弹层、审核台「主题」Tab（建期表单 + 精选投稿）。
+
+   只补这一层新视觉，其余复用设计系统：硬边框 --g-border + 偏移阴影
+   --g-shadow-sm/md / 间距字号走令牌 / 焦点环统一 --g-focus /
+   390px 是验收宽度，长标题一律 overflow-wrap: anywhere，不允许横向滚动条。
+
+   刻意不做的事：不给主题卡加圆角、渐变或悬浮位移 —— 8.4a 之后这一站的
+   视觉语言是「纸面 + 硬边」，主题是新功能，不是新风格。
+   ───────────────────────────────────────────────────────────────────── */
+
+/* ── 列表与详情共用的卡片网格 ─────────────────────────────────────────── */
+
+.g-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 208px), 1fr));
+  gap: var(--g-space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── /themes 列表：一期一张卡 ─────────────────────────────────────────── */
+
+.g-theme-card {
+  display: flex;
+  min-width: 0;
+}
+
+.g-theme-card-link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+  width: 100%;
+  min-width: 0;
+  padding: var(--g-space-3);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  box-shadow: var(--g-shadow-sm);
+  color: inherit;
+  text-decoration: none;
+}
+
+.g-theme-card-link:hover {
+  background: var(--g-surface-2);
+}
+
+.g-theme-card-link:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: 2px;
+}
+
+.g-theme-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  min-width: 0;
+}
+
+.g-theme-card-countdown {
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+}
+
+.g-theme-card-title {
+  margin: 0;
+  font-size: var(--g-text-lg);
+  overflow-wrap: anywhere;
+}
+
+.g-theme-card-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+
+.g-theme-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+  margin: auto 0 0;
+  padding-top: var(--g-space-2);
+  border-top: 1px solid var(--g-surface-3);
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+}
+
+/* 骨架卡：与真卡同高，避免加载完成时页面跳动 */
+.g-theme-card-body-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+  width: 100%;
+  min-width: 0;
+  padding: var(--g-space-3);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  box-shadow: var(--g-shadow-sm);
+}
+
+/* ── 投稿卡（详情页「编辑精选」「全部投稿」「审核台」共用） ─────────────── */
+
+.g-theme-entry {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  box-shadow: var(--g-shadow-sm);
+}
+
+.g-theme-entry-thumb {
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border-bottom: var(--g-border) solid var(--g-line);
+  color: var(--g-ink);
+  text-decoration: none;
+}
+
+.g-theme-entry-thumb:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: 2px;
+}
+
+.g-theme-entry-thumb-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.g-theme-entry-thumb-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: var(--g-text-xl);
+}
+
+.g-theme-entry-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--g-space-1);
+  min-width: 0;
+  padding: var(--g-space-3);
+}
+
+.g-theme-entry-title {
+  margin: 0;
+  font-size: var(--g-text-base);
+  overflow-wrap: anywhere;
+}
+
+.g-theme-entry-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.g-theme-entry-title a:hover {
+  text-decoration: underline;
+}
+
+.g-theme-entry-title a:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: 2px;
+}
+
+.g-theme-entry-author {
+  margin: 0;
+  font-size: var(--g-text-xs);
+}
+
+.g-theme-entry-author-link {
+  color: var(--g-ink-2);
+  overflow-wrap: anywhere;
+}
+
+.g-theme-entry-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+  margin: 0;
+  color: var(--g-ink-3);
+  font-size: var(--g-text-xs);
+}
+
+.g-theme-entry-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-1);
+  margin: var(--g-space-1) 0 0;
+}
+
+.g-theme-entry-selected-at {
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+}
+
+.g-theme-entry-note {
+  margin: var(--g-space-1) 0 0;
+  padding: var(--g-space-2);
+  border-left: var(--g-border) solid var(--g-brand);
+  background: var(--g-brand-soft);
+  font-size: var(--g-text-xs);
+  line-height: var(--g-leading);
+  overflow-wrap: anywhere;
+}
+
+.g-theme-entry-note-label {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--g-ink-2);
+}
+
+.g-theme-entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+  margin-top: auto;
+  padding-top: var(--g-space-2);
+}
+
+/* 详情页整体骨架 */
+.g-theme-detail-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-3);
+  margin-bottom: var(--g-space-5);
+}
+
+/* ── 详情页头部横幅 ──────────────────────────────────────────────────── */
+
+.g-theme-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+  margin-bottom: var(--g-space-4);
+  padding: var(--g-space-4);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  box-shadow: var(--g-shadow-sm);
+}
+
+.g-theme-hero-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  margin: 0;
+}
+
+.g-theme-hero-window {
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+}
+
+.g-theme-hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-3);
+  margin: 0;
+  padding: 0;
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  list-style: none;
+}
+
+.g-theme-hero-deadline {
+  margin: 0;
+  color: var(--g-accent-2);
+  font-size: var(--g-text-sm);
+}
+
+.g-theme-prose,
+.g-theme-rules {
+  margin: 0;
+  line-height: var(--g-leading);
+  overflow-wrap: anywhere;
+}
+
+/* 规则是编辑手写的多行文本：white-space 保换行，但不能靠长 URL 撑破 390px */
+.g-theme-rules {
+  white-space: pre-wrap;
+}
+
+.g-theme-hint {
+  margin: 0 0 var(--g-space-2);
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  overflow-wrap: anywhere;
+}
+
+.g-theme-more {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--g-space-3);
+}
+
+.g-theme-feedback {
+  margin: var(--g-space-2) 0;
+  padding: var(--g-space-2) var(--g-space-3);
+  border: var(--g-border) solid var(--g-danger);
+  background: var(--g-surface);
+  color: var(--g-danger);
+  font-size: var(--g-text-sm);
+  overflow-wrap: anywhere;
+}
+
+/* ── 我的投稿 ────────────────────────────────────────────────────────── */
+
+.g-theme-mine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.g-theme-mine-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  min-width: 0;
+  padding: var(--g-space-2) var(--g-space-3);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+}
+
+.g-theme-mine-title {
+  min-width: 0;
+  flex: 1 1 160px;
+  overflow-wrap: anywhere;
+}
+
+.g-theme-mine-title a {
+  color: inherit;
+}
+
+.g-theme-mine-meta {
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+}
+
+/* ── 投稿弹层 ────────────────────────────────────────────────────────── */
+
+.g-theme-submit-limit {
+  margin: 0 0 var(--g-space-2);
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+}
+
+.g-theme-submit-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+  max-height: 46vh;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.g-theme-submit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  min-width: 0;
+  padding: var(--g-space-2);
+  border: 1px solid var(--g-line-soft);
+  background: var(--g-surface);
+}
+
+.g-theme-submit-title {
+  min-width: 0;
+  flex: 1 1 140px;
+  overflow-wrap: anywhere;
+}
+
+/* ── 首页「本周主题」条 ──────────────────────────────────────────────── */
+
+.g-theme-spotlight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+  padding: var(--g-space-4);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+  box-shadow: var(--g-shadow-md);
+  color: inherit;
+  text-decoration: none;
+}
+
+.g-theme-spotlight:hover {
+  background: var(--g-surface-3);
+}
+
+.g-theme-spotlight:focus-visible {
+  outline: 2px solid var(--g-focus);
+  outline-offset: 2px;
+}
+
+.g-theme-spotlight-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+}
+
+.g-theme-spotlight-countdown {
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+}
+
+.g-theme-spotlight-title {
+  font-size: var(--g-text-lg);
+  overflow-wrap: anywhere;
+}
+
+.g-theme-spotlight-desc {
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  line-height: var(--g-leading);
+  overflow-wrap: anywhere;
+}
+
+.g-theme-spotlight-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+}
+
+.g-theme-spotlight-cta {
+  color: var(--g-brand-ink);
+  font-size: var(--g-text-sm);
+}
+
+/* ── 审核台「主题」Tab：建期表单 ─────────────────────────────────────── */
+
+.g-theme-form-dialog {
+  width: min(100%, 560px);
+}
+
+.g-theme-form,
+.g-theme-form-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-3);
+  min-width: 0;
+}
+
+.g-theme-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--g-space-3);
+}
+
+.g-theme-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-1);
+  min-width: 0;
+}
+
+.g-theme-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+}
+
+.g-theme-form-errors {
+  margin: 0;
+  padding: var(--g-space-2) var(--g-space-3);
+  border: var(--g-border) solid var(--g-danger);
+  background: var(--g-surface);
+  color: var(--g-danger);
+  font-size: var(--g-text-sm);
+  list-style: none;
+}
+
+/* ── 审核台「主题」Tab：列表与精选 ───────────────────────────────────── */
+
+.g-theme-admin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-3);
+  min-width: 0;
+}
+
+.g-theme-admin-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--g-space-2);
+}
+
+.g-theme-admin-bar .g-theme-hint {
+  flex: 1 1 220px;
+  margin: 0;
+}
+
+.g-theme-admin-list,
+.g-theme-admin-entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.g-theme-admin-row {
+  padding: var(--g-space-3);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  box-shadow: var(--g-shadow-sm);
+}
+
+.g-theme-admin-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--g-space-2);
+}
+
+.g-theme-admin-row-main {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.g-theme-admin-row-title {
+  margin: 0 0 var(--g-space-1);
+  font-size: var(--g-text-base);
+  overflow-wrap: anywhere;
+}
+
+.g-theme-admin-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+  margin: 0;
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+}
+
+.g-theme-admin-slug {
+  font-family: var(--g-font-mono);
+  overflow-wrap: anywhere;
+}
+
+.g-theme-admin-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+}
+
+.g-theme-admin-entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+  margin-top: var(--g-space-3);
+  padding-top: var(--g-space-3);
+  border-top: 1px solid var(--g-surface-3);
+}
+
+.g-theme-admin-entry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+  min-width: 0;
+  padding: var(--g-space-3);
+  border: 1px solid var(--g-line-soft);
+  background: var(--g-surface-2);
+}
+
+.g-theme-admin-entry-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-2);
+  min-width: 0;
+}
+
+.g-theme-admin-entry-title {
+  min-width: 0;
+  flex: 1 1 140px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.g-theme-admin-entry-author {
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+}
+
+.g-theme-admin-entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+}
+
+/* ── 深色主题下的两处微调 ────────────────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+  .g-theme-entry-note {
+    background: var(--g-surface-2);
+  }
+}
+
+/* 动效偏好：本层没有动画，只保留骨架屏的呼吸由设计系统统一处理 */
+@media (prefers-reduced-motion: reduce) {
+  .g-theme-card-link,
+  .g-theme-spotlight {
+    transition: none;
+  }
+}

@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import {
   groupNotifications,
   isReplyNotification,
+  themeSelectionOf,
   weeklyRankOf,
   type BundleReadState,
   type NotificationGroup,
@@ -88,6 +89,8 @@ function actorNameOf(notification: AppNotification): string {
  *   · 评论 → 有人评论了我的作品；
  *   · 榜单 → 我的作品上了周榜，标题从通知自带的 photoTitle 取（服务端已按
  *     可见性过滤，拿不到就不带书名号，不猜）。
+ *   · 主题精选（8.4d）→ 我的作品入选了某期每周主题，跳转目标是主题详情页
+ *     而不是作品页：作者想看的是「入选了哪一期」，作品他自己有。
  */
 function describe(notification: AppNotification): NotificationCopy {
   const actor = <strong>{actorNameOf(notification)}</strong>
@@ -126,6 +129,21 @@ function describe(notification: AppNotification): NotificationCopy {
             </>
           ),
           ...(workLink ? { to: workLink, actionLabel: '查看作品' } : {}),
+        }
+      }
+      // 8.4d：主题精选的通知复用同一份 photoTitle 兜底。拿不到标题时也要说话，
+      // 「你的作品」比「系统通知」有用得多 —— 后者等于什么都没告诉作者。
+      const theme = themeSelectionOf(notification)
+      if (theme) {
+        const work = notification.photoTitle?.trim() ?? ''
+        return {
+          text: (
+            <>
+              {work ? `《${work}》` : '你的作品'}入选主题{theme.title ? `「${theme.title}」` : ''}精选
+            </>
+          ),
+          to: `/themes/${theme.slug}`,
+          actionLabel: '查看主题',
         }
       }
       // 系统通知没有 actor，也没有跳转目标；文案里不要再拼一个「有人」

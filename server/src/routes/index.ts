@@ -43,6 +43,7 @@ import { registerCollectionRoutes } from './collections.js'
 import { registerDiscoverRoutes } from './discover.js'
 import { registerStatsRoutes } from './stats.js'
 import { registerGearRoutes } from './gear.js'
+import { registerThemeRoutes } from './themes.js'
 import { searchPhotos } from '../repositories/search.js'
 import { logSearch } from '../repositories/discover.js'
 import { requestIpHash } from '../lib/session.js'
@@ -249,6 +250,12 @@ export async function registerRoutes(app: FastifyInstance) {
   // 摄影专业化（0031）：器材 / 地点 / 季节的公开聚合
   // ==========================================================================
   await registerGearRoutes(app)
+
+  // ==========================================================================
+  // 每周主题与活动（0036）：主题列表/详情、投稿网格、我的投稿与投稿撤回、
+  // 后台建主题/改主题/精选（含后台全量列表，草稿只在这里可见）
+  // ==========================================================================
+  await registerThemeRoutes(app)
 
   // ==========================================================================
   // 作品

@@ -9,6 +9,7 @@ import type {
   SearchQuery,
   TagListQuery,
   TagPhotoSort,
+  ThemeListFilter,
 } from '@/data/contracts'
 
 export const queryKeys = {
@@ -107,6 +108,16 @@ export const queryKeys = {
   placePhotos: (label: string) => ['photography', 'places', label] as const,
   seasons: () => ['photography', 'seasons'] as const,
   photography: () => ['photography'] as const,
+  // ===== 每周主题与活动（8.4d）=====
+  // 统一挂在 'themes' 前缀下：投稿 / 撤回 / 精选 / 编辑改期都会同时影响列表、
+  // 详情与「我的投稿」，一次 invalidate ['themes'] 全刷（与 tags/discover 同一约定）。
+  // 精选还会改变通知，所以 useThemes 的精选 mutation 另外失效 ['social']。
+  themesList: (status: ThemeListFilter) => ['themes', 'list', status] as const,
+  theme: (slug: string) => ['themes', 'detail', slug] as const,
+  themeEntries: (slug: string, selectedOnly: boolean) =>
+    ['themes', 'entries', slug, selectedOnly] as const,
+  myThemeEntries: (slug: string) => ['themes', 'mine', slug] as const,
+  adminThemes: () => ['themes', 'admin'] as const,
 }
 
 export type FollowListKind = 'followers' | 'following'

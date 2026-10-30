@@ -42,6 +42,14 @@ vi.mock('@/components/ui/useToast', () => ({
   useToast: () => ({ show: vi.fn() }),
 }))
 
+// 8.4d 起审核台多了一个「主题」Tab（AdminPage → useAdminThemes）。本文件测的是举报/申诉/
+// 处罚三条链路，主题 Tab 一律当作「一期都没有」——角标显示 0，面板不渲染，
+// 也就不需要 QueryClient（否则 useQuery 会抛「No QueryClient set」）。
+vi.mock('@/hooks/useThemes', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/hooks/useThemes')>()),
+  useAdminThemes: () => ({ data: [], isLoading: false, isError: false, refetch: vi.fn() }),
+}))
+
 vi.mock('@/hooks/useModeration', () => ({
   useAdminReports: () => ({
     data: h.reports.value,

@@ -1,7 +1,7 @@
 /**
  * 审核台（/admin，仅 editor | admin）。
  *
- * 三块：举报队列（列表 + 详情面板）、申诉复核、处罚撤销。
+ * 四块：举报队列（列表 + 详情面板）、申诉复核、处罚撤销、每周主题（8.4d）。
  * 非 staff 看到的是明确的「无权访问」说明，而不是空白页 —— 空白页会被当成
  * 功能故障报上来，而说明页能直接告诉用户这里需要什么身份。
  */
@@ -27,6 +27,7 @@ import type {
   ReportStatus,
 } from '@/domain/types'
 import { useSession } from '@/hooks/useSession'
+import { useAdminThemes } from '@/hooks/useThemes'
 import {
   useAdminAppeals,
   useAdminReportDetail,
@@ -53,8 +54,9 @@ import {
   targetKindLabel,
   UPHELD_RESOLUTIONS,
 } from '@/features/moderation/copy'
+import { AdminThemesPanel } from '@/features/themes/AdminThemesPanel'
 
-type AdminTab = 'reports' | 'appeals' | 'sanctions'
+type AdminTab = 'reports' | 'appeals' | 'sanctions' | 'themes'
 
 export function AdminPage() {
   return (
@@ -101,18 +103,21 @@ function AdminWorkspace({ staffId }: { staffId: string }) {
   const reportsQuery = useAdminReports(reportFilter)
   const appealsQuery = useAdminAppeals(appealFilter)
   const sanctionsQuery = useAdminSanctions(sanctionFilter)
+  // 主题 Tab 的角标数量：与面板内部同一个 queryKey，React Query 会去重成一次请求
+  const adminThemesQuery = useAdminThemes()
 
   const items = [
     { value: 'reports', label: '举报队列', count: reportsQuery.data?.length ?? 0 },
     { value: 'appeals', label: '申诉复核', count: appealsQuery.data?.length ?? 0 },
     { value: 'sanctions', label: '处罚', count: sanctionsQuery.data?.length ?? 0 },
+    { value: 'themes', label: '主题', count: adminThemesQuery.data?.length ?? 0 },
   ]
 
   return (
     <Container>
       <PageHeader
         title="审核台"
-        description="处理举报、复核申诉、撤销处罚。所有操作都会写入审计记录。"
+        description="处理举报、复核申诉、撤销处罚、管理每周主题。所有操作都会写入审计记录。"
         breadcrumbs={[{ label: '首页', to: '/' }, { label: '审核台' }]}
       />
 
@@ -239,6 +244,10 @@ function AdminWorkspace({ staffId }: { staffId: string }) {
               ))}
             </ul>
           </ListShell>
+        </TabsPrimitive.Content>
+
+        <TabsPrimitive.Content value="themes" className="g-tabs-content">
+          <AdminThemesPanel />
         </TabsPrimitive.Content>
       </Tabs>
     </Container>

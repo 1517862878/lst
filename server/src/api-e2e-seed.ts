@@ -5,6 +5,7 @@ const { Client } = pg
 
 const OWNER_ID = 'a1000000-0000-0000-0000-000000000001'
 const OTHER_ID = 'b2000000-0000-0000-0000-000000000002'
+const EDITOR_ID = 'd4000000-0000-0000-0000-000000000005'
 const PHOTO_ID = 'c3000000-0000-0000-0000-000000000003'
 // 第二个作品专供「撤回」这条破坏性流程使用。photo-owner.spec 会把它撤回到 removed，
 // 而 social.spec 需要确保动态流里有一件*始终已发布*的作品（Playwright 按文件名顺序跑，
@@ -33,8 +34,9 @@ try {
   await client.query(
     `insert into auth.users (id,email,password_hash,raw_user_meta_data) values
        ($1,'api-owner@test.local',$3,'{"display_name":"API Owner"}'),
-       ($2,'api-other@test.local',$3,'{"display_name":"API Other"}')`,
-    [OWNER_ID, OTHER_ID, passwordHash],
+       ($2,'api-other@test.local',$3,'{"display_name":"API Other"}'),
+       ($4,'api-editor@test.local',$3,'{"display_name":"API Editor"}')`,
+    [OWNER_ID, OTHER_ID, passwordHash, EDITOR_ID],
   )
   await client.query(
     `update public.profiles set username='api_owner', display_name='API Owner' where id=$1`,
@@ -43,6 +45,12 @@ try {
   await client.query(
     `update public.profiles set username='api_other', display_name='API Other' where id=$1`,
     [OTHER_ID],
+  )
+  // 8.4d 主题旅程需要一个编辑账号：handle_new_user 触发器已按 email 前缀建好 profile，
+  // 这里把它提升为 editor（审核台与主题 Tab 的入口都按 role 判定）。
+  await client.query(
+    `update public.profiles set username='api_editor', display_name='API Editor', role='editor' where id=$1`,
+    [EDITOR_ID],
   )
   await client.query(
     `insert into public.photos
@@ -82,6 +90,18 @@ try {
        ('山','山','seed-ip-3', clock_timestamp() - interval '10 minutes')`,
   )
 
+  // 8.4d 主题旅程的起点：一期已在进行中的主题（api-e2e-weekly），
+  // 由编辑账号创建、窗口跨过现在，作者可直接投稿、编辑可直接精选。
+  await client.query(
+    `insert into public.photo_themes
+       (slug, title, description, rules, status, starts_at, ends_at, created_by)
+     values
+       ('api-e2e-weekly', 'API 每周主题', '真实 API 模式的每周主题旅程',
+        '一人最多 3 件，需为本人原创。', 'active',
+        clock_timestamp() - interval '1 day', clock_timestamp() + interval '7 days', $1)`,
+    [EDITOR_ID],
+  )
+
   await client.query('commit')
 } catch (error) {
   await client.query('rollback')
@@ -94,8 +114,10 @@ console.log(
   JSON.stringify({
     owner: 'api_owner',
     other: 'api_other',
+    editor: 'api_editor',
     password: PASSWORD,
     photoId: PHOTO_ID,
     withdrawPhotoId: WITHDRAW_PHOTO_ID,
+    themeSlug: 'api-e2e-weekly',
   }),
 )

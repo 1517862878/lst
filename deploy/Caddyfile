@@ -1,29 +1,53 @@
-# 工科影展 HTTPS 反向代理模板
-# 使用前把 example.com 替换为已解析到本机公网 IP 的域名。
-example.com {
-  encode zstd gzip
+# 工科影展 HTTPS 反向代理
+#
+# 用法：
+#   DOMAIN=你的域名 SITE_ROOT=/srv/gongke/dist caddy run --config deploy/Caddyfile
+# 自检配置：caddy validate --config deploy/Caddyfile
+#
+# 两个变量都有默认值，本地想看配置结构可以直接跑 validate：
+#   DOMAIN 默认 example.com（Caddy 会尝试为其申请证书，正式部署必须换成真实域名）
+#   SITE_ROOT 默认 /srv/gongke/dist
+#
+# 关键设计：前端产物、/api、/images 全在【同一个域名】下。
+# 会话 Cookie 是 __Host- 前缀（Secure + Path=/ + 不带 Domain），
+# 因此生产必须整站 HTTPS 同源；把 API 放到别的域名会让 Cookie 变成第三方而失效。
 
-  # 前端产物：先运行 pnpm build
-  root * E:/项目一 网站开发/dist
+{$DOMAIN:example.com} {
+	encode zstd gzip
 
-  # API、图片和上传均同源，避免第三方 Cookie 兼容问题。
-  handle /api/* {
-    reverse_proxy 127.0.0.1:3001
-  }
-  handle /images/* {
-    reverse_proxy 127.0.0.1:3001
-  }
+	# 前端产物：先运行 pnpm build（见 deploy/deploy.sh）
+	root * {$SITE_ROOT:/srv/gongke/dist}
 
-  handle {
-    try_files {path} /index.html
-    file_server
-  }
+	# API 与图片同源反代，避免第三方 Cookie 与跨域预检问题
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3001
+	}
+	handle /images/* {
+		reverse_proxy 127.0.0.1:3001
+	}
 
-  header {
-    Strict-Transport-Security "max-age=31536000; includeSubDomains"
-    X-Content-Type-Options nosniff
-    Referrer-Policy strict-origin-when-cross-origin
-    Permissions-Policy "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-src https://challenges.cloudflare.com"
-  }
+	# SPA 回退：找不到的路径交给 index.html（客户端路由负责 404 页）
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# 注意：Turnstile 需要 frame-src 与 script-src 放行 challenges.cloudflare.com；
+		# script-src 现在是 'self'，若开启人机验证请改为
+		# script-src 'self' https://challenges.cloudflare.com
+		Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-src https://challenges.cloudflare.com"
+	}
+
+	# 访问日志（Caddy 默认写 journald，这里显式开文件便于排查）
+	log {
+		output file /var/log/caddy/gongke-access.log {
+			roll_size 20MiB
+			roll_keep 7
+		}
+	}
 }

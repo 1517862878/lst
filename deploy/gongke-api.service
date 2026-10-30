@@ -1,0 +1,38 @@
+[Unit]
+Description=工科影展 API（Fastify + PostgreSQL）
+Documentation=file:///srv/gongke/项目交接说明.md
+After=network-online.target postgresql.service
+Wants=network-online.target
+# 数据库在别的机器上时删掉 postgresql.service 依赖
+
+[Service]
+Type=simple
+User=gongke
+Group=gongke
+WorkingDirectory=/srv/gongke/server
+EnvironmentFile=/etc/gongke/api.env
+ExecStart=/usr/bin/node dist/index.js
+# 服务会写上传目录，因此需要重启
+Restart=always
+RestartSec=3
+# 迁移/构建不该占满机器时给个上限
+TimeoutStopSec=20
+
+# ── 加固 ──
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# 只放开真正需要写的目录：图片目录（上传落盘）
+ReadWritePaths=/srv/gongke/images
+# dist 只读即可；日志走 journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gongke-api
+
+[Install]
+WantedBy=multi-user.target

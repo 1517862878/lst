@@ -272,6 +272,52 @@ describe('文案', () => {
     ).toBeInTheDocument()
   })
 
+  it('主题精选通知写成「《X》入选主题「Y」精选」，并跳到主题详情页', async () => {
+    mocks.notifications.mockResolvedValue(
+      page([
+        notice('t1', {
+          kind: 'system',
+          actor: null,
+          photoId: 'p8',
+          photoTitle: '秋日银杏',
+          meta: { kind: 'theme_selected', themeSlug: 'autumn-light', themeTitle: '秋日光线' },
+        }),
+      ]),
+    )
+    renderPage()
+
+    expect(
+      await screen.findByText(notificationCopy('《秋日银杏》入选主题「秋日光线」精选')),
+    ).toBeInTheDocument()
+    // 落点是主题而不是作品页：作者要看的是「这一期都有谁入选」
+    expect(screen.getByRole('link', { name: '查看主题' })).toHaveAttribute(
+      'href',
+      '/themes/autumn-light',
+    )
+  })
+
+  it('主题精选但拿不到作品标题（已下架）时退化成「你的作品入选主题…」', async () => {
+    mocks.notifications.mockResolvedValue(
+      page([
+        notice('t2', {
+          kind: 'system',
+          actor: null,
+          photoId: null,
+          meta: { kind: 'theme_selected', themeSlug: 'autumn-light', themeTitle: '秋日光线' },
+        }),
+      ]),
+    )
+    renderPage()
+
+    expect(
+      await screen.findByText(notificationCopy('你的作品入选主题「秋日光线」精选')),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '查看主题' })).toHaveAttribute(
+      'href',
+      '/themes/autumn-light',
+    )
+  })
+
   it('普通系统通知仍然只说「系统通知」', async () => {
     mocks.notifications.mockResolvedValue(
       page([notice('s1', { kind: 'system', actor: null, photoId: null })]),

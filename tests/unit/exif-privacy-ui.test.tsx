@@ -58,6 +58,15 @@ vi.mock('@/hooks/usePhotography', async (importOriginal) => ({
   useSeasons: () => ({ data: [], isLoading: false, error: null, refetch: vi.fn() }),
 }))
 
+// 8.4d 起详情页有「投稿到主题」入口（WorkDetailPage → useThemes / useMyThemeEntries）。
+// 本文件只测拍摄参数隐私，主题一律当作「没有进行中的主题」——入口不渲染，
+// 也不需要为它准备 QueryClient（页面查询全部走这里桩掉的 hooks）。
+vi.mock('@/hooks/useThemes', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/hooks/useThemes')>()),
+  useThemes: () => ({ data: undefined, isLoading: false, isError: false, refetch: vi.fn() }),
+  useMyThemeEntries: () => ({ data: undefined, isLoading: false, isError: false, refetch: vi.fn() }),
+}))
+
 vi.mock('@/hooks/useAccount', () => {
   const account = {
     id: 'u1',

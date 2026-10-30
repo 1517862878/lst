@@ -11,6 +11,8 @@
 @import './s11-collections.css';
 @import './s12-discover.css';
 @import './s13-photography.css';
+/* 8.4d 每周主题：编号沿用契约里的文件名，接在最后一层模块样式之后 */
+@import './s12-themes.css';
 @import './pixel-theme.css';
 @import 'tailwindcss';
 

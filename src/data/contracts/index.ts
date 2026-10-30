@@ -24,6 +24,7 @@ import type {
   ModerationAction,
   MyReport,
   MySanction,
+  MyThemeEntry,
   NewAuthor,
   Page,
   Photo,
@@ -42,6 +43,10 @@ import type {
   ReportTarget,
   ReportTargetType,
   Session,
+  ThemeDetail,
+  ThemeEntry,
+  ThemeStatus,
+  ThemeSummary,
   UserHit,
 } from '@/domain/types'
 import type {
@@ -134,6 +139,14 @@ export const ErrorCodes = {
   VALIDATION: 'VALIDATION',
   CONFLICT: 'CONFLICT',
   STORAGE: 'STORAGE',
+  /**
+   * 超出配额（8.4d：每个主题最多投 3 件）。
+   *
+   * 后端用它区分「额度用完」（HTTP 422）与「填错了」（VALIDATION 400）：
+   * 两者都是 4xx，靠状态码兜底会把它并成 VALIDATION，页面就没法给出
+   * 「你已投满 3 件」这种带下一步的提示。列进来后 client.ts 会原样保留该 code。
+   */
+  LIMIT_EXCEEDED: 'LIMIT_EXCEEDED',
 } as const
 
 // ===== 查询参数 DTO =====
@@ -780,6 +793,115 @@ export interface ProfileRepository {
   setPinned(photoIds: string[]): Promise<PinnedPhotosResult>
 }
 
+// ===== 每周主题与活动（8.4d）=====
+
+/**
+ * 公开列表的三个视图（GET /api/themes?status=…）。
+ *
+ * 三档互不重叠：`active` = 正在征集，`upcoming` = 已排期未开始，
+ * `past` = 已结束。草稿不在任何一档里（后台另有入口）。
+ */
+export type ThemeListFilter = 'active' | 'upcoming' | 'past'
+
+export interface ThemeEntryQuery {
+  /** 1–48，默认 24（服务端会夹取） */
+  limit?: number
+  offset?: number
+  /** true = 只看已精选（详情页的「精选」区） */
+  selectedOnly?: boolean
+}
+
+export interface ThemeEntryPage {
+  items: ThemeEntry[]
+  total: number
+  /** 下一页的 offset；null = 没有更多 */
+  nextOffset: number | null
+}
+
+/**
+ * 后台新建/编辑一次提交的字段。
+ *
+ * slug 只在新建时可写：它是路由的一部分，改掉等于让所有外链失效，
+ * 服务端也会拒绝「传了与库中不同的 slug」（400 VALIDATION）。
+ */
+export interface ThemeInput {
+  slug: string
+  title: string
+  description?: string
+  rules?: string
+  status?: ThemeStatus
+  startsAt: string
+  endsAt: string
+  coverPhotoId?: string | null
+  resultNote?: string
+}
+
+/** 后台写入后服务端回的权威结果（以它为准，不做乐观更新） */
+export interface ThemeWriteResult {
+  id: string
+  slug: string
+  status: ThemeStatus
+}
+
+export interface ThemeSubmitResult {
+  photoId: string
+  submittedAt: IsoDate
+  /** 该主题当前投稿总数（含本次） */
+  entryCount: number
+}
+
+export interface ThemeSelectResult {
+  isSelected: boolean
+  selectedCount: number
+}
+
+/**
+ * 每周主题与活动（8.4d，第 11 个仓储）。
+ *
+ * 读写分成三层权限，与后端函数一一对应：
+ *   · list / get / listEntries —— 任何人可读（草稿主题对非编辑一律 NOT_FOUND）；
+ *   · myEntries / submitEntry / withdrawEntry —— 必须登录，只能碰自己的投稿；
+ *   · createTheme / updateTheme / selectEntry / adminList —— 仅 editor/admin。
+ *
+ * 错误口径（与后端逐条对齐，页面据此给不同提示）：
+ *   · 重复投稿 → AppError CONFLICT「这件作品已经在主题里了」；
+ *   · 超过每人 3 件 → AppError LIMIT_EXCEEDED（HTTP 422）；
+ *   · 撤回已入选/主题已结束 → AppError FORBIDDEN。
+ */
+export interface ThemeRepository {
+  /** 公开列表（三档之一），按 startsAt 倒序 */
+  list(status: ThemeListFilter): Promise<ThemeSummary[]>
+  /** 主题详情；不存在、或草稿而调用者不是编辑 → NOT_FOUND */
+  get(slug: string): Promise<ThemeDetail>
+  /** 投稿网格（默认按「精选在前、然后按投稿时间倒序」） */
+  listEntries(slug: string, query?: ThemeEntryQuery): Promise<ThemeEntryPage>
+  /** 我在这个主题里的投稿（必须登录） */
+  myEntries(slug: string): Promise<MyThemeEntry[]>
+  /** 投稿（只能投自己的已发布作品） */
+  submitEntry(slug: string, photoId: string): Promise<ThemeSubmitResult>
+  /** 撤回投稿（只能撤自己的、且主题仍在征集、且未被精选） */
+  withdrawEntry(slug: string, photoId: string): Promise<void>
+  /** 后台新建（POST /api/admin/themes） */
+  createTheme(input: ThemeInput): Promise<ThemeWriteResult>
+  /** 后台编辑（PATCH /api/admin/themes/:id）；slug 不可改 */
+  updateTheme(id: string, patch: Partial<ThemeInput>): Promise<ThemeWriteResult>
+  /** 后台精选/取消精选，可同时写评语；精选会通知作者，取消精选不发通知 */
+  selectEntry(
+    slug: string,
+    photoId: string,
+    input: { selected: boolean; note?: string },
+  ): Promise<ThemeSelectResult>
+  /**
+   * 后台：列出全部主题**含草稿**。
+   *
+   * 契约 §2 只定义了三个公开档位，而「新建草稿 → 过几天再开始」是后台的常规
+   * 流程：没有这一条，草稿创建完就再也找不到了（公开接口刻意不返回它）。
+   * api 实现先试 GET /api/admin/themes，端点不存在（404）时退回三个公开档的
+   * 合并 —— 功能降级但不会白屏，等后端补上端点即自动升级。
+   */
+  adminList(): Promise<ThemeSummary[]>
+}
+
 export interface Repositories {
   photos: PhotoRepository
   tags: TagRepository
@@ -800,4 +922,5 @@ export interface Repositories {
   places: PlaceRepository
   seasons: SeasonRepository
   profile: ProfileRepository
+  themes: ThemeRepository
 }

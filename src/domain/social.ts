@@ -340,6 +340,14 @@ export function notificationText(n: AppNotification, photoTitle?: string): strin
     default: {
       const rank = weeklyRankOf(n)
       if (rank) return `你的作品${photoTitle ? `《${photoTitle}》` : ''}入选 ${rank.isoWeek} 周榜第 ${rank.rank} 名`
+      // 8.4d：主题精选通知（system + theme_selected）必须与榜单区分开 ——
+      // 两条通知都是 kind='system'，只按 kind 兜底会把它写成「系统通知」，
+      // 作者根本不知道该去哪看自己的作品。
+      const theme = themeSelectionOf(n)
+      if (theme) {
+        const work = photoTitle ? `《${photoTitle}》` : '你的作品'
+        return theme.title ? `${work}入选主题「${theme.title}」精选` : `${work}入选了本周主题精选`
+      }
       return n.actor ? `${who} 发来一条系统通知` : '系统通知'
     }
   }
@@ -351,7 +359,8 @@ export interface NotificationLink {
 }
 
 /**
- * 通知的跳转目标：点赞/评论 → 作品页；关注 → 对方主页；系统通知无跳转。
+ * 通知的跳转目标：点赞/评论 → 作品页；关注 → 对方主页；主题精选 → 主题详情页；
+ * 其余系统通知无跳转。
  * photoId 缺失时（作品已删除）退化为无跳转，而不是给一个必然 404 的链接。
  */
 export function notificationLink(n: AppNotification): NotificationLink | null {
@@ -361,6 +370,8 @@ export function notificationLink(n: AppNotification): NotificationLink | null {
   if (n.kind === 'follow' && n.actor) {
     return { to: `/u/${n.actor.username}`, label: '查看主页' }
   }
+  const theme = themeSelectionOf(n)
+  if (theme) return { to: `/themes/${theme.slug}`, label: '查看主题' }
   return null
 }
 
@@ -399,6 +410,22 @@ export function weeklyRankOf(n: AppNotification): { isoWeek: string; rank: numbe
   if (typeof isoWeek !== 'string' || isoWeek === '') return null
   if (typeof rank !== 'number' || !Number.isInteger(rank) || rank < 1) return null
   return { isoWeek, rank }
+}
+
+/**
+ * 主题精选通知的 (slug, title)；不是主题精选或字段残缺时返回 null（8.4d）。
+ *
+ * 与 weeklyRankOf 同一套防御：meta 是 `Record<string, unknown>` 出身，
+ * 字段永远稀疏且类型不可信，所以既判存在性也判类型。title 允许缺失 ——
+ * 通知照发，文案退化成「本周主题精选」而不是不显示这条通知。
+ */
+export function themeSelectionOf(n: AppNotification): { slug: string; title: string } | null {
+  if (n.kind !== 'system') return null
+  const meta = n.meta
+  if (!meta || meta.kind !== 'theme_selected') return null
+  const { themeSlug, themeTitle } = meta
+  if (typeof themeSlug !== 'string' || themeSlug === '') return null
+  return { slug: themeSlug, title: typeof themeTitle === 'string' ? themeTitle : '' }
 }
 
 /**

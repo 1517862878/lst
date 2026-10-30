@@ -55,6 +55,14 @@ vi.mock('@/hooks/useSocial', () => ({
   useFeed: () => mocks.feed,
 }))
 
+// 8.4d 起 HomePage 顶部有「本周主题」条（ThemeSpotlight → useThemes）。本文件测的是
+// 双 Tab 与热门标签，主题条一律当作「没有进行中的主题」——那一块不渲染，断言才只落在
+// 本文件关心的区块上（主题条本身由 tests/unit/themes-pages.test.tsx 覆盖）。
+vi.mock('@/hooks/useThemes', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/hooks/useThemes')>()),
+  useThemes: () => ({ data: undefined, isLoading: false, isError: false, refetch: vi.fn() }),
+}))
+
 vi.mock('@/hooks/useSession', () => ({
   useSession: () => ({ data: mocks.session, isLoading: mocks.sessionLoading }),
 }))

@@ -28,6 +28,7 @@ import { mockGearRepository } from './mock/repositories/gear'
 import { mockPlaceRepository } from './mock/repositories/places'
 import { mockSeasonRepository } from './mock/repositories/seasons'
 import { mockProfileRepository } from './mock/repositories/profile'
+import { mockThemeRepository } from './mock/repositories/themes'
 
 import { apiPhotoRepository } from './api/photos'
 import { apiCategoryRepository } from './api/categories'
@@ -48,6 +49,7 @@ import { apiGearRepository } from './api/gear'
 import { apiPlaceRepository } from './api/places'
 import { apiSeasonRepository } from './api/seasons'
 import { apiProfileRepository } from './api/profile'
+import { apiThemeRepository } from './api/themes'
 
 let cached: Repositories | null = null
 
@@ -81,6 +83,7 @@ export function createRepositories(): Repositories {
       places: apiPlaceRepository,
       seasons: apiSeasonRepository,
       profile: apiProfileRepository,
+      themes: apiThemeRepository,
     }
   } else {
     cached = {
@@ -103,6 +106,7 @@ export function createRepositories(): Repositories {
       places: mockPlaceRepository,
       seasons: mockSeasonRepository,
       profile: mockProfileRepository,
+      themes: mockThemeRepository,
     }
   }
 

@@ -1,0 +1,61 @@
+# 工科影展 API 生产环境变量样板
+#
+# 用法：复制到 /etc/gongke/api.env（chmod 600，属主 root），由 systemd 的
+#   EnvironmentFile=/etc/gongke/api.env
+# 注入。不要提交真实值到仓库。
+#
+# 生产启动的硬性要求（缺一个服务直接启动失败，见 server/src/lib/config.ts）：
+#   - IP_HASH_SECRET ≥ 32 字符
+#   - TRUSTED_ORIGINS 必填
+#   - SMS_PROVIDER=aliyun
+#   - TURNSTILE_PROVIDER=cloudflare 时 TURNSTILE_SECRET 必填
+# 生成密钥：openssl rand -base64 48 | tr -d '\n'
+
+# ── 运行模式与监听 ──
+NODE_ENV=production
+# 只监听回环，公网由 Caddy 反代进来（不要直接暴露 3001）
+HOST=127.0.0.1
+PORT=3001
+# 在 Caddy 后面，必须打开，否则限流与 IP 哈希拿到的是 127.0.0.1
+TRUST_PROXY=1
+
+# ── 数据库（应用角色，绝不是 postgres）──
+# postgres 是超级用户，会完全绕过 RLS，用它会静默失去全部行级安全。
+PGHOST=127.0.0.1
+PGPORT=5432
+PGDATABASE=gongke
+PGUSER=app_user
+PGPASSWORD=请换成强密码
+PGPOOL_MAX=10
+
+# ── 会话与 Cookie ──
+# 生产会启用 __Host-gk_session（要求 Secure + Path=/ + 不带 Domain），
+# 因此必须整站 HTTPS，且前端与 API 同源。
+IP_HASH_SECRET=请换成至少32字符的随机串
+# 允许的浏览器来源，必须与站点域名完全一致（含协议，逗号分隔多个）
+TRUSTED_ORIGINS=https://example.com
+# 会话有效期（秒），默认 7 天
+# SESSION_TTL_SECONDS=604800
+
+# ── 图片存储（本机磁盘）──
+# 目录需存在且对服务账号可写；/images/* 由 API 静态托管
+IMAGE_ROOT=/srv/gongke/images
+
+# ── 短信（生产必须 aliyun）──
+SMS_PROVIDER=aliyun
+ALIYUN_SMS_ACCESS_KEY_ID=
+ALIYUN_SMS_ACCESS_KEY_SECRET=
+ALIYUN_SMS_SIGN_NAME=
+ALIYUN_SMS_TEMPLATE_CODE=
+# SMS_CODE_TTL=300
+# SMS_CODE_COOLDOWN=60
+
+# ── 人机验证（Cloudflare Turnstile）──
+# 后端校验 Turnstile token，前端 widget 用构建期的 VITE_TURNSTILE_SITE_KEY
+TURNSTILE_PROVIDER=cloudflare
+TURNSTILE_SECRET=
+# TURNSTILE_TIMEOUT_MS=5000
+
+# ── 法律文本版本（改动协议时递增，会要求用户重新同意）──
+# TERMS_VERSION=2026-10-28
+# PRIVACY_VERSION=2026-10-28

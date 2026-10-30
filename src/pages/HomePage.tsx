@@ -9,6 +9,9 @@
  *   · Tab 从「两个链接」升级为 tablist + 左右方向键（见 features/discover/HomeTabs）；
  *   · 关注视图复用 features/social/FollowingFeed（与 /feed 同一套组件，不复制逻辑），
  *     首页只取前 6 条，「查看全部」仍指向 /feed。
+ *
+ * 8.4d：发现视图在「本周精选」之后插一条「本周主题」（features/themes/ThemeSpotlight）。
+ * 首页导航不加新项 —— 390px 下顶部导航已经很挤，主题的入口走这条横幅 + 作品页的投稿按钮。
  */
 import { Link, Navigate, useSearchParams } from 'react-router'
 import { Container } from '@/components/layout/Container'
@@ -22,6 +25,7 @@ import { FeaturedSection } from '@/features/discover/FeaturedSection'
 import { NewAuthorsSection } from '@/features/discover/NewAuthorsSection'
 import { HomeTabs, type HomeTab } from '@/features/discover/HomeTabs'
 import { FollowingFeed } from '@/features/social/FollowingFeed'
+import { ThemeSpotlight } from '@/features/themes/ThemeSpotlight'
 import { useArticles, useCategories, useWeeklyRanking } from '@/hooks/useContent'
 import { useTags } from '@/hooks/useTags'
 import { usePhotos, usePhoto } from '@/hooks/usePhotos'
@@ -102,6 +106,10 @@ export function HomePage() {
                 </div>
               )}
             </Section>
+
+            {/* 8.4d：没有「进行中」的主题时 ThemeSpotlight 自己返回 null，
+                首页其余部分不受影响，也不用在这里写条件 */}
+            <ThemeSpotlight />
 
             <FeaturedSection />
             <NewAuthorsSection />

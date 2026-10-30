@@ -297,14 +297,18 @@ export interface NotificationMeta {
   reply?: boolean
   /** 被回复的评论 id（reply 通知才有） */
   parentCommentId?: string
-  /** 系统通知的子类型；目前只有周榜入选 */
-  kind?: 'weekly_rank'
+  /** 系统通知的子类型：周榜入选 / 主题精选（8.4d） */
+  kind?: 'weekly_rank' | 'theme_selected'
   /** 榜单名次（weekly_rank） */
   rank?: number
   /** ISO 周，形如 2026-W44 */
   isoWeek?: string
   /** 榜单得分（weekly_rank） */
   score?: number
+  /** 被入选的主题 slug（theme_selected），跳转 /themes/:slug */
+  themeSlug?: string
+  /** 被入选的主题标题（theme_selected），文案里直接引用 */
+  themeTitle?: string
 }
 
 /**
@@ -669,4 +673,92 @@ export interface PhotoStats {
   viewCount: number
   /** 非空 = 编辑精选（与 Photo.featuredAt 同一字段口径） */
   featuredAt: IsoDate | null
+}
+
+// ===== 每周主题与活动（8.4d）=====
+
+/**
+ * 主题生命周期。
+ *
+ * `active` 不是「正在进行」的同义词：一个 active 主题可能还没开始（starts_at 在未来）
+ * 或已经过了截止时间（ends_at 已过），真正能不能投稿看 `ThemeDetail.isOpen`
+ * （= status 为 active 且 now 落在 [starts_at, ends_at) 内）。
+ * 数据库用部分唯一索引保证**同一时刻最多只有一个 active**。
+ */
+export type ThemeStatus = 'draft' | 'active' | 'closed'
+
+/**
+ * 主题摘要（列表用）。
+ *
+ * 计数（entryCount / selectedCount）是服务端算好的：只数「已发布且未删除」的投稿，
+ * 前端不再自行聚合 —— 列表页没有全量投稿数据，自己数只会得到错数。
+ */
+export interface ThemeSummary {
+  id: string
+  /** 2–40 位小写字母/数字/连字符；创建后不可改，是页面路由的一部分 */
+  slug: string
+  title: string
+  description: string
+  status: ThemeStatus
+  startsAt: IsoDate
+  endsAt: IsoDate
+  /**
+   * 封面作品（可选）。服务端只允许指向「该主题的已投稿作品」；
+   * 没有封面时列表页退回投稿网格的第一张，而不是留一个灰块。
+   */
+  coverPhotoId: string | null
+  entryCount: number
+  selectedCount: number
+}
+
+/**
+ * 主题详情。
+ *
+ * rules 与 resultNote 都是**纯文本**（允许换行），页面用 `whitespace-pre-line` 渲染，
+ * 不走 Markdown —— 编辑写的是规则条目，不是文章。
+ */
+export interface ThemeDetail extends ThemeSummary {
+  rules: string
+  resultNote: string
+  /** status === 'active' 且 now ∈ [startsAt, endsAt)。只有它为真才能投稿/撤回 */
+  isOpen: boolean
+}
+
+/**
+ * 一条投稿（详情页网格用）。
+ *
+ * 作者信息与图片 key 是服务端联表带出来的：一条投稿渲染要作者名与缩略图，
+ * 让前端再按 photoId 逐条回查就是 N+1（而且下架/隐藏的作品回查会 404）。
+ */
+export interface ThemeEntry {
+  photoId: string
+  /** 编辑精选标：非空 = 已入选，并带上入选时间（排序用） */
+  isSelected: boolean
+  /** 编辑评语（≤200），未精选时通常为空串 */
+  note: string
+  selectedAt: IsoDate | null
+  submittedAt: IsoDate
+  title: string
+  authorId: string
+  authorUsername: string
+  authorDisplayName: string
+  imageKey: string
+  thumbKey: string
+  likeCount: number
+  favoriteCount: number
+}
+
+/**
+ * 我的投稿（详情页「我的投稿状态」用）。
+ *
+ * 比 ThemeEntry 少很多东西是刻意的：这块只回答「我投了哪几件、选中没有、还能不能撤」，
+ * 缩略图与作者名都是多余的。
+ */
+export interface MyThemeEntry {
+  photoId: string
+  title: string
+  isSelected: boolean
+  /** 编辑评语（≤200） */
+  note: string
+  submittedAt: IsoDate
 }

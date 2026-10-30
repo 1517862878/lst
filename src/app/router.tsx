@@ -71,6 +71,9 @@ const GearDetailPage = lazyNamed(() => import('@/pages/GearDetailPage'), 'GearDe
 const PlacesPage = lazyNamed(() => import('@/pages/PlacesPage'), 'PlacesPage')
 const PlaceDetailPage = lazyNamed(() => import('@/pages/PlaceDetailPage'), 'PlaceDetailPage')
 const NotificationsPage = lazyNamed(() => import('@/pages/NotificationsPage'), 'NotificationsPage')
+// 每周主题（8.4d）：列表与单期详情各自分包
+const ThemesPage = lazyNamed(() => import('@/pages/ThemesPage'), 'ThemesPage')
+const ThemeDetailPage = lazyNamed(() => import('@/pages/ThemeDetailPage'), 'ThemeDetailPage')
 
 // 法律页七合一打包（内容静态且相关，一次加载）
 const AboutPage = lazyNamed(() => import('@/pages/LegalPages'), 'AboutPage')
@@ -119,6 +122,10 @@ export const router = createRouter(
         { path: 'gear/:kind', element: <GearDetailPage /> },
         { path: 'places', element: <PlacesPage /> },
         { path: 'places/:label', element: <PlaceDetailPage /> },
+        // 每周主题：入口在首页「本周主题」条与作品页的投稿按钮，
+        // 主导航保持 5 项不变（390px 下再加一项就会挤成两行）
+        { path: 'themes', element: <ThemesPage /> },
+        { path: 'themes/:slug', element: <ThemeDetailPage /> },
         { path: 'works/:id', element: <WorkDetailPage /> },
         { path: 'works/:id/edit', element: <WorkEditPage /> },
         { path: 'categories', element: <CategoriesPage /> },

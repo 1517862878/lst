@@ -1,6 +1,9 @@
 /**
  * 作品详情 /works/:id（FRONTEND-WORK §2.3）。
  * 画廊 + EXIF 白名单 + 作者 + 评论列表（S5 前只读）+ 相关推荐。
+ *
+ * 8.4d：作者本人在这里能把这件作品投稿到当前「进行中」的主题
+ * （只有当周有主题、且这件还没投过时才出现按钮）。
  */
 import { useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router'
@@ -23,13 +26,16 @@ import { CommentSection } from '@/features/interactions/CommentSection'
 import { AuthorLink } from '@/features/profiles/AuthorLink'
 import { WorkMoreMenu } from '@/features/moderation/WorkMoreMenu'
 import { AddToCollectionDialog } from '@/features/collections/AddToCollectionDialog'
+import { ThemeSubmitDialog } from '@/features/themes/ThemeSubmitDialog'
 import { useMorePhotosByAuthor, usePhoto, useRelatedPhotos, useWithdrawPhoto } from '@/hooks/usePhotos'
+import { useMyThemeEntries, useThemes } from '@/hooks/useThemes'
 import { useSession } from '@/hooks/useSession'
 import { useInteractionSync } from '@/hooks/useInteractions'
 import { formatDate, relativeTime } from '@/lib/time'
 import { categoryName } from '@/domain/constants'
 import { LICENSE_DESCRIPTORS } from '@/domain/licenses'
 import { gearLabel } from '@/domain/photography'
+import { canSubmitMore, themeEntryLimitText } from '@/domain/themes'
 
 export function WorkDetailPage() {
   const { id = '' } = useParams()
@@ -37,6 +43,7 @@ export function WorkDetailPage() {
   const toast = useToast()
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [collectionOpen, setCollectionOpen] = useState(false)
+  const [themeSubmitOpen, setThemeSubmitOpen] = useState(false)
   const [withdrawError, setWithdrawError] = useState('')
   const withdrawPhoto = useWithdrawPhoto(id)
   const photoQuery = usePhoto(id)
@@ -44,6 +51,14 @@ export function WorkDetailPage() {
   const { data: session } = useSession()
   const loadedPhoto = photoQuery.data
   const sameAuthorQuery = useMorePhotosByAuthor(loadedPhoto?.authorId ?? '', loadedPhoto?.id ?? '')
+  // 8.4d：投稿入口只在有「进行中」主题时出现。写在这里（早返回之前）是为了满足
+  // rules-of-hooks：下面有 loading / 404 两个提前 return。
+  const activeThemesQuery = useThemes('active')
+  const activeTheme = activeThemesQuery.data?.[0] ?? null
+  const myThemeEntriesQuery = useMyThemeEntries(activeTheme?.slug ?? '', {
+    enabled: Boolean(session) && Boolean(activeTheme),
+  })
+  const myThemeEntries = myThemeEntriesQuery.data ?? []
   useInteractionSync()
 
   if (photoQuery.isLoading) {
@@ -68,6 +83,12 @@ export function WorkDetailPage() {
 
   const photo = photoQuery.data
   const isAuthor = session?.userId === photo.authorId
+  // 8.4d：「投稿到主题」只对作者本人、且这件作品还没投进当前主题时出现。
+  // 已投满时不藏按钮而是置灰并说明原因 —— 藏起来作者会反复找入口。
+  const themeSubmittedPhotoIds = myThemeEntries.map((entry) => entry.photoId)
+  const themeEntryFull = !canSubmitMore(myThemeEntries.length)
+  const showThemeSubmit =
+    isAuthor && Boolean(activeTheme) && !themeSubmittedPhotoIds.includes(photo.id)
 
   // 拍摄参数的三态与器材跳转：Make/Model 合并成一行「机身」，LensModel 单独一行「镜头」，
   // 两者都能点进器材作品流（/gear/:kind?label=），因为它们是同一个聚合口径的两个视角。
@@ -140,6 +161,22 @@ export function WorkDetailPage() {
                 <Button size="sm" variant="secondary" onClick={() => navigate(`/works/${photo.id}/edit`)}>
                   编辑作品
                 </Button>
+                {showThemeSubmit && activeTheme && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={themeEntryFull}
+                    aria-label={`投稿到主题「${activeTheme.title}」`}
+                    title={
+                      themeEntryFull
+                        ? themeEntryLimitText(myThemeEntries.length)
+                        : `把《${photo.title}》投稿到「${activeTheme.title}」`
+                    }
+                    onClick={() => setThemeSubmitOpen(true)}
+                  >
+                    投稿到主题
+                  </Button>
+                )}
                 <Button size="sm" variant="danger" onClick={() => setWithdrawOpen(true)}>
                   撤回作品
                 </Button>
@@ -272,6 +309,17 @@ export function WorkDetailPage() {
         <p className="g-withdraw-copy">你将撤回《{photo.title}》。</p>
         {withdrawError && <p className="g-auth-error" role="alert">{withdrawError}</p>}
       </Dialog>
+
+      {session && activeTheme && (
+        <ThemeSubmitDialog
+          open={themeSubmitOpen}
+          onOpenChange={setThemeSubmitOpen}
+          slug={activeTheme.slug}
+          themeTitle={activeTheme.title}
+          submittedPhotoIds={themeSubmittedPhotoIds}
+          myEntryCount={myThemeEntries.length}
+        />
+      )}
 
       <CommentSection
         photoId={photo.id}

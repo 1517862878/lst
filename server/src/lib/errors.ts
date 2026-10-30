@@ -78,6 +78,26 @@ export function blockedByRelationMessage(err: unknown): string | null {
 }
 
 /**
+ * 0036 的「403 但要给用户看业务原因」标记：数据库用 42501 抛，
+ * 消息形如 `FORBIDDEN_MSG:已入选的作品不能撤回，请联系编辑`。
+ *
+ * 为什么不是直接抛 55000（409）：语义上确实是「你无权做这件事」而不是「状态冲突」，
+ * 契约（.tmp/phase84d-freeze.md §1.3 第 6 条）明确要求 42501 → 403；但裸 42501
+ * 的消息会被当成 RLS 英文样板丢掉，所以需要一个显式标记把它和样板区分开。
+ * 与 BLOCKED_BY_RELATION 同理，只是不带任何「拉黑」语义，可被任意 403 复用。
+ */
+export const FORBIDDEN_MESSAGE_PREFIX = 'FORBIDDEN_MSG:'
+
+/** 是 0036 的「显式 403 业务文案」吗？是则返回去掉标记的文案，否则返回 null。 */
+export function forbiddenBusinessMessage(err: unknown): string | null {
+  if (!(err instanceof Error)) return null
+  if ((err as { code?: string }).code !== '42501') return null
+  return err.message.startsWith(FORBIDDEN_MESSAGE_PREFIX)
+    ? err.message.slice(FORBIDDEN_MESSAGE_PREFIX.length)
+    : null
+}
+
+/**
  * 把数据库错误翻译成业务错误。
  *
  * 为什么需要：RLS 拒绝在数据库层表现为 42501（权限不足），
@@ -94,11 +114,11 @@ export function translateDbError(err: unknown): ApiError | null {
   }
 
   switch (e.code) {
-    case '42501': // insufficient_privilege：RLS 拦截，或 0024 的拉黑阻断
-      // 带标记的才是 0024 有意写给用户的业务文案，其余仍是 RLS 的英文样板。
+    case '42501': // insufficient_privilege：RLS 拦截，0024 的拉黑阻断，或 0036 的显式 403 文案
+      // 带标记的才是有意写给用户的业务文案，其余仍是 RLS 的英文样板。
       return new ApiError(
         'FORBIDDEN',
-        blockedByRelationMessage(e) ?? '无权执行该操作（被行级安全策略拒绝）',
+        blockedByRelationMessage(e) ?? forbiddenBusinessMessage(e) ?? '无权执行该操作（被行级安全策略拒绝）',
         e.detail,
       )
     case '23505': // unique_violation
@@ -123,6 +143,10 @@ export function translateDbError(err: unknown): ApiError | null {
       return new ApiError('VALIDATION', message, e.detail)
     }
     case '53400': // configuration_limit_exceeded：0028 的配额上限（422 而不是 400）
+      return new ApiError('LIMIT_EXCEEDED', e.message || '已达上限')
+    case '54000': // program_limit_exceeded：0036 的「每人每主题最多 3 件投稿」
+      // 与 53400 同类语义（配额上限 → 422），只是 PostgreSQL 给 PL/pgSQL 里
+      // `raise ... using errcode='54000'` 准备的码。契约 §1.3 第 5 条指定用它。
       return new ApiError('LIMIT_EXCEEDED', e.message || '已达上限')
     case '55000': // object_not_in_prerequisite_state：目标对象当前状态不允许该操作
       // 治理链路里「申诉已复核」「已撤销的处罚再撤销」这类都是状态冲突，

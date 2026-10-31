@@ -36,6 +36,8 @@ test.describe('子路径部署（/lst/）', () => {
       ['/learn', '学习板块'],
       ['/login', '登录'],
       ['/register', '注册'],
+      // 外观设置是本轮新增页面：hash 路由 + /lst/ 前缀下必须同样可达
+      ['/appearance', '外观设置'],
     ] as const
     for (const [path, heading] of routes) {
       // 首次访问会收到文档响应；同一文档内后续只改变 hash，Playwright 正确返回 null。
@@ -79,6 +81,33 @@ test.describe('子路径部署（/lst/）', () => {
       .evaluateAll((els) => els.slice(0, 5).map((e) => e.getAttribute('href') ?? ''))
     expect(links.length).toBeGreaterThan(0)
     for (const h of links) expect(h.startsWith('#/works/')).toBe(true)
+  })
+
+  test('外观设置在子路径下可切换并持久化', async ({ page }) => {
+    await page.goto(url('/appearance'))
+    await expect(page.getByRole('heading', { name: '外观设置', level: 1 })).toBeVisible({ timeout: 20_000 })
+
+    // 切配色 + 切字体，刷新后仍是同一套（验证 base 前缀不影响 localStorage）
+    await page.getByText('P4 碳灰霓虹').click()
+    await page.getByText('现代无衬线').click()
+    await page.reload()
+    await expect(page.getByRole('heading', { name: '外观设置', level: 1 })).toBeVisible({ timeout: 20_000 })
+
+    const markers = await page.evaluate(() => ({
+      palette: document.documentElement.dataset.palette,
+      font: document.documentElement.dataset.font,
+    }))
+    expect(markers.palette).toBe('p4')
+    expect(markers.font).toBe('sans')
+
+    // 390px 下不溢出（子路径形态一并验收）
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.reload()
+    await expect(page.getByRole('heading', { name: '外观设置', level: 1 })).toBeVisible({ timeout: 20_000 })
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+    expect(overflow).toBeLessThanOrEqual(1)
   })
 
   test('个人主页可用（Tabs 不崩溃）', async ({ page }) => {

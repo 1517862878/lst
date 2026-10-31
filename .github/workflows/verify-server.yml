@@ -133,9 +133,12 @@ jobs:
           set -euo pipefail
           # 文件在「项目文件夹整理」时移到了 supabase/tests/，这里同步路径。
           # 该步骤曾因路径过期而静默失败（找不到文件），直到 0037 迁移才被发现。
+          # 注意：这里**不能**加 supabase/tests/test-rls.sql。
+          # 它是早期独立自测脚本，开头会 grant 全表 select/insert/update/delete 给 app_user，
+          # 会把后续迁移「逐条收回过宽权限」的结果全部推翻 —— 实测导致
+          # account-center.integration 与 background-photo.integration 的权限断言失败。
           for f in supabase/tests/test-photo-owner-api.sql \
-                   supabase/tests/test-photo-storage-cleanup-app-role.sql \
-                   supabase/tests/test-rls.sql; do
+                   supabase/tests/test-photo-storage-cleanup-app-role.sql; do
             echo "── $f"
             PGPASSWORD=postgres psql -X -h 127.0.0.1 -U postgres -d "$PGDATABASE" \
               -v ON_ERROR_STOP=1 -f "$f"

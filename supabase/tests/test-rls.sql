@@ -1,6 +1,15 @@
 -- ============================================================================
 -- RLS 行为验证（修正版）
 --
+-- ⚠️ 2026-10-31 重要警示：**本脚本会给 app_user 授予全表 select/insert/update/delete**
+--    （见下方第 27–30 行的 grant 段）。它会推翻后续迁移「逐条收回过宽权限」的结果，
+--    因此：
+--      · 只在**独立的临时库**上跑，不要在生产库 / CI 的迁移链库上跑；
+--      · **不要**把它加进 CI 的「权限边界 SQL 回归」步骤 ——
+--        实测会连带让 account-center.integration 与 background-photo.integration
+--        的权限断言失败（曾真实发生，见 .github/workflows/verify-server.yml 的注释）。
+--    本脚本是早期自测，保留它用于手工排查 RLS 行为，不作为门禁。
+--
 -- 上一版失败原因（重要教训）：
 --   1) `SET LOCAL` 只能在事务块内使用；在 psql 脚本里单独执行只报 WARNING 然后无效，
 --      于是全程以 postgres（superuser）身份运行 —— 而 superuser 永远绕过 RLS。

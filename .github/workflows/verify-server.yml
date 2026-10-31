@@ -131,8 +131,11 @@ jobs:
       - name: 权限边界 SQL 回归
         run: |
           set -euo pipefail
-          for f in supabase/test-photo-owner-api.sql \
-                   supabase/test-photo-storage-cleanup-app-role.sql; do
+          # 文件在「项目文件夹整理」时移到了 supabase/tests/，这里同步路径。
+          # 该步骤曾因路径过期而静默失败（找不到文件），直到 0037 迁移才被发现。
+          for f in supabase/tests/test-photo-owner-api.sql \
+                   supabase/tests/test-photo-storage-cleanup-app-role.sql \
+                   supabase/tests/test-rls.sql; do
             echo "── $f"
             PGPASSWORD=postgres psql -X -h 127.0.0.1 -U postgres -d "$PGDATABASE" \
               -v ON_ERROR_STOP=1 -f "$f"

@@ -181,7 +181,7 @@ export const FONTS: readonly FontOption[] = [
     description: 'Inter + 系统中文字体，克制中性。用于设置/后台类页面，首页会丢品牌个性。',
     integerMultiple: false,
     range: { min: 14, max: 17 },
-    previewFamily: "Inter, system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif",
+    previewFamily: "'Inter', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif",
   },
 ]
 
@@ -269,7 +269,9 @@ export const FONT_SIZE_MAX = 24
 
 /**
  * 以正文为基准等比推导其余字阶。
- * 比例沿用 tokens.css 的现状（12/14/16/24/32/48），保证放大后节奏不变。
+ * 比例与 tokens.css 对齐（12/14/16/24/36/48），保证放大后节奏不变。
+ *
+ * xl 用 36 而不是 32：像素体要求 12 的整数倍，32 是 8/3 倍会落在半像素上。
  */
 export function textScaleFor(base: number) {
   const b = clampInt(base, FONT_SIZE_MIN, FONT_SIZE_MAX)
@@ -278,7 +280,7 @@ export function textScaleFor(base: number) {
     sm: Math.round((b * 14) / 16),
     base: b,
     lg: Math.round((b * 24) / 16),
-    xl: Math.round((b * 32) / 16),
+    xl: Math.round((b * 36) / 16),
     '2xl': Math.round((b * 48) / 16),
   }
 }

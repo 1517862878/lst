@@ -13,6 +13,21 @@ export interface AccountSettings {
   pinnedPhotoIds: string[]
   /** 0031：代表作摘要，供设置页直接渲染，不必再拉一次作品。 */
   pinned: PinnedPhotoSummary[]
+  /** 0037：账号级背景照片对象键（null = 未设置）。 */
+  backgroundPhotoKey: string | null
+  /** 0037：背景照片元数据（luma/尺寸/模糊/焦点等），供前端算压暗强度。 */
+  backgroundPhotoMeta: BackgroundPhotoMeta | null
+}
+
+/** 0037：背景照片元数据的形状（与迁移里 is_valid_background_meta 的键白名单一致） */
+export interface BackgroundPhotoMeta {
+  luma: number
+  width: number
+  height: number
+  blur: number
+  strength: number
+  focusX: number
+  focusY: number
 }
 
 function iso(value: unknown): string { return value instanceof Date ? value.toISOString() : String(value) }
@@ -30,7 +45,14 @@ function map(row: Record<string, unknown>): AccountSettings {
     exifVisibility: mapExifVisibility(row.exif_visibility),
     pinnedPhotoIds: Array.isArray(row.pinned_photo_ids) ? (row.pinned_photo_ids as string[]) : [],
     pinned: mapPinnedSummaries(row.pinned),
+    backgroundPhotoKey: typeof row.background_photo_key === 'string' ? row.background_photo_key : null,
+    backgroundPhotoMeta: isMeta(row.background_photo_meta) ? (row.background_photo_meta as BackgroundPhotoMeta) : null,
   }
+}
+
+/** 元数据是 jsonb：pg 已解析成对象，只做形状确认，不再重复校验数值范围（那是前端的职责） */
+function isMeta(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 export async function getOwnSettings(userId: string): Promise<AccountSettings | null> {
   return withRls(userId, async (c: pg.PoolClient) => {
@@ -42,6 +64,30 @@ export async function updateOwnProfile(userId: string, input: {displayName:strin
   await withRls(userId,(c)=>c.query('select public.api_update_own_profile($1,$2,$3::jsonb,$4,$5)',[input.displayName,input.bio,JSON.stringify(input.links),input.licensePreference,input.avatarKey]))
   return getOwnSettings(userId)
 }
+/**
+ * 0037：保存背景照片。
+ *
+ * 校验在数据库函数里做（非法键 22023 ⇒ 400），这里只把参数原样传给函数据。
+ * 归属（backgrounds/{本人}/…）由 SQL 依据 auth.uid() 判定，路由层不重复实现。
+ */
+export async function setOwnBackgroundPhoto(
+  userId: string,
+  key: string,
+  meta: BackgroundPhotoMeta,
+): Promise<AccountSettings | null> {
+  await withRls(userId, (c) =>
+    c.query('select public.api_set_own_background_photo($1, $2::jsonb)', [key, JSON.stringify(meta)]),
+  )
+  return getOwnSettings(userId)
+}
+
+/** 0037：清除背景照片，返回旧对象键（路由层据此删磁盘文件） */
+export async function clearOwnBackgroundPhoto(userId: string): Promise<string | null> {
+  const r = await withRls(userId, (c) => c.query('select public.api_clear_own_background_photo() as old_key'))
+  const old = r.rows[0]?.old_key
+  return typeof old === 'string' && old ? old : null
+}
+
 export async function updateOwnPreferences(userId:string,input:{visibility:'public'|'private';showLikes:boolean;showFavorites:boolean;discoverable:boolean;notificationPreferences:Record<string,boolean>}):Promise<AccountSettings|null>{
   await withRls(userId,(c)=>c.query('select public.api_update_own_preferences($1,$2,$3,$4,$5::jsonb)',[input.visibility,input.showLikes,input.showFavorites,input.discoverable,JSON.stringify(input.notificationPreferences)]))
   return getOwnSettings(userId)

@@ -87,6 +87,11 @@ export function PrivacyPage() {
           <p>为提供账号、短信验证、内容发布和社区治理，本站服务器会处理你主动提交的用户名、昵称、手机号、公开作品资料、评论、举报及协议同意记录。</p>
           <p>登录凭证保存在 Secure、HttpOnly、SameSite=Lax Cookie 中，浏览器脚本无法读取；另有可读 CSRF Cookie 仅用于校验同源写请求，不含登录密钥。界面偏好可保存在 localStorage。</p>
           <p>为防滥用与安全审计，服务器会短期处理并以密钥哈希方式记录来源 IP、User-Agent、验证码请求和审核操作；不会在公开资料中展示手机号。</p>
+          <p>
+            若你登录后上传了<strong>外观背景照片</strong>，该图片会与你的账号关联保存，
+            以便换设备登录时继续使用；它<strong>不会公开展示</strong>给其他访客，也不计入你的作品集。
+            未登录时上传的背景照片只保存在本机浏览器，不会上传服务器。
+          </p>
         </LegalSection>
       ) : (
         <LegalSection title="本地演示数据">

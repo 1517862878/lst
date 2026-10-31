@@ -52,3 +52,30 @@ export function parsePhotoImageKey(key: string): ParsedPhotoImageKey | null {
 export function isPhotoObjectKey(key: string): boolean {
   return PHOTO_IMAGE_KEY_RE.test(key)
 }
+
+/* ─────────────────────────── 0037：账号级背景照片 ─────────────────────────── */
+
+/**
+ * 背景照片的对象键形状： backgrounds/{userId}/background.webp
+ *
+ * 与作品图片不同，背景照片**一人一张**，键名固定，所以不需要桶序号；
+ * 但同样必须落在本人目录下 —— 归属校验与作品图片一致，都在上传路由里做。
+ */
+const BACKGROUND_KEY_RE = /^backgrounds\/([0-9a-f-]{36})\/([A-Za-z0-9][A-Za-z0-9._-]*\.webp)$/i
+
+export interface ParsedBackgroundKey {
+  userId: string
+  fileName: string
+}
+
+/** 解析背景照片键；不合法返回 null */
+export function parseBackgroundKey(key: string): ParsedBackgroundKey | null {
+  const m = BACKGROUND_KEY_RE.exec(key)
+  if (!m) return null
+  return { userId: (m[1] ?? '').toLowerCase(), fileName: m[2] ?? '' }
+}
+
+/** 清理 worker 的闸门：背景照片可删 */
+export function isBackgroundObjectKey(key: string): boolean {
+  return BACKGROUND_KEY_RE.test(key)
+}

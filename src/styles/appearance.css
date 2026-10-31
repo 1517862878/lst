@@ -277,7 +277,8 @@ html[data-font='serif'] .g-badge {
 
 /* T4 现代无衬线 SaaS */
 html[data-font='sans'] {
-  --g-font: Inter, system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  /* Inter 已自托管（latin 分片），中文回退到系统栈 */
+  --g-font: 'Inter', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --g-font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --g-tracking: 0;
   --g-leading: 1.6;

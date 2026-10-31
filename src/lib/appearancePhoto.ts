@@ -258,3 +258,46 @@ export function useBackgroundPhotoUrl(photoKey: string | null, enabled: boolean)
 
   return { url, missing }
 }
+
+/* ─────────────────────────── 0037：账号级背景照片 ─────────────────────────── */
+
+/**
+ * 登录用户的背景照片同步。
+ *
+ * 三条约束：
+ *  1. 游客不参与：没有登录态就完全走本机 IndexedDB（原路径不变）。
+ *  2. 二进制仍走既有的「先传图、再登记键」两段式（与作品图片同构）。
+ *  3. 读回来优先用服务器（换设备才有意义），服务器没有才回落到本机。
+ *
+ * 这里只放纯函数，不依赖 React；页面层负责调用时机。
+ */
+import type { AccountBackgroundMeta } from '@/data/api/account'
+
+/** 账号级背景照片的对象键：一人一张，固定形状（与后端 BACKGROUND_KEY_RE 一致） */
+export function accountBackgroundKey(userId: string): string {
+  return `backgrounds/${userId.toLowerCase()}/background.webp`
+}
+
+/**
+ * 把本机已处理好的照片同步到账号。
+ * 返回登记后的对象键；调用方负责把元数据也写进本地 store。
+ */
+export async function syncBackgroundToAccount(params: {
+  userId: string
+  blob: Blob
+  meta: AccountBackgroundMeta
+  put: (key: string, blob: Blob) => Promise<void>
+  setBackground: (key: string, meta: AccountBackgroundMeta) => Promise<unknown>
+}): Promise<string> {
+  const key = accountBackgroundKey(params.userId)
+  await params.put(key, params.blob)
+  await params.setBackground(key, params.meta)
+  return key
+}
+
+/** 账号背景照片的访问地址（走 /images/ 静态服务，与头像同一条链路） */
+export function accountBackgroundUrl(key: string | null | undefined): string | null {
+  const value = key?.trim()
+  if (!value) return null
+  return value
+}

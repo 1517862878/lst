@@ -6,7 +6,7 @@ import { dirname, relative, resolve } from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import { requireUser } from '../lib/auth.js'
 import { ApiError, forbidden, validation } from '../lib/errors.js'
-import { parsePhotoImageKey } from '../storage/photo-keys.js'
+import { parseBackgroundKey, parsePhotoImageKey } from '../storage/photo-keys.js'
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
@@ -34,10 +34,15 @@ export async function registerStorageRoutes(app: FastifyInstance, imageRoot: str
       throw validation('Content-Type 必须是 image/webp')
     }
     const key = req.params['*']
-    // 白名单：旧单图路径与 8.4c 的组照槽位路径都放行，形状之外的键一律 400。
+    // 白名单只有两种形状：
+    //   1) 作品图片（旧单图路径 + 8.4c 组照槽位）
+    //   2) 0037 账号级背景照片 backgrounds/{userId}/...
+    // 其他形状一律 400 —— 这是唯一决定「允许写哪些路径」的地方。
     const parsed = parsePhotoImageKey(key)
-    if (!parsed) throw validation('图片键格式不正确')
-    if (parsed.userId !== user.userId.toLowerCase()) {
+    const background = parsed ? null : parseBackgroundKey(key)
+    if (!parsed && !background) throw validation('图片键格式不正确')
+    const owner = parsed ? parsed.userId : background!.userId
+    if (owner !== user.userId.toLowerCase()) {
       throw forbidden('不能上传到其他用户的目录')
     }
 

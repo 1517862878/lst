@@ -14,6 +14,9 @@
 @layer theme, base, components, utilities;
 
 @import './tokens.css';
+/* 自托管 Inter（OFL-1.1，仅 latin/latin-ext 分片）：T4 方案的西文字体。
+   中文不自托管 —— 实测子集化后浏览器仍要下载全部 748KB，不如直接用系统栈。 */
+@import './fonts-inter.css';
 @import './components.css';
 @import './s3-pages.css';
 @import './s4-auth.css';

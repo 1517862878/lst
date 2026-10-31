@@ -117,13 +117,14 @@ describe('normalizeAppearance 归一化', () => {
 
 describe('textScaleFor 字阶等比', () => {
   it('默认 16px 时与 tokens.css 现状一致', () => {
-    expect(textScaleFor(16)).toEqual({ xs: 12, sm: 14, base: 16, lg: 24, xl: 32, '2xl': 48 })
+    expect(textScaleFor(16)).toEqual({ xs: 12, sm: 14, base: 16, lg: 24, xl: 36, '2xl': 48 })
   })
 
   it('放大到 20px 时标题同步放大且全部为整数', () => {
     const s = textScaleFor(20)
     expect(s.base).toBe(20)
     expect(s.lg).toBe(30)
+    expect(s.xl).toBe(45)
     expect(s['2xl']).toBe(60)
     for (const v of Object.values(s)) expect(Number.isInteger(v)).toBe(true)
   })

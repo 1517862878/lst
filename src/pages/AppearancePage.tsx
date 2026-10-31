@@ -32,8 +32,13 @@ import {
   type SubjectId,
 } from '@/domain/appearance'
 import { fontSizeLevels, nearestLevelIndex } from '@/lib/appearanceFontSize'
+import { accountApi } from '@/data/api/account'
+import { apiStorageRepository } from '@/data/api/storage'
+import { dataSource } from '@/data'
+import { useSession } from '@/hooks/useSession'
 import { useAppearanceSettings, useAppearanceStore } from '@/lib/appearanceStore'
 import {
+  syncBackgroundToAccount,
   deleteBackgroundPhoto,
   describeLuma,
   lumaSwatch,
@@ -50,6 +55,10 @@ export function AppearancePage() {
   const [busy, setBusy] = useState(false)
   const [localError, setLocalError] = useState('')
   const { url: photoUrl, missing } = useBackgroundPhotoUrl(settings.photo?.key ?? null, resolved.photoActive)
+
+  // 登录用户：照片同步到账号（换设备也还在）；游客：只存本机
+  const { data: session } = useSession()
+  const signedIn = Boolean(session)
 
   const store = useAppearanceStore
 
@@ -90,6 +99,31 @@ export function AppearancePage() {
         focusY: 50,
         createdAt: new Date().toISOString(),
       })
+      // 登录用户额外同步到账号：失败不阻断本机生效，只提示
+      if (signedIn && session) {
+        try {
+          await syncBackgroundToAccount({
+            userId: session.userId ?? session.username,
+            blob: prepared.photo.blob,
+            meta: {
+              luma: prepared.photo.luma,
+              width: prepared.photo.width,
+              height: prepared.photo.height,
+              blur: 2,
+              strength: 1,
+              focusX: 50,
+              focusY: 50,
+            },
+            put: (key, blob) => apiStorageRepository.put(key, blob),
+            setBackground: (key, meta) => accountApi.setBackgroundPhoto(key, meta),
+          })
+          toast.show('success', '背景照片已应用并同步到账号（换设备登录也还在）')
+          return
+        } catch {
+          toast.show('info', '照片已在本机生效，但同步到账号失败，换设备后需要重新上传')
+          return
+        }
+      }
       toast.show('success', '背景照片已应用（压暗强度已按照片亮度自动计算）')
     } catch (error) {
       const reason = error instanceof Error ? error.message : '照片处理失败'
@@ -106,6 +140,10 @@ export function AppearancePage() {
     try {
       await deleteBackgroundPhoto()
       store.getState().setPhoto(null)
+      if (signedIn && dataSource() === 'api') {
+        // 账号侧也清掉；失败只记录，不影响本机回落
+        await accountApi.clearBackgroundPhoto().catch(() => undefined)
+      }
       toast.show('info', '背景照片已移除，已回落到内置主体')
     } catch {
       // 二进制删不掉也要把元数据清掉，否则界面会一直显示「图片丢失」
@@ -345,8 +383,12 @@ export function AppearancePage() {
                 </>
               ) : (
                 <p className="g-appearance-note">
-                  上传一张你喜欢的照片，它会成为整站背景。照片只存在本机浏览器（IndexedDB），
-                  不会上传到服务器，也不会进入你的作品集。
+                  上传一张你喜欢的照片，它会成为整站背景，不会进入你的作品集。
+                  {signedIn ? (
+                    <>你已登录，照片会同时保存到账号，换设备登录也还在。</>
+                  ) : (
+                    <>当前未登录，照片只存在本机浏览器（IndexedDB）；登录后上传可跟随账号。</>
+                  )}
                 </p>
               )}
 
@@ -488,8 +530,9 @@ export function AppearancePage() {
 
         <p className="g-appearance-note" role="note">
           <Palette aria-hidden="true" size={14} className="g-appearance-note-icon" />
-          设置保存在本机（<code>gy:appearance</code> + IndexedDB 照片），不上传服务器。
-          清理浏览器数据会一并清除，详见
+          配色/字体/主体等设置保存在本机（<code>gy:appearance</code>）；
+          {signedIn ? '背景照片已随账号保存到服务器' : '背景照片只存本机 IndexedDB，不上传服务器'}。
+          清理浏览器数据会一并清除本机部分，详见
           {/* 必须用 Link：HashRouter 下原生 <a href> 会跳出 SPA，落到 404 */}
           <Link to="/privacy">隐私政策</Link>。
         </p>

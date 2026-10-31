@@ -14,6 +14,7 @@ const NOTIFICATION_KEYS = new Set(['accountSecurity', 'productUpdates'])
 const PASSWORD_KEYS = new Set(['oldPassword', 'newPassword'])
 const DELETE_KEYS = new Set(['password', 'confirm', 'reason'])
 const EXIF_VISIBILITY_KEYS = new Set(['visibility'])
+const BACKGROUND_KEYS = new Set(['key', 'meta'])
 const PINNED_KEYS = new Set(['photoIds'])
 /** 代表作上限：与 profiles.pinned_photo_ids 的 ck_profiles_pinned_photo_ids 一致。 */
 const PINNED_LIMIT = 3
@@ -231,4 +232,69 @@ export async function registerAccountCenterRoutes(app: FastifyInstance) {
     clearSessionCookie(reply)
     return reply.code(204).send()
   })
+
+  /**
+   * 0037：保存账号级背景照片。
+   *
+   * 为什么要两步（先 PUT /api/storage/backgrounds/{uid}/... 传图，再调这里登记元数据）：
+   * 图片体积大（可达数 MB），走 JSON base64 会让请求体翻倍且破坏现有的二进制上传管道。
+   * 所以沿用作品图片那套「先传二进制、再登记键」的模式。
+   *
+   * 归属由 SQL 依据 auth.uid() 校验（键必须是 backgrounds/{本人}/...），
+   * 路由层只做最低限度的存在性检查。
+   */
+  app.put('/api/me/background', { config: { rateLimit: { max: 20, timeWindow: '1 hour' } } }, async (req) => {
+    const user = await requireUser(req)
+    const body = objectBody(req.body, BACKGROUND_KEYS)
+    const key = requiredString(body, 'key').trim()
+    if (!key || key.length > 512 || CONTROL_RE.test(key)) throw validation('背景照片键不合法')
+
+    const rawMeta = body.meta
+    if (typeof rawMeta !== 'object' || rawMeta === null || Array.isArray(rawMeta)) {
+      throw validation('meta 必须是普通对象')
+    }
+    const meta = backgroundMeta(rawMeta as Record<string, unknown>)
+
+    const result = await account.setOwnBackgroundPhoto(user.userId, key, meta)
+    if (!result) throw notFound('账号不存在')
+    return result
+  })
+
+  /**
+   * 0037：清除背景照片。
+   * 返回 204；磁盘文件由调用方（或清理 worker）按返回的旧键删除 —— 这里不直接删，
+   * 因为存储层删除统一走清理队列，避免在事务里做 IO。
+   */
+  app.delete('/api/me/background', async (req, reply) => {
+    const user = await requireUser(req)
+    const old = await account.clearOwnBackgroundPhoto(user.userId)
+    if (old) app.log.info({ key: old }, '背景照片已从账号解绑（磁盘文件待清理）')
+    return reply.code(204).send()
+  })
+}
+
+/**
+ * 0037：把请求里的 meta 收敛成固定 7 个数值字段。
+ *
+ * 为什么在这里收口：数据库只校验「键白名单 + 值是数字」，
+ * 但 range 语义（luma 0–1、blur 0–20 等）属于应用层，写在 SQL 里会与前端常量漂移。
+ */
+function backgroundMeta(raw: Record<string, unknown>): {
+  luma: number; width: number; height: number; blur: number; strength: number; focusX: number; focusY: number
+} {
+  const num = (key: string, min: number, max: number): number => {
+    const v = raw[key]
+    if (typeof v !== 'number' || !Number.isFinite(v)) throw validation(`meta.${key} 必须是数字`)
+    if (v < min || v > max) throw validation(`meta.${key} 必须在 ${min}–${max} 之间`)
+    return v
+  }
+  return {
+    luma: num('luma', 0, 1),
+    width: num('width', 1, 20000),
+    height: num('height', 1, 20000),
+    blur: num('blur', 0, 20),
+    strength: num('strength', 0.4, 1.4),
+    focusX: num('focusX', 0, 100),
+    focusY: num('focusY', 0, 100),
+  }
 }

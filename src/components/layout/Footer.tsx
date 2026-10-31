@@ -3,6 +3,7 @@ import { dataSource } from '@/data'
 import { Container } from './Container'
 
 const footerLinks = [
+  { label: '外观设置', to: '/appearance' },
   { label: '关于本站', to: '/about' },
   { label: '用户协议', to: '/terms' },
   { label: '隐私政策', to: '/privacy' },

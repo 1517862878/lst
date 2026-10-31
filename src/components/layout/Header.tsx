@@ -186,6 +186,9 @@ export function Header({ sessionUser, role = null }: HeaderProps) {
                     <Link role="menuitem" to="/admin">审核台</Link>
                   )}
                   <Link role="menuitem" to="/settings/profile">设置与隐私</Link>
+                  {/* 外观是设备级偏好（配色/字体/背景照片），游客也能用；
+                      账号菜单里放一份是为了登录用户不用去页脚找 */}
+                  <Link role="menuitem" to="/appearance">外观设置</Link>
                   <button role="menuitem" onClick={() => void logout()}>退出登录</button>
                 </div>
               )}

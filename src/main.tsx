@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router'
 import { Providers } from './app/providers'
 import { router } from './app/router'
 import { ensureSeeded } from './data/mock/seedInit'
+import { initAppearance } from './lib/appearanceStore'
 import './styles/index.css'
 
 const rootEl = document.getElementById('root')
@@ -19,6 +20,9 @@ if (!rootEl) throw new Error('找不到 #root 挂载点')
  * 兜底策略：种子失败也不能白屏 —— 记错误后照常渲染，页面会显示空态。
  */
 async function bootstrap(): Promise<void> {
+  // 外观设置先于渲染应用（配色/字体/字号写到 <html>），避免首屏配色跳变
+  initAppearance()
+
   try {
     await ensureSeeded()
   } catch (e) {

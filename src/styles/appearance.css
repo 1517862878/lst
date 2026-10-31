@@ -1,0 +1,835 @@
+/*
+ * 外观与背景系统（规格：docs/视觉规格-背景系统与字体体系.md）
+ * ─────────────────────────────────────────────
+ * 本文件负责三件互不干扰的事：
+ *   1. 四套经典配色的令牌覆盖：html[data-palette='p1..p4']
+ *   2. 四款字体搭配：html[data-font='pixel|pixel-sans|serif|sans']
+ *   3. 背景层（配色底 / 内置主体 / 照片）与 /appearance 页面样式
+ *
+ * 层级顺序：本文件在 index.css 里排在 tokens.css 之后、tailwindcss 之前，
+ * 且不走 @layer —— 令牌覆盖必须能压过 Tailwind Preflight（同 index.css 的做法）。
+ *
+ * 选择器为什么是 `html[data-palette]` 而不是 `[data-palette]`：
+ * tokens.css 里明暗两套皮肤的权重是 [data-theme]（0,1,0），
+ * 配色要能覆盖它们，所以加权到 html + 属性（0,1,1）。
+ */
+
+/* ══════════════════════════════════════════════════════════
+   0. 补充令牌
+   ══════════════════════════════════════════════════════════ */
+
+/*
+ * --g-line 是「装饰硬边」，实测与背景只有 1.1–1.2:1（规格 §2.6）。
+ * 输入框、勾选框这类「必须操作才能发现的边界」不能只用它。
+ * --g-line-hi 默认等于 --g-line-soft（已 ≥3:1），四套配色再各自覆盖。
+ */
+:root {
+  --g-line-hi: var(--g-line-soft);
+  --g-line-hi-strong: var(--g-ink-2);
+  /* 警示底上的文字色：现有 --g-warning(#ffb347) 上放白字只有 1.7:1，
+     默认改为深色字（与 --g-brand-ink 同源），浅底配色再单独覆盖为白字。 */
+  --g-on-warning: var(--g-brand-ink);
+}
+
+/*
+ * 强边界落地：输入框/文本域/输入容器描边改用 --g-line-hi。
+ * 这是规格 §2.6 规则 2 的强制要求；不这么改，深底上的输入框几乎不可见（1.2:1）。
+ */
+/* 警示横幅：现有 s4-auth.css 把文字硬编码成 #fff，在半透明/亮琥珀底上读不清 */
+.g-demo-banner {
+  color: var(--g-on-warning);
+}
+
+.g-input,
+.g-textarea,
+.g-input-wrap,
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='search'],
+input[type='url'],
+select,
+textarea {
+  border-color: var(--g-line-hi);
+}
+
+/* ══════════════════════════════════════════════════════════
+   1. 四套经典配色
+   ══════════════════════════════════════════════════════════ */
+
+/* ── P1 · 星夜蓝 Starry Night（默认演进版，全项 ≥4.79:1） ── */
+html[data-palette='p1'] {
+  --g-bg: #12203a;
+  --g-bg-grid: #1a2c4c;
+  --g-surface: #1c2e4e;
+  --g-surface-2: #273c60;
+  --g-surface-3: #33496f;
+
+  --g-ink: #f2f5fb;
+  --g-ink-2: #bcc9dc;
+  --g-ink-3: #afbed4;
+
+  --g-line: #050c18;
+  --g-line-soft: #69788c;
+  --g-line-hi: #69788c;
+  --g-line-hi-strong: #8894a5;
+
+  --g-brand: #f0c070;
+  --g-brand-ink: #12203a;
+  --g-brand-soft: #3a2e18;
+  --g-accent-2: #7fa6d9;
+  --g-success: #5fd35f;
+  --g-warning: #f0c070;
+  --g-danger: #ff7a59;
+  --g-focus: #f0c070;
+
+  --g-shadow-sm: 2px 2px 0 var(--g-line);
+  --g-shadow-md: 4px 4px 0 var(--g-line);
+  --g-shadow-lg: 6px 6px 0 var(--g-line);
+  --g-shadow-inset: inset 2px 2px 0 rgb(0 0 0 / 0.32);
+
+  --g-bg-image: radial-gradient(120% 80% at 50% 0%, #1a2c4c 0%, transparent 60%);
+
+  --g-stars-visible: 1;
+  --g-stars-base: #e9f0ff;
+  --g-stars-accent: #f0c070;
+  --g-stars-head: #ffffff;
+  --g-stars-bg: #12203a;
+  --g-stars-opacity: 1;
+}
+
+/* ── P2 · 米白纸面 Paper Day（唯一浅底，全项 ≥4.88:1） ── */
+html[data-palette='p2'] {
+  --g-bg: #f7f3e9;
+  --g-bg-grid: #e4dac5;
+  --g-surface: #fffdf7;
+  --g-surface-2: #efe8d8;
+  --g-surface-3: #e4dac5;
+
+  --g-ink: #1a1611;
+  --g-ink-2: #4b443a;
+  --g-ink-3: #635a4e;
+
+  --g-line: #1a1611;
+  --g-line-soft: #7a6f5c;
+  --g-line-hi: #7a6f5c;
+  --g-line-hi-strong: #5e5443;
+
+  --g-brand: #1f3d63;
+  --g-brand-ink: #fffdf7;
+  --g-brand-soft: #d8ceb8;
+  --g-accent-2: #9a4e1e;
+  --g-success: #2f6b45;
+  --g-warning: #8a5a12;
+  --g-danger: #bb3826;
+  --g-focus: #1f3d63;
+  /* 深赭石底上用白字（对深色底的反色规则） */
+  --g-on-warning: #fffdf7;
+
+  /* 浅底的阴影必须用暖黑（#1A1611），用近黑蓝会发蓝（规格 §2 P2 注意） */
+  --g-shadow-sm: 2px 2px 0 #1a1611;
+  --g-shadow-md: 4px 4px 0 #1a1611;
+  --g-shadow-lg: 6px 6px 0 #1a1611;
+  --g-shadow-inset: inset 2px 2px 0 rgb(26 22 17 / 0.16);
+
+  /* 细纸纹：纯 CSS，不引图片（规格 §2 P2 背景质感） */
+  --g-bg-image:
+    repeating-linear-gradient(0deg, transparent 0 3px, rgb(26 22 17 / 0.022) 3px 4px),
+    repeating-linear-gradient(90deg, transparent 0 3px, rgb(26 22 17 / 0.022) 3px 4px);
+
+  /* 纸面主题上的星点：压成极淡的墨点，否则满屏散点像印刷脏版/污渍（截图实测）。
+     0.18 是「还能看出是星点纹理」与「不脏」之间的折中值。 */
+  --g-stars-visible: 1;
+  --g-stars-base: #6b6152;
+  --g-stars-accent: #a86a52;
+  --g-stars-head: #1a1611;
+  --g-stars-bg: #f7f3e9;
+  --g-stars-opacity: 0.18;
+}
+
+html[data-palette='p2'] body {
+  /* 浅底不需要「关闭抗锯齿」以外的像素化，图片像素化仍保留（见 §3） */
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+}
+
+/* ── P3 · 墨绿胶片 Kodak Green（全项 ≥4.85:1） ── */
+html[data-palette='p3'] {
+  --g-bg: #0f1f1a;
+  --g-bg-grid: #17332a;
+  --g-surface: #162c24;
+  --g-surface-2: #1f3a30;
+  --g-surface-3: #2a4a3e;
+
+  --g-ink: #edf3ee;
+  --g-ink-2: #b4c8bc;
+  --g-ink-3: #a6bcae;
+
+  --g-line: #05100c;
+  --g-line-soft: #54786c;
+  --g-line-hi: #54786c;
+  --g-line-hi-strong: #719488;
+
+  --g-brand: #e9c46a;
+  --g-brand-ink: #0f1f1a;
+  --g-brand-soft: #38301a;
+  --g-accent-2: #8fbf9f;
+  --g-success: #7fd39a;
+  --g-warning: #e9c46a;
+  --g-danger: #e76f51;
+  --g-focus: #e9c46a;
+
+  --g-shadow-sm: 2px 2px 0 var(--g-line);
+  --g-shadow-md: 4px 4px 0 var(--g-line);
+  --g-shadow-lg: 6px 6px 0 var(--g-line);
+  --g-shadow-inset: inset 2px 2px 0 rgb(0 0 0 / 0.36);
+
+  --g-bg-image: radial-gradient(110% 70% at 20% 0%, #17332a 0%, transparent 65%);
+
+  --g-stars-visible: 0.8;
+  --g-stars-base: #e8f2ec;
+  --g-stars-accent: #e9c46a;
+  --g-stars-head: #ffffff;
+  --g-stars-bg: #0f1f1a;
+  --g-stars-opacity: 0.9;
+}
+
+/* ── P4 · 碳灰霓虹 Carbon Neon（全项 ≥5.25:1） ── */
+html[data-palette='p4'] {
+  --g-bg: #121214;
+  --g-bg-grid: #1e1e24;
+  --g-surface: #1b1b1f;
+  --g-surface-2: #25252b;
+  --g-surface-3: #303038;
+
+  --g-ink: #f4f4f6;
+  --g-ink-2: #c2c2cc;
+  --g-ink-3: #a3a3b0;
+
+  --g-line: #000000;
+  --g-line-soft: #656576;
+  --g-line-hi: #656576;
+  --g-line-hi-strong: #808093;
+
+  --g-brand: #5aa9ff;
+  --g-brand-ink: #0b0b0d;
+  --g-brand-soft: #1b2a3d;
+  --g-accent-2: #b08cff;
+  --g-success: #6fe08a;
+  --g-warning: #ffc46b;
+  --g-danger: #ff5c8a;
+  --g-focus: #5aa9ff;
+
+  --g-shadow-sm: 2px 2px 0 var(--g-line);
+  --g-shadow-md: 4px 4px 0 var(--g-line);
+  --g-shadow-lg: 6px 6px 0 var(--g-line);
+  --g-shadow-inset: inset 2px 2px 0 rgb(0 0 0 / 0.6);
+
+  --g-bg-image: linear-gradient(180deg, #16161a 0%, #121214 100%);
+
+  --g-stars-visible: 0.7;
+  --g-stars-base: #dfe8ff;
+  --g-stars-accent: #5aa9ff;
+  --g-stars-head: #ffffff;
+  --g-stars-bg: #121214;
+  --g-stars-opacity: 0.75;
+}
+
+/* ══════════════════════════════════════════════════════════
+   2. 四款字体搭配（规格 §4.2 T1–T4，全部 OFL-1.1）
+   ══════════════════════════════════════════════════════════ */
+
+/* T1 像素原味：完全沿用 tokens.css 的默认（Fusion Pixel），无需覆盖 */
+
+/* T2 像素标题 + 思源黑正文 */
+html[data-font='pixel-sans'] {
+  --g-font: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --g-font-mono: 'JetBrains Mono', 'Fusion Pixel', ui-monospace, monospace;
+  --g-tracking: 0.005em;
+  --g-leading: 1.7;
+}
+
+html[data-font='pixel-sans'] h1,
+html[data-font='pixel-sans'] h2,
+html[data-font='pixel-sans'] h3,
+html[data-font='pixel-sans'] h4,
+html[data-font='pixel-sans'] .g-page-title,
+html[data-font='pixel-sans'] .g-brand,
+html[data-font='pixel-sans'] .g-nav-link {
+  font-family: 'Fusion Pixel', 'Courier New', monospace;
+  letter-spacing: 0.04em;
+}
+
+/* T3 黑白衬线 Editorial */
+html[data-font='serif'] {
+  --g-font: 'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, serif;
+  --g-font-mono: 'IBM Plex Mono', 'Fusion Pixel', ui-monospace, monospace;
+  --g-tracking: 0.01em;
+  --g-leading: 1.85;
+}
+
+html[data-font='serif'] .g-btn,
+html[data-font='serif'] .g-nav-link,
+html[data-font='serif'] .g-badge {
+  /* 衬线只用于正文区；导航/按钮仍用像素体，避免整站变「旧书」 */
+  font-family: 'Fusion Pixel', 'Courier New', monospace;
+}
+
+/* T4 现代无衬线 SaaS */
+html[data-font='sans'] {
+  --g-font: Inter, system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --g-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --g-tracking: 0;
+  --g-leading: 1.6;
+}
+
+html[data-font='sans'] h1,
+html[data-font='sans'] h2,
+html[data-font='sans'] h3 {
+  letter-spacing: -0.01em;
+}
+
+/* 非像素字体必须恢复抗锯齿，否则黑体/衬线会糊成一团 */
+html[data-font='pixel-sans'] body,
+html[data-font='serif'] body,
+html[data-font='sans'] body {
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+  font-smooth: auto;
+  text-rendering: optimizeLegibility;
+}
+
+/* ══════════════════════════════════════════════════════════
+   3. 背景层
+   ══════════════════════════════════════════════════════════ */
+
+/* 配色底：永远存在，保证照片/主体缺失时有正确底色 */
+.g-bg-base {
+  position: fixed;
+  inset: 0;
+  z-index: -4;
+  pointer-events: none;
+  background-color: var(--g-bg);
+  background-image: var(--g-bg-image, none);
+}
+
+/* 内置主体（CSS 绘制的那几种） */
+.g-bg-subject {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+}
+
+.g-bg-subject-px-grid {
+  background-image:
+    linear-gradient(var(--g-bg-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--g-bg-grid) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+
+.g-bg-subject-px-halftone {
+  /* 45° 网点：两组圆柱渐变错位叠加，向下逐渐加密 */
+  background-image: radial-gradient(circle at 50% 50%, var(--g-bg-grid) 1px, transparent 1.5px);
+  background-size: 8px 8px;
+  background-position: 0 0;
+  mask-image: linear-gradient(180deg, rgb(0 0 0 / 0.35) 0%, rgb(0 0 0 / 1) 100%);
+}
+
+.g-bg-subject-px-scanline {
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgb(0 0 0 / 0.14) 0 1px,
+    transparent 1px 4px
+  );
+  mask-image: linear-gradient(180deg, rgb(0 0 0 / 0.25) 0%, rgb(0 0 0 / 0.9) 100%);
+}
+
+/* px-grid 主体本身就是 8px 网格：再叠基础网格层会画两遍同位置线（变粗发黑），所以关掉 */
+html[data-subject='px-grid'] .g-bg-grid {
+  display: none;
+}
+
+html[data-palette='p2'] .g-bg-subject-px-scanline {
+  background-image: repeating-linear-gradient(0deg, rgb(26 22 17 / 0.08) 0 1px, transparent 1px 4px);
+}
+
+/* 背景照片（规格 §3.1–3.3） */
+.g-bg-photo {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+  background-color: var(--g-bg);
+  /* 提升为独立合成层：blur 在大图上是 GPU 密集操作 */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.g-bg-photo-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--bg-photo-focus-x, 50%) var(--bg-photo-focus-y, 50%);
+  filter: blur(var(--bg-photo-blur, 0px)) saturate(1.02);
+  /* 关键：放大 8% 消除 blur 在四边的透明衰减（否则出现「发虚白边」） */
+  transform: scale(1.08);
+  /* 用户照片绝不能走像素风降采样，否则糊成色块（规格 §3.0 P0 阻塞项） */
+  image-rendering: auto;
+}
+
+.g-bg-photo-scrim {
+  position: absolute;
+  inset: 0;
+}
+
+.g-bg-photo-texture {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image:
+    linear-gradient(var(--g-ink) 1px, transparent 1px),
+    linear-gradient(90deg, var(--g-ink) 1px, transparent 1px);
+  background-size: 8px 8px;
+  mix-blend-mode: overlay;
+}
+
+/* 兜底加档层：高对比偏好 / 浏览器不支持动态渐变时的安全垫 */
+.g-bg-photo-boost {
+  position: absolute;
+  inset: 0;
+  background: var(--g-bg);
+  opacity: 0;
+}
+
+@media (prefers-contrast: more) {
+  .g-bg-photo-boost {
+    opacity: 0.12;
+  }
+
+  .g-bg-photo-texture {
+    display: none;
+  }
+}
+
+/* 省流/慢网：直接不显示照片，回落纯色（规格 §3.7） */
+@media (prefers-reduced-data: reduce) {
+  .g-bg-photo-img {
+    display: none;
+  }
+}
+
+/*
+ * 8px 网格（独立固定层，规格 §1.7 的「网格 → 内容」一层）。
+ * 它压在主体与照片之上、内容之下，因此照片生效时要降透明度，否则会把照片划成格子。
+ */
+.g-bg-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--g-bg-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--g-bg-grid) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+
+/* 照片生效时把网格压到极淡（规格 §3.3 ③：纹理层 opacity ≤0.06），
+   否则整张照片会被划成格子，既脏又干扰对照片本身的判断 */
+html[data-bg-photo='on'] .g-bg-grid {
+  opacity: 0.35;
+}
+
+@media (prefers-contrast: more) {
+  .g-bg-grid {
+    display: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   4. /appearance 页面
+   ══════════════════════════════════════════════════════════ */
+
+.g-appearance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-6);
+  padding-block: var(--g-space-6) var(--g-space-8);
+}
+
+.g-appearance-section {
+  margin: 0;
+  padding: var(--g-space-5);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface);
+  box-shadow: var(--g-shadow-md);
+}
+
+/* 区块标题：不用 fieldset/legend —— legend 会被 fieldset 边框横穿，
+   24px 像素体上正好压在字形中间（实测截图可见）。
+   改为 section + h2，并在左侧加一根 4px 实色竖条做像素风的层级标记。 */
+.g-appearance-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-3);
+  margin: 0 0 var(--g-space-3);
+  font-size: var(--g-text-lg);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.g-appearance-legend::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 4px;
+  height: 1.1em;
+  background: var(--g-brand);
+}
+
+.g-appearance-hint {
+  margin: 0 0 var(--g-space-4);
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  line-height: 1.6;
+}
+
+.g-appearance-hint code {
+  padding: 0 4px;
+  background: var(--g-surface-2);
+  border: 1px solid var(--g-line-soft);
+}
+
+/* ── 选项卡片（主体 / 配色 / 字体共用） ── */
+.g-opt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--g-space-3);
+}
+
+.g-opt-card {
+  position: relative;
+  display: block;
+  padding: var(--g-space-4);
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+  cursor: pointer;
+}
+
+.g-opt-card:hover {
+  background: var(--g-surface-3);
+}
+
+.g-opt-card:has(input:checked) {
+  background: var(--g-surface-3);
+  border-color: var(--g-brand);
+  box-shadow: var(--g-shadow-md);
+}
+
+.g-opt-card:has(input:focus-visible) {
+  outline: var(--g-border) solid var(--g-focus);
+  outline-offset: 3px;
+}
+
+.g-opt-radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+}
+
+.g-opt-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+}
+
+.g-opt-name {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-2);
+  font-size: var(--g-text-base);
+  font-weight: 600;
+}
+
+.g-opt-desc {
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  line-height: 1.55;
+}
+
+.g-opt-code {
+  padding: 0 4px;
+  border: 1px solid var(--g-line-soft);
+  color: var(--g-ink-2);
+  font-size: var(--g-text-xs);
+}
+
+/* 配色预览：四个色块 + 一条文字色 */
+.g-swatch-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.g-swatch {
+  flex: 1;
+  height: 22px;
+  border: 2px solid var(--g-line);
+  background: currentColor;
+}
+
+.g-swatch-ink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 2;
+  height: 22px;
+  border: 2px solid var(--g-line);
+  font-size: var(--g-text-xs);
+  font-weight: 600;
+}
+
+/* 字体样本 */
+.g-font-sample {
+  padding: var(--g-space-2) var(--g-space-3);
+  border: 1px solid var(--g-line-soft);
+  background: var(--g-surface);
+  font-size: 17px;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 主体预览：小方块里复刻该主体的底纹 */
+.g-subject-preview {
+  height: 56px;
+  border: 2px solid var(--g-line);
+  background-color: var(--g-bg);
+  background-image: var(--g-bg-image, none);
+  position: relative;
+  overflow: hidden;
+}
+
+.g-subject-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.g-subject-preview[data-subject='px-stars']::after {
+  background-image:
+    radial-gradient(circle at 18% 24%, var(--g-stars-base) 1px, transparent 1.5px),
+    radial-gradient(circle at 62% 18%, var(--g-stars-base) 1px, transparent 1.5px),
+    radial-gradient(circle at 82% 54%, var(--g-stars-accent) 1.5px, transparent 2px),
+    radial-gradient(circle at 34% 66%, var(--g-stars-base) 1px, transparent 1.5px),
+    radial-gradient(circle at 72% 84%, var(--g-stars-base) 1px, transparent 1.5px),
+    radial-gradient(circle at 12% 88%, var(--g-stars-base) 1px, transparent 1.5px);
+}
+
+.g-subject-preview[data-subject='px-grid']::after {
+  background-image:
+    linear-gradient(var(--g-bg-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--g-bg-grid) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+
+.g-subject-preview[data-subject='px-halftone']::after {
+  background-image: radial-gradient(circle at 50% 50%, var(--g-bg-grid) 1px, transparent 1.5px);
+  background-size: 8px 8px;
+}
+
+.g-subject-preview[data-subject='px-scanline']::after {
+  background-image: repeating-linear-gradient(0deg, rgb(0 0 0 / 0.18) 0 1px, transparent 1px 4px);
+}
+
+.g-subject-preview[data-subject='px-none']::after {
+  content: '纯色';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--g-ink-3);
+  font-size: var(--g-text-xs);
+}
+
+/* ── 照片区 ── */
+.g-photo-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: var(--g-space-5);
+  align-items: start;
+}
+
+@media (max-width: 767px) {
+  .g-photo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.g-photo-thumb {
+  position: relative;
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+}
+
+.g-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--bg-photo-focus-x, 50%) var(--bg-photo-focus-y, 50%);
+  image-rendering: auto;
+}
+
+.g-photo-thumb-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--g-space-4);
+  color: var(--g-ink-3);
+  font-size: var(--g-text-sm);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.g-photo-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-3);
+  min-width: 0;
+}
+
+.g-photo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--g-text-sm);
+  color: var(--g-ink-2);
+}
+
+.g-photo-meta li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.g-photo-meta b {
+  color: var(--g-ink);
+  font-weight: 600;
+}
+
+.g-photo-status-ok {
+  color: var(--g-success);
+}
+
+.g-photo-status-warn {
+  color: var(--g-warning);
+}
+
+.g-photo-status-bad {
+  color: var(--g-danger);
+}
+
+/* 焦点两个滑杆并排（窄屏自动落回单列） */
+.g-photo-focus-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--g-space-3);
+}
+
+@media (max-width: 559px) {
+  .g-photo-focus-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 滑杆 ── */
+.g-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.g-slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--g-space-2);
+  font-size: var(--g-text-sm);
+}
+
+.g-slider-value {
+  color: var(--g-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.g-slider input[type='range'] {
+  width: 100%;
+  accent-color: var(--g-brand);
+  cursor: pointer;
+}
+
+/* ── 字号控制 ── */
+.g-fontsize-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--g-space-3);
+}
+
+.g-fontsize-readout {
+  min-width: 84px;
+  padding: 4px 8px;
+  border: 1px solid var(--g-line-hi);
+  background: var(--g-surface-2);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.g-fontsize-preview {
+  margin-top: var(--g-space-3);
+  padding: var(--g-space-4);
+  border: 1px solid var(--g-line-soft);
+  background: var(--g-surface);
+}
+
+.g-fontsize-preview p {
+  margin: 0 0 var(--g-space-2);
+}
+
+.g-fontsize-preview p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── 底部操作 ── */
+.g-appearance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-3);
+  align-items: center;
+}
+
+.g-appearance-note {
+  margin: 0;
+  color: var(--g-ink-3);
+  font-size: var(--g-text-sm);
+  line-height: 1.6;
+}
+
+/* 脚注图标与首行文字对齐（lucide 图标默认是块级，会另起一行） */
+.g-appearance-note-icon {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 6px;
+}

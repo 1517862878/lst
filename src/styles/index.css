@@ -28,6 +28,8 @@
 @import './s13-photography.css';
 /* 8.4d 每周主题：编号沿用契约里的文件名，接在最后一层模块样式之后 */
 @import './s12-themes.css';
+/* 外观系统（四套配色 / 四款字体 / 背景主体与照片层）：紧跟在令牌后覆盖，必须排在 tailwindcss 之前 */
+@import './appearance.css';
 @import './pixel-theme.css';
 @import 'tailwindcss';
 

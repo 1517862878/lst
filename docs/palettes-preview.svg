@@ -1,0 +1,222 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="1634" viewBox="0 0 1180 1634" font-family="Microsoft YaHei, PingFang SC, Noto Sans SC, Segoe UI, sans-serif">
+<defs><linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0B1526" stop-opacity="0.84"/><stop offset="18%" stop-color="#0B1526" stop-opacity="0.7"/><stop offset="40%" stop-color="#0B1526" stop-opacity="0.62"/><stop offset="62%" stop-color="#0B1526" stop-opacity="0.62"/><stop offset="82%" stop-color="#0B1526" stop-opacity="0.68"/><stop offset="100%" stop-color="#0B1526" stop-opacity="0.86"/></linearGradient></defs>
+<rect width="1180" height="1634" fill="#08080b"/>
+<text x="30" y="52" font-size="27" fill="#F2F5FB" letter-spacing="1">四套经典配色方案 · 视觉规格 v1.0</text>
+<text x="30" y="80" font-size="12.5" fill="#7b8394">所有对比度经 WCAG 2.1 相对亮度公式实测（非估算）· 2px 硬描边 · 零圆角 · 实心偏移阴影 · 零模糊</text>
+<rect x="30" y="96" width="1120" height="2" fill="#22252e"/>
+<rect x="20" y="118" width="1140" height="286" fill="#12203A" stroke="#050C18" stroke-width="2"/>
+<text x="40" y="152" font-size="18" fill="#F2F5FB" letter-spacing="0.5">P1 星夜蓝 Starry Night</text>
+<text x="40" y="172" font-size="11" fill="#AFBED4" letter-spacing="1.2">默认 · 全站 · 夜景题材</text>
+<rect x="40" y="188" width="138" height="72" fill="#F0C070" stroke="#050C18" stroke-width="2"/>
+<text x="48" y="205" font-size="8.5" fill="#0b0b0e" letter-spacing="1">主色 PRIMARY</text>
+<text x="48" y="246" font-size="14" fill="#0b0b0e" font-family="Consolas, monospace">#F0C070</text>
+<rect x="190" y="188" width="138" height="72" fill="#7FA6D9" stroke="#050C18" stroke-width="2"/>
+<text x="198" y="205" font-size="8.5" fill="#0b0b0e" letter-spacing="1">辅色 SECONDARY</text>
+<text x="198" y="246" font-size="14" fill="#0b0b0e" font-family="Consolas, monospace">#7FA6D9</text>
+<rect x="340" y="188" width="138" height="72" fill="#FF7A59" stroke="#050C18" stroke-width="2"/>
+<text x="348" y="205" font-size="8.5" fill="#0b0b0e" letter-spacing="1">点缀 ACCENT</text>
+<text x="348" y="246" font-size="14" fill="#0b0b0e" font-family="Consolas, monospace">#FF7A59</text>
+<rect x="40" y="276" width="104" height="52" fill="#1C2E4E" stroke="#050C18" stroke-width="2"/>
+<text x="46" y="291" font-size="7.5" fill="#AFBED4" letter-spacing="1">SURFACE</text>
+<text x="46" y="316" font-size="10.5" fill="#BCC9DC" font-family="Consolas, monospace">#1C2E4E</text>
+<rect x="156" y="276" width="104" height="52" fill="#273C60" stroke="#050C18" stroke-width="2"/>
+<text x="162" y="291" font-size="7.5" fill="#AFBED4" letter-spacing="1">SURFACE-2</text>
+<text x="162" y="316" font-size="10.5" fill="#BCC9DC" font-family="Consolas, monospace">#273C60</text>
+<rect x="272" y="276" width="104" height="52" fill="#33496F" stroke="#050C18" stroke-width="2"/>
+<text x="278" y="291" font-size="7.5" fill="#AFBED4" letter-spacing="1">SURFACE-3</text>
+<text x="278" y="316" font-size="10.5" fill="#BCC9DC" font-family="Consolas, monospace">#33496F</text>
+<text x="40" y="350" font-size="14" fill="#F2F5FB">正文 ink — 摄影作品标题  <tspan font-family="Consolas,monospace" font-size="12" fill="#AFBED4">12.40:1</tspan></text>
+<text x="40" y="370" font-size="12" fill="#BCC9DC">次级 ink-2 — 作者、时间、描述  <tspan font-family="Consolas,monospace" font-size="11" fill="#AFBED4">8.08:1</tspan></text>
+<text x="40" y="388" font-size="10.5" fill="#AFBED4">弱化 ink-3 — 最差面 surface-3 4.79:1 · 全员 ≥4.5 AA</text>
+<rect x="620" y="130" width="520" height="262" fill="#1C2E4E" stroke="#050C18" stroke-width="2"/>
+<text x="636" y="152" font-size="9" fill="#AFBED4" letter-spacing="1.4">主/辅/点缀 于 SURFACE 上实测对比度</text>
+<rect x="636" y="164" width="89" height="12" fill="#F0C070" stroke="#050C18" stroke-width="1"/>
+<text x="756" y="175" font-size="11" fill="#BCC9DC" font-family="Consolas, monospace">主色 8.05:1</text>
+<rect x="636" y="186" width="59" height="12" fill="#7FA6D9" stroke="#050C18" stroke-width="1"/>
+<text x="756" y="197" font-size="11" fill="#BCC9DC" font-family="Consolas, monospace">辅色 5.39:1</text>
+<rect x="636" y="208" width="58" height="12" fill="#FF7A59" stroke="#050C18" stroke-width="1"/>
+<text x="756" y="219" font-size="11" fill="#BCC9DC" font-family="Consolas, monospace">点缀 5.28:1</text>
+<text x="636" y="246" font-size="9" fill="#AFBED4" letter-spacing="1.4">卡片：2px 硬描边 + 4px 实心偏移阴影</text>
+<rect x="638" y="254" width="230" height="40" fill="#050C18" opacity="0.9"/>
+<rect x="634" y="250" width="230" height="40" fill="#273C60" stroke="#050C18" stroke-width="2"/>
+<text x="646" y="275" font-size="11.5" fill="#F2F5FB">卡片内容 · 零圆角 · 零模糊</text>
+<text x="892" y="246" font-size="9" fill="#AFBED4" letter-spacing="1.4">必须可见的边界 line-hi ≥3:1</text>
+<rect x="892" y="250" width="230" height="40" fill="#273C60" stroke="#69788C" stroke-width="2"/>
+<text x="904" y="270" font-size="10.5" fill="#F2F5FB">输入框 / 可聚焦元素</text>
+<text x="904" y="283" font-size="9.5" fill="#AFBED4" font-family="Consolas, monospace">#69788C  3.01:1</text>
+<text x="636" y="324" font-size="9" fill="#AFBED4" letter-spacing="1.4">描边与阴影令牌</text>
+<text x="636" y="344" font-size="11" fill="#BCC9DC">2px 硬描边 · 阴影 2/4/6px 偏移 · 圆角 0 · 焦点环 2px+4px</text>
+<text x="636" y="364" font-size="10.5" fill="#AFBED4">页头下留白 24px · 区块间 48px · 卡片内 16px · 容器 1200px</text>
+<rect x="20" y="422" width="1140" height="286" fill="#F7F3E9" stroke="#1A1611" stroke-width="2"/>
+<text x="40" y="456" font-size="18" fill="#1A1611" letter-spacing="0.5">P2 米白纸面 Paper Day</text>
+<text x="40" y="476" font-size="11" fill="#635A4E" letter-spacing="1.2">浅底 · 长文阅读 · 打印</text>
+<rect x="40" y="492" width="138" height="72" fill="#1F3D63" stroke="#1A1611" stroke-width="2"/>
+<text x="48" y="509" font-size="8.5" fill="#ffffff" letter-spacing="1">主色 PRIMARY</text>
+<text x="48" y="550" font-size="14" fill="#ffffff" font-family="Consolas, monospace">#1F3D63</text>
+<rect x="190" y="492" width="138" height="72" fill="#9A4E1E" stroke="#1A1611" stroke-width="2"/>
+<text x="198" y="509" font-size="8.5" fill="#ffffff" letter-spacing="1">辅色 SECONDARY</text>
+<text x="198" y="550" font-size="14" fill="#ffffff" font-family="Consolas, monospace">#9A4E1E</text>
+<rect x="340" y="492" width="138" height="72" fill="#BB3826" stroke="#1A1611" stroke-width="2"/>
+<text x="348" y="509" font-size="8.5" fill="#ffffff" letter-spacing="1">点缀 ACCENT</text>
+<text x="348" y="550" font-size="14" fill="#ffffff" font-family="Consolas, monospace">#BB3826</text>
+<rect x="40" y="580" width="104" height="52" fill="#FFFDF7" stroke="#1A1611" stroke-width="2"/>
+<text x="46" y="595" font-size="7.5" fill="#635A4E" letter-spacing="1">SURFACE</text>
+<text x="46" y="620" font-size="10.5" fill="#4B443A" font-family="Consolas, monospace">#FFFDF7</text>
+<rect x="156" y="580" width="104" height="52" fill="#EFE8D8" stroke="#1A1611" stroke-width="2"/>
+<text x="162" y="595" font-size="7.5" fill="#635A4E" letter-spacing="1">SURFACE-2</text>
+<text x="162" y="620" font-size="10.5" fill="#4B443A" font-family="Consolas, monospace">#EFE8D8</text>
+<rect x="272" y="580" width="104" height="52" fill="#E4DAC5" stroke="#1A1611" stroke-width="2"/>
+<text x="278" y="595" font-size="7.5" fill="#635A4E" letter-spacing="1">SURFACE-3</text>
+<text x="278" y="620" font-size="10.5" fill="#4B443A" font-family="Consolas, monospace">#E4DAC5</text>
+<text x="40" y="654" font-size="14" fill="#1A1611">正文 ink — 摄影作品标题  <tspan font-family="Consolas,monospace" font-size="12" fill="#635A4E">17.69:1</tspan></text>
+<text x="40" y="674" font-size="12" fill="#4B443A">次级 ink-2 — 作者、时间、描述  <tspan font-family="Consolas,monospace" font-size="11" fill="#635A4E">9.44:1</tspan></text>
+<text x="40" y="692" font-size="10.5" fill="#635A4E">弱化 ink-3 — 最差面 surface-3 4.88:1 · 全员 ≥4.5 AA</text>
+<rect x="620" y="434" width="520" height="262" fill="#FFFDF7" stroke="#1A1611" stroke-width="2"/>
+<text x="636" y="456" font-size="9" fill="#635A4E" letter-spacing="1.4">主/辅/点缀 于 SURFACE 上实测对比度</text>
+<rect x="636" y="468" width="110" height="12" fill="#1F3D63" stroke="#1A1611" stroke-width="1"/>
+<text x="756" y="479" font-size="11" fill="#4B443A" font-family="Consolas, monospace">主色 10.83:1</text>
+<rect x="636" y="490" width="65" height="12" fill="#9A4E1E" stroke="#1A1611" stroke-width="1"/>
+<text x="756" y="501" font-size="11" fill="#4B443A" font-family="Consolas, monospace">辅色 5.93:1</text>
+<rect x="636" y="512" width="61" height="12" fill="#BB3826" stroke="#1A1611" stroke-width="1"/>
+<text x="756" y="523" font-size="11" fill="#4B443A" font-family="Consolas, monospace">点缀 5.57:1</text>
+<text x="636" y="550" font-size="9" fill="#635A4E" letter-spacing="1.4">卡片：2px 硬描边 + 4px 实心偏移阴影</text>
+<rect x="638" y="558" width="230" height="40" fill="#1A1611" opacity="0.9"/>
+<rect x="634" y="554" width="230" height="40" fill="#EFE8D8" stroke="#1A1611" stroke-width="2"/>
+<text x="646" y="579" font-size="11.5" fill="#1A1611">卡片内容 · 零圆角 · 零模糊</text>
+<text x="892" y="550" font-size="9" fill="#635A4E" letter-spacing="1.4">必须可见的边界 line-hi ≥3:1</text>
+<rect x="892" y="554" width="230" height="40" fill="#EFE8D8" stroke="#7A6F5C" stroke-width="2"/>
+<text x="904" y="574" font-size="10.5" fill="#1A1611">输入框 / 可聚焦元素</text>
+<text x="904" y="587" font-size="9.5" fill="#635A4E" font-family="Consolas, monospace">#7A6F5C  4.85:1</text>
+<text x="636" y="628" font-size="9" fill="#635A4E" letter-spacing="1.4">描边与阴影令牌</text>
+<text x="636" y="648" font-size="11" fill="#4B443A">2px 硬描边 · 阴影 2/4/6px 偏移 · 圆角 0 · 焦点环 2px+4px</text>
+<text x="636" y="668" font-size="10.5" fill="#635A4E">页头下留白 24px · 区块间 48px · 卡片内 16px · 容器 1200px</text>
+<rect x="20" y="726" width="1140" height="286" fill="#0F1F1A" stroke="#05100C" stroke-width="2"/>
+<text x="40" y="760" font-size="18" fill="#EDF3EE" letter-spacing="0.5">P3 墨绿胶片 Kodak Green</text>
+<text x="40" y="780" font-size="11" fill="#A6BCAE" letter-spacing="1.2">风光 · 纪实 · 作品集</text>
+<rect x="40" y="796" width="138" height="72" fill="#E9C46A" stroke="#05100C" stroke-width="2"/>
+<text x="48" y="813" font-size="8.5" fill="#0b0b0e" letter-spacing="1">主色 PRIMARY</text>
+<text x="48" y="854" font-size="14" fill="#0b0b0e" font-family="Consolas, monospace">#E9C46A</text>
+<rect x="190" y="796" width="138" height="72" fill="#8FBF9F" stroke="#05100C" stroke-width="2"/>
+<text x="198" y="813" font-size="8.5" fill="#0b0b0e" letter-spacing="1">辅色 SECONDARY</text>
+<text x="198" y="854" font-size="14" fill="#0b0b0e" font-family="Consolas, monospace">#8FBF9F</text>
+<rect x="340" y="796" width="138" height="72" fill="#E76F51" stroke="#05100C" stroke-width="2"/>
+<text x="348" y="813" font-size="8.5" fill="#ffffff" letter-spacing="1">点缀 ACCENT</text>
+<text x="348" y="854" font-size="14" fill="#ffffff" font-family="Consolas, monospace">#E76F51</text>
+<rect x="40" y="884" width="104" height="52" fill="#162C24" stroke="#05100C" stroke-width="2"/>
+<text x="46" y="899" font-size="7.5" fill="#A6BCAE" letter-spacing="1">SURFACE</text>
+<text x="46" y="924" font-size="10.5" fill="#B4C8BC" font-family="Consolas, monospace">#162C24</text>
+<rect x="156" y="884" width="104" height="52" fill="#1F3A30" stroke="#05100C" stroke-width="2"/>
+<text x="162" y="899" font-size="7.5" fill="#A6BCAE" letter-spacing="1">SURFACE-2</text>
+<text x="162" y="924" font-size="10.5" fill="#B4C8BC" font-family="Consolas, monospace">#1F3A30</text>
+<rect x="272" y="884" width="104" height="52" fill="#2A4A3E" stroke="#05100C" stroke-width="2"/>
+<text x="278" y="899" font-size="7.5" fill="#A6BCAE" letter-spacing="1">SURFACE-3</text>
+<text x="278" y="924" font-size="10.5" fill="#B4C8BC" font-family="Consolas, monospace">#2A4A3E</text>
+<text x="40" y="958" font-size="14" fill="#EDF3EE">正文 ink — 摄影作品标题  <tspan font-family="Consolas,monospace" font-size="12" fill="#A6BCAE">13.14:1</tspan></text>
+<text x="40" y="978" font-size="12" fill="#B4C8BC">次级 ink-2 — 作者、时间、描述  <tspan font-family="Consolas,monospace" font-size="11" fill="#A6BCAE">8.40:1</tspan></text>
+<text x="40" y="996" font-size="10.5" fill="#A6BCAE">弱化 ink-3 — 最差面 surface-3 4.85:1 · 全员 ≥4.5 AA</text>
+<rect x="620" y="738" width="520" height="262" fill="#162C24" stroke="#05100C" stroke-width="2"/>
+<text x="636" y="760" font-size="9" fill="#A6BCAE" letter-spacing="1.4">主/辅/点缀 于 SURFACE 上实测对比度</text>
+<rect x="636" y="772" width="97" height="12" fill="#E9C46A" stroke="#05100C" stroke-width="1"/>
+<text x="756" y="783" font-size="11" fill="#B4C8BC" font-family="Consolas, monospace">主色 8.85:1</text>
+<rect x="636" y="794" width="78" height="12" fill="#8FBF9F" stroke="#05100C" stroke-width="1"/>
+<text x="756" y="805" font-size="11" fill="#B4C8BC" font-family="Consolas, monospace">辅色 7.13:1</text>
+<rect x="636" y="816" width="53" height="12" fill="#E76F51" stroke="#05100C" stroke-width="1"/>
+<text x="756" y="827" font-size="11" fill="#B4C8BC" font-family="Consolas, monospace">点缀 4.78:1</text>
+<text x="636" y="854" font-size="9" fill="#A6BCAE" letter-spacing="1.4">卡片：2px 硬描边 + 4px 实心偏移阴影</text>
+<rect x="638" y="862" width="230" height="40" fill="#05100C" opacity="0.9"/>
+<rect x="634" y="858" width="230" height="40" fill="#1F3A30" stroke="#05100C" stroke-width="2"/>
+<text x="646" y="883" font-size="11.5" fill="#EDF3EE">卡片内容 · 零圆角 · 零模糊</text>
+<text x="892" y="854" font-size="9" fill="#A6BCAE" letter-spacing="1.4">必须可见的边界 line-hi ≥3:1</text>
+<rect x="892" y="858" width="230" height="40" fill="#1F3A30" stroke="#54786C" stroke-width="2"/>
+<text x="904" y="878" font-size="10.5" fill="#EDF3EE">输入框 / 可聚焦元素</text>
+<text x="904" y="891" font-size="9.5" fill="#A6BCAE" font-family="Consolas, monospace">#54786C  3.01:1</text>
+<text x="636" y="932" font-size="9" fill="#A6BCAE" letter-spacing="1.4">描边与阴影令牌</text>
+<text x="636" y="952" font-size="11" fill="#B4C8BC">2px 硬描边 · 阴影 2/4/6px 偏移 · 圆角 0 · 焦点环 2px+4px</text>
+<text x="636" y="972" font-size="10.5" fill="#A6BCAE">页头下留白 24px · 区块间 48px · 卡片内 16px · 容器 1200px</text>
+<rect x="20" y="1030" width="1140" height="286" fill="#121214" stroke="#000000" stroke-width="2"/>
+<text x="40" y="1064" font-size="18" fill="#F4F4F6" letter-spacing="0.5">P4 碳灰霓虹 Carbon Neon</text>
+<text x="40" y="1084" font-size="11" fill="#A3A3B0" letter-spacing="1.2">夜间模式 · 榜单 · 赛博</text>
+<rect x="40" y="1100" width="138" height="72" fill="#5AA9FF" stroke="#000000" stroke-width="2"/>
+<text x="48" y="1117" font-size="8.5" fill="#0b0b0e" letter-spacing="1">主色 PRIMARY</text>
+<text x="48" y="1158" font-size="14" fill="#0b0b0e" font-family="Consolas, monospace">#5AA9FF</text>
+<rect x="190" y="1100" width="138" height="72" fill="#B08CFF" stroke="#000000" stroke-width="2"/>
+<text x="198" y="1117" font-size="8.5" fill="#0b0b0e" letter-spacing="1">辅色 SECONDARY</text>
+<text x="198" y="1158" font-size="14" fill="#0b0b0e" font-family="Consolas, monospace">#B08CFF</text>
+<rect x="340" y="1100" width="138" height="72" fill="#FF5C8A" stroke="#000000" stroke-width="2"/>
+<text x="348" y="1117" font-size="8.5" fill="#ffffff" letter-spacing="1">点缀 ACCENT</text>
+<text x="348" y="1158" font-size="14" fill="#ffffff" font-family="Consolas, monospace">#FF5C8A</text>
+<rect x="40" y="1188" width="104" height="52" fill="#1B1B1F" stroke="#000000" stroke-width="2"/>
+<text x="46" y="1203" font-size="7.5" fill="#A3A3B0" letter-spacing="1">SURFACE</text>
+<text x="46" y="1228" font-size="10.5" fill="#C2C2CC" font-family="Consolas, monospace">#1B1B1F</text>
+<rect x="156" y="1188" width="104" height="52" fill="#25252B" stroke="#000000" stroke-width="2"/>
+<text x="162" y="1203" font-size="7.5" fill="#A3A3B0" letter-spacing="1">SURFACE-2</text>
+<text x="162" y="1228" font-size="10.5" fill="#C2C2CC" font-family="Consolas, monospace">#25252B</text>
+<rect x="272" y="1188" width="104" height="52" fill="#303038" stroke="#000000" stroke-width="2"/>
+<text x="278" y="1203" font-size="7.5" fill="#A3A3B0" letter-spacing="1">SURFACE-3</text>
+<text x="278" y="1228" font-size="10.5" fill="#C2C2CC" font-family="Consolas, monospace">#303038</text>
+<text x="40" y="1262" font-size="14" fill="#F4F4F6">正文 ink — 摄影作品标题  <tspan font-family="Consolas,monospace" font-size="12" fill="#A3A3B0">15.63:1</tspan></text>
+<text x="40" y="1282" font-size="12" fill="#C2C2CC">次级 ink-2 — 作者、时间、描述  <tspan font-family="Consolas,monospace" font-size="11" fill="#A3A3B0">9.71:1</tspan></text>
+<text x="40" y="1300" font-size="10.5" fill="#A3A3B0">弱化 ink-3 — 最差面 surface-3 5.25:1 · 全员 ≥4.5 AA</text>
+<rect x="620" y="1042" width="520" height="262" fill="#1B1B1F" stroke="#000000" stroke-width="2"/>
+<text x="636" y="1064" font-size="9" fill="#A3A3B0" letter-spacing="1.4">主/辅/点缀 于 SURFACE 上实测对比度</text>
+<rect x="636" y="1076" width="77" height="12" fill="#5AA9FF" stroke="#000000" stroke-width="1"/>
+<text x="756" y="1087" font-size="11" fill="#C2C2CC" font-family="Consolas, monospace">主色 6.99:1</text>
+<rect x="636" y="1098" width="72" height="12" fill="#B08CFF" stroke="#000000" stroke-width="1"/>
+<text x="756" y="1109" font-size="11" fill="#C2C2CC" font-family="Consolas, monospace">辅色 6.57:1</text>
+<rect x="636" y="1120" width="64" height="12" fill="#FF5C8A" stroke="#000000" stroke-width="1"/>
+<text x="756" y="1131" font-size="11" fill="#C2C2CC" font-family="Consolas, monospace">点缀 5.85:1</text>
+<text x="636" y="1158" font-size="9" fill="#A3A3B0" letter-spacing="1.4">卡片：2px 硬描边 + 4px 实心偏移阴影</text>
+<rect x="638" y="1166" width="230" height="40" fill="#000000" opacity="0.9"/>
+<rect x="634" y="1162" width="230" height="40" fill="#25252B" stroke="#000000" stroke-width="2"/>
+<text x="646" y="1187" font-size="11.5" fill="#F4F4F6">卡片内容 · 零圆角 · 零模糊</text>
+<text x="892" y="1158" font-size="9" fill="#A3A3B0" letter-spacing="1.4">必须可见的边界 line-hi ≥3:1</text>
+<rect x="892" y="1162" width="230" height="40" fill="#25252B" stroke="#656576" stroke-width="2"/>
+<text x="904" y="1182" font-size="10.5" fill="#F4F4F6">输入框 / 可聚焦元素</text>
+<text x="904" y="1195" font-size="9.5" fill="#A3A3B0" font-family="Consolas, monospace">#656576  3.01:1</text>
+<text x="636" y="1236" font-size="9" fill="#A3A3B0" letter-spacing="1.4">描边与阴影令牌</text>
+<text x="636" y="1256" font-size="11" fill="#C2C2CC">2px 硬描边 · 阴影 2/4/6px 偏移 · 圆角 0 · 焦点环 2px+4px</text>
+<text x="636" y="1276" font-size="10.5" fill="#A3A3B0">页头下留白 24px · 区块间 48px · 卡片内 16px · 容器 1200px</text>
+<text x="30" y="1364" font-size="15" fill="#F2F5FB" letter-spacing="0.8">照片背景压暗 · 6 档自动查表（最坏情况：纯白过曝照片 + 白字）</text>
+<text x="30" y="1384" font-size="11" fill="#7b8394">采样文字安全区平均相对亮度 → 查表得遮罩不透明度 → 六档实测全部 ≥4.5:1</text>
+<rect x="30" y="1414" width="1120" height="1.5" fill="#22252e"/>
+<rect x="30.0" y="1428" width="176.7" height="74" fill="#ffffff" stroke="#000" stroke-width="2"/>
+<text x="40.0" y="1452" font-size="13" fill="#ffffff">Aa 正文</text>
+<text x="40.0" y="1472" font-size="10" fill="#ffffff" font-family="Consolas, monospace" opacity="0.92">α 0.00</text>
+<text x="40.0" y="1490" font-size="10.5" fill="#ffffff" font-family="Consolas, monospace">6.18:1 ✓</text>
+<rect x="218.7" y="1428" width="176.7" height="74" fill="#ced0d4" stroke="#000" stroke-width="2"/>
+<text x="228.7" y="1452" font-size="13" fill="#ffffff">Aa 正文</text>
+<text x="228.7" y="1472" font-size="10" fill="#ffffff" font-family="Consolas, monospace" opacity="0.92">α 0.20</text>
+<text x="228.7" y="1490" font-size="10.5" fill="#ffffff" font-family="Consolas, monospace">4.84:1 ✓</text>
+<rect x="407.3" y="1428" width="176.7" height="74" fill="#a2a6ad" stroke="#000" stroke-width="2"/>
+<text x="417.3" y="1452" font-size="13" fill="#ffffff">Aa 正文</text>
+<text x="417.3" y="1472" font-size="10" fill="#ffffff" font-family="Consolas, monospace" opacity="0.92">α 0.38</text>
+<text x="417.3" y="1490" font-size="10.5" fill="#ffffff" font-family="Consolas, monospace">4.89:1 ✓</text>
+<rect x="596.0" y="1428" width="176.7" height="74" fill="#80858e" stroke="#000" stroke-width="2"/>
+<text x="606.0" y="1452" font-size="13" fill="#ffffff">Aa 正文</text>
+<text x="606.0" y="1472" font-size="10" fill="#ffffff" font-family="Consolas, monospace" opacity="0.92">α 0.52</text>
+<text x="606.0" y="1490" font-size="10.5" fill="#ffffff" font-family="Consolas, monospace">5.54:1 ✓</text>
+<rect x="784.7" y="1428" width="176.7" height="74" fill="#636974" stroke="#000" stroke-width="2"/>
+<text x="794.7" y="1452" font-size="13" fill="#ffffff">Aa 正文</text>
+<text x="794.7" y="1472" font-size="10" fill="#ffffff" font-family="Consolas, monospace" opacity="0.92">α 0.64</text>
+<text x="794.7" y="1490" font-size="10.5" fill="#ffffff" font-family="Consolas, monospace">6.50:1 ✓</text>
+<rect x="973.3" y="1428" width="176.7" height="74" fill="#464d5a" stroke="#000" stroke-width="2"/>
+<text x="983.3" y="1452" font-size="13" fill="#ffffff">Aa 正文</text>
+<text x="983.3" y="1472" font-size="10" fill="#ffffff" font-family="Consolas, monospace" opacity="0.92">α 0.76</text>
+<text x="983.3" y="1490" font-size="10.5" fill="#ffffff" font-family="Consolas, monospace">8.50:1 ✓</text>
+<text x="30" y="1534" font-size="11" fill="#7b8394">方向渐变锚点（最低锚点实测 5.14:1，4.5:1 理论下限 0.581 → 取 0.62 留余量）</text>
+<rect x="30" y="1546" width="1120" height="34" fill="#ffffff" stroke="#000" stroke-width="2"/>
+<rect x="30" y="1546" width="1120" height="34" fill="url(#scrim)" stroke="#000" stroke-width="2"/>
+<circle cx="30.0" cy="1589" r="3" fill="#F0C070"/>
+<text x="30.0" y="1606" font-size="9.5" fill="#8b93a5" text-anchor="middle" font-family="Consolas, monospace">0.84</text>
+<circle cx="231.6" cy="1589" r="3" fill="#F0C070"/>
+<text x="231.6" y="1606" font-size="9.5" fill="#8b93a5" text-anchor="middle" font-family="Consolas, monospace">0.70</text>
+<circle cx="478.0" cy="1589" r="3" fill="#F0C070"/>
+<text x="478.0" y="1606" font-size="9.5" fill="#8b93a5" text-anchor="middle" font-family="Consolas, monospace">0.62</text>
+<circle cx="724.4" cy="1589" r="3" fill="#F0C070"/>
+<text x="724.4" y="1606" font-size="9.5" fill="#8b93a5" text-anchor="middle" font-family="Consolas, monospace">0.62</text>
+<circle cx="948.4" cy="1589" r="3" fill="#F0C070"/>
+<text x="948.4" y="1606" font-size="9.5" fill="#8b93a5" text-anchor="middle" font-family="Consolas, monospace">0.68</text>
+<circle cx="1150.0" cy="1589" r="3" fill="#F0C070"/>
+<text x="1150.0" y="1606" font-size="9.5" fill="#8b93a5" text-anchor="middle" font-family="Consolas, monospace">0.86</text>
+<text x="30" y="1626" font-size="10.5" fill="#6d7484">主体 PX-STARS：画布 100vw×100vh · DPR≤2 · 密度 w×h/6000 · 星点 3-4px · 边缘禁星带 16px · 安全区 A/B/C 三级</text>
+</svg>

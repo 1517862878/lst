@@ -9,7 +9,7 @@
     />
     <title>工科影展 · 摄影作品社区</title>
     <script>
-      // 首屏前应用主题，避免闪白（令牌见 src/styles/tokens.css）
+      // 首屏前应用主题与外观，避免闪白/配色跳变（令牌见 src/styles/tokens.css 与 appearance.css）
       try {
         var p = JSON.parse(localStorage.getItem('gy:prefs') || '{}')
         var t = (p.state && p.state.theme) || 'system'
@@ -20,6 +20,23 @@
               : 'light'
             : t
         document.documentElement.dataset.theme = d
+
+        // 外观设置：配色 / 字体 / 字号（背景照片的遮罩由 React 侧按采样亮度算，这里不处理）
+        var a = JSON.parse(localStorage.getItem('gy:appearance') || '{}')
+        var s = (a && a.state) || a || {}
+        if (s.palette && s.palette !== 'auto') document.documentElement.dataset.palette = s.palette
+        if (s.font) document.documentElement.dataset.font = s.font
+        if (typeof s.baseFontSize === 'number' && s.baseFontSize >= 14 && s.baseFontSize <= 20) {
+          var b = Math.round(s.baseFontSize)
+          var r = document.documentElement.style
+          r.setProperty('--g-text-xs', Math.round((b * 12) / 16) + 'px')
+          r.setProperty('--g-text-sm', Math.round((b * 14) / 16) + 'px')
+          r.setProperty('--g-text-base', b + 'px')
+          r.setProperty('--g-text-lg', Math.round((b * 24) / 16) + 'px')
+          r.setProperty('--g-text-xl', Math.round((b * 32) / 16) + 'px')
+          r.setProperty('--g-text-2xl', Math.round((b * 48) / 16) + 'px')
+        }
+        if (s.subject) document.documentElement.dataset.subject = s.subject
       } catch (e) {
         /* 忽略损坏的偏好数据 */
       }

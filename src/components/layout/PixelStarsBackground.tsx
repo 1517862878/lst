@@ -191,9 +191,12 @@ export function PixelStarsBackground() {
 
     sync()
 
-    // 监听主题切换（html data-theme 变化）
+    // 监听主题/配色切换（html 的 data-theme 与 data-palette 都会改变 --g-stars-* 令牌）
     const observer = new MutationObserver(sync)
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'data-palette'],
+    })
 
     const onResize = () => {
       if (running) {

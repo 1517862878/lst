@@ -196,11 +196,13 @@ body {
   -moz-osx-font-smoothing: unset;
   font-smooth: never;
   text-rendering: optimizeSpeed;
-  /* 背景网格：8px 方格，像地图编辑器的网格 */
-  background-image:
-    linear-gradient(var(--g-bg-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--g-bg-grid) 1px, transparent 1px);
-  background-size: 8px 8px;
+  /*
+   * 背景网格：8px 方格，像地图编辑器的网格。
+   * 2026-10 移到独立固定层（.g-bg-grid，见 appearance.css）：
+   * 新增的配色底与用户照片都是 fixed 层，挂在 body 背景上的网格会被整片盖住，
+   * 而 body 背景又永远在最底层，无法参与「主体 → 照片 → 遮罩 → 网格 → 内容」的层叠。
+   * 这里保留注释而非规则，避免两处网格同时绘制造成摩尔纹。
+   */
   image-rendering: pixelated;
 }
 

@@ -94,6 +94,8 @@ export function PrivacyPage() {
           <ul>
             <li><code>gy:session</code> —— 登录会话（localStorage）</li>
             <li><code>gy:prefs</code> —— 界面偏好（localStorage）</li>
+            <li><code>gy:appearance</code> —— 外观设置：配色、主体、字体与字号（localStorage）</li>
+            <li><code>gy-appearance</code> —— 你上传的背景照片（IndexedDB，仅本机）</li>
             <li><code>gy-db</code> —— 作品/互动/评论等实体数据（IndexedDB）</li>
             <li><code>gy-assets</code> —— 你上传的图片（IndexedDB）</li>
           </ul>

@@ -54,6 +54,8 @@ const RegisterPage = lazyNamed(() => import('@/pages/RegisterPage'), 'RegisterPa
 const PublishPage = lazyNamed(() => import('@/pages/PublishPage'), 'PublishPage')
 const ProfilePage = lazyNamed(() => import('@/pages/ProfilePage'), 'ProfilePage')
 const SettingsPage = lazyNamed(() => import('@/pages/SettingsPage'), 'SettingsPage')
+// 外观设置：游客也可用（设备级偏好，存 localStorage + IndexedDB）
+const AppearancePage = lazyNamed(() => import('@/pages/AppearancePage'), 'AppearancePage')
 const MePage = lazyNamed(() => import('@/pages/MePage'), 'MePage')
 const MeModerationPage = lazyNamed(() => import('@/pages/MeModerationPage'), 'MeModerationPage')
 const CollectionsPage = lazyNamed(() => import('@/pages/CollectionsPage'), 'CollectionsPage')
@@ -138,6 +140,7 @@ export const router = createRouter(
         { path: 'u/:username', element: <ProfilePage /> },
         { path: 'settings', element: <SettingsPage /> },
         { path: 'settings/:section', element: <SettingsPage /> },
+        { path: 'appearance', element: <AppearancePage /> },
         { path: 'me', element: <MePage /> },
         { path: 'me/moderation', element: <MeModerationPage /> },
         { path: 'me/collections', element: <CollectionsPage /> },

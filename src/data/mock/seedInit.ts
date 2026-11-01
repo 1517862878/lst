@@ -21,8 +21,34 @@ import { buildSeedData } from './seed'
  * 切片 4：8.3d 通知语义（每条通知补 meta：回复 / 周榜）。老库里的通知是
  * 没有 meta 的旧剧本，重播一遍通知表即可（id 确定，put 覆盖；会把这 7 条
  * 的已读状态重置回种子值 —— 演示数据本来就是给人随手点的，可以接受）。
+ *
+ * 切片 5：2026-11 分类体系换代（题材 → 风格）。
+ * 这一片与前面几片有本质区别 —— 它**必须改已有数据**，不能只是补播：
+ *   · categories 表里躺着 8 个旧题材分类（风景/人文/…/黑白），
+ *     而 mockCategoryRepository.list() 优先读库，读到旧行就永远显示旧分类；
+ *   · photos.categorySlug 也还指向旧 slug，不迁移就会挂在已下架的分类上
+ *     （后端那套外键约束在 mock 侧没有，所以不会报错，只会静默错乱）。
+ * 所以这片做三件事：删旧分类行、写入新分类行、按语义映射改写作品的分类。
+ * 旧→新映射与迁移 0038 逐条一致，保证 mock 与真实 API 行为同构。
  */
-const SEED_SLICE = 4
+const SEED_SLICE = 5
+
+/**
+ * 旧分类 slug → 新分类 slug（与 supabase/migrations/0038 的映射表逐条一致）。
+ *
+ * 一致性为什么重要：mock 与 api 两种数据源要能互相替换，
+ * 同一件作品在两种模式下不能落进不同风格的分类里。
+ */
+const CATEGORY_SLUG_MIGRATION: Record<string, string> = {
+  landscape: 'travel-doc',
+  people: 'travel-doc',
+  architecture: 'cinematic-dark',
+  industrial: 'cinematic-dark',
+  technology: 'new-chinese',
+  macro: 'japanese-soft',
+  night: 'hk-retro',
+  monochrome: 'cinematic-dark',
+}
 
 let seeding: Promise<void> | null = null
 
@@ -108,6 +134,34 @@ export async function ensureSeeded(): Promise<void> {
       await moderationTx.objectStore('moderationActions').put(a)
     }
     await moderationTx.done
+
+    // 切片 5：分类体系换代 —— 删旧分类、写新分类、改写作品分类
+    if ((slice ?? 1) < 5) {
+      const catTx = db.transaction(['categories', 'photos'], 'readwrite')
+      const categories = catTx.objectStore('categories')
+
+      // 1) 删掉旧题材分类（它们在 CATEGORIES 里已不存在）
+      const oldSlugs = Object.keys(CATEGORY_SLUG_MIGRATION)
+      for (const slug of oldSlugs) await categories.delete(slug)
+
+      // 2) 写入 8 个新风格分类
+      for (const c of CATEGORIES) await categories.put(c)
+
+      // 3) 逐件改写作品的分类（只动 categorySlug，其它字段原样保留）
+      const photos = catTx.objectStore('photos')
+      const all = await photos.getAll()
+      let migrated = 0
+      for (const photo of all) {
+        const next = CATEGORY_SLUG_MIGRATION[photo.categorySlug]
+        if (!next) continue
+        await photos.put({ ...photo, categorySlug: next, updatedAt: new Date().toISOString() })
+        migrated += 1
+      }
+      await catTx.done
+      if (migrated > 0) {
+        console.info(`[seed] 分类体系换代：${migrated} 件作品已迁移到风格分类`)
+      }
+    }
 
     await setMeta('seedSlice', SEED_SLICE)
   })()

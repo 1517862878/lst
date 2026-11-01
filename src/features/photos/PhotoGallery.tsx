@@ -10,6 +10,7 @@
  *     焦点不在画册里时按键不生效 —— 键盘可达但不越权。
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import type { Photo, PhotoItem } from '@/domain/types'
 import { usePhotoImage } from '@/hooks/usePhotoImage'
 import { cn } from '@/lib/cn'
@@ -76,6 +77,14 @@ export function PhotoGallery({ photo }: PhotoGalleryProps) {
   const caption = active.caption.trim()
   const alt = caption || `${photo.title}（第 ${activeIndex + 1} 张）`
   const ratio = active.width > 0 && active.height > 0 ? `${active.width} / ${active.height}` : '4 / 3'
+  /**
+   * 数值比例（宽/高）单独给 CSS 用。
+   *
+   * 与 PhotoThumb 同一个理由：`aspectRatio: "800 / 1300"` 是字符串，CSS 里取不到
+   * 它的商，而主图容器需要按比例反算宽度天花板（`calc(68vh * 比例)`）。
+   * 宽高缺失时回落到 4/3，与内联比例保持一致。
+   */
+  const ar = active.width > 0 && active.height > 0 ? active.width / active.height : 4 / 3
 
   return (
     <div
@@ -88,7 +97,10 @@ export function PhotoGallery({ photo }: PhotoGalleryProps) {
       onKeyDown={handleKeyDown}
     >
       <figure className="g-gallery-stage">
-        <div className="g-gallery-image" style={{ aspectRatio: ratio }}>
+        <div
+          className="g-gallery-image"
+          style={{ aspectRatio: ratio, '--g-gallery-ar': String(ar) } as CSSProperties}
+        >
           {url ? (
             <img src={url} alt={alt} className="g-gallery-img" loading="eager" decoding="async" draggable={false} />
           ) : (

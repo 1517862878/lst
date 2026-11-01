@@ -1,0 +1,222 @@
+/* ══════════════════════════════════════════
+   组照画册（8.4c）· 作品详情页多图
+   ══════════════════════════════════════════
+   为什么整段是「新建」而不是「修订」：
+     8.4c 的提交 cf05fc0 只加了 PhotoGallery / PhotoItemThumb 两个组件，
+     .g-gallery-* 与 .g-item-* 共 25 个类名在整个仓库里没有任何样式规则。
+     结果是画册靠浏览器默认值显示：缩略条是 block 流、缩略图 inline-block
+     无边框、计数与提示行用 16px 正文色、封面角标挤在图片上方，且画册宽度
+     只由内容撑开（实测 261.5px，而外框 686px），右下大片空白。
+
+   两条约束（与其他模块一致）：
+     1. 像素风：零圆角、2px 硬描边、实心偏移阴影、无模糊。
+     2. 照片不参与 pixelated（沿用 .g-photo-thumb-img 那条例外）。
+*/
+
+.g-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-3);
+  width: 100%;
+  min-width: 0;
+  outline: none;
+}
+
+/* 焦点环：画册是 tabIndex=0 的可聚焦容器，必须有可见的键盘焦点 */
+.g-gallery:focus-visible {
+  outline: var(--g-border) solid var(--g-focus);
+  outline-offset: 3px;
+}
+
+.g-gallery-stage {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--g-space-2);
+  width: 100%;
+  min-width: 0;
+}
+
+/*
+ * 主图容器：比例由组件内联的 aspect-ratio 决定（每张图比例不同，翻页时会变）。
+ * 这里只负责「宽度吃满 + 比例生效 + 不超高」，不再写死高度 ——
+ * 与详情页单图 .g-photo-thumb-display 用同一套思路（见 pixel-theme.css 的说明）。
+ */
+.g-gallery-image {
+  position: relative;
+  /* 宽度按比例反算一个天花板：竖图不能吃满栏宽（否则 68vh 装不下会被裁），
+     横图则自然吃满。比例由组件的 --g-gallery-ar（数值宽高比）提供。 */
+  width: min(100%, calc(68vh * var(--g-gallery-ar, 1)));
+  max-height: 68vh;
+  margin-inline: auto;
+  background: var(--g-surface-2);
+  border: var(--g-border) solid var(--g-line);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.g-gallery-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* 真实照片不做像素化（与 .g-photo-thumb-img 同一取舍） */
+  image-rendering: auto;
+}
+
+/* 占位块：没有真实图片时（种子数据/加载中）用色块撑住比例 */
+.g-gallery-fill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  background: var(--g-surface-3);
+  color: var(--g-ink-3);
+  font-size: var(--g-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 图说：计数 + 这张的说明 ── */
+.g-gallery-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--g-space-2) var(--g-space-3);
+}
+
+.g-gallery-counter {
+  margin: 0;
+  padding: 1px 6px;
+  border: 1px solid var(--g-line);
+  background: var(--g-surface-3);
+  color: var(--g-ink);
+  font-size: var(--g-text-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.g-gallery-note {
+  margin: 0;
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  line-height: 1.6;
+  /* 说明可能很长，允许换行而不是把整行撑出去 */
+  overflow-wrap: anywhere;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+/* ── 缩略条 ── */
+.g-gallery-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.g-gallery-strip > li {
+  /* li 默认是列表项，这里只做 flex 子项 */
+  display: block;
+  min-width: 0;
+}
+
+/*
+ * 缩略图按钮：像素风的方形卡片。
+ * 尺寸用「固定边长」而不是比例 —— 缩略条是导航控件，参差不齐会让点击目标错位。
+ * 68px 边长 + 内部 cover 裁切，是列表缩略图的常用尺寸，也远大于 44px 触控下限。
+ */
+.g-gallery-thumb {
+  position: relative;
+  display: block;
+  width: 68px;
+  height: 68px;
+  padding: 0;
+  border: var(--g-border) solid var(--g-line);
+  background: var(--g-surface-2);
+  cursor: pointer;
+  overflow: hidden;
+  transition: box-shadow var(--g-dur-fast) var(--g-ease);
+}
+
+.g-gallery-thumb:hover {
+  box-shadow: var(--g-shadow-md);
+}
+
+/* 选中态：主色硬边 + 内嵌一圈，两档都比未选中更亮 */
+.g-gallery-thumb-active {
+  border-color: var(--g-brand);
+  box-shadow: inset 0 0 0 2px var(--g-brand);
+}
+
+.g-gallery-thumb-active:hover {
+  box-shadow:
+    inset 0 0 0 2px var(--g-brand),
+    var(--g-shadow-md);
+}
+
+/* 缩略图内的图片容器（.g-item-thumb）必须填满按钮的方形 */
+.g-gallery-thumb .g-item-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto !important;
+}
+
+.g-gallery-thumb-img,
+.g-gallery-thumb .g-item-thumb-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: auto;
+}
+
+/* 封面角标：贴在缩略图左下角，不遮挡主体内容 */
+.g-gallery-thumb-cover {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 0 4px;
+  background: var(--g-brand);
+  color: var(--g-brand-ink);
+  font-size: var(--g-text-xs);
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+/* 键盘提示：弱化到辅助级，不抢主图 */
+.g-gallery-hint {
+  margin: 0;
+  color: var(--g-ink-3);
+  font-size: var(--g-text-xs);
+}
+
+/* 窄屏：缩略图缩小到 56px（仍 >44px 触控下限），图说改为整行 */
+@media (max-width: 559px) {
+  .g-gallery-thumb {
+    width: 56px;
+    height: 56px;
+  }
+
+  .g-gallery-caption {
+    gap: var(--g-space-1) var(--g-space-2);
+  }
+
+  .g-gallery-note {
+    flex-basis: 100%;
+  }
+}
+
+/* 高对比偏好：选中态再加一道外框，避免只靠主色区分 */
+@media (prefers-contrast: more) {
+  .g-gallery-thumb-active {
+    outline: 2px solid var(--g-ink);
+    outline-offset: 2px;
+  }
+}

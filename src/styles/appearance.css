@@ -357,14 +357,28 @@ html[data-font='sans'] body {
    所以 accent 只允许落在走廊之外（角点、校色环、色卡远端）。 */
 :root {
   --g-subj-corridor: 0.22;
+  /* 走廊半宽 = 内容列 1200px 的一半；立刻回遮罩与「走廊外专供」遮罩共用，
+     避免两个遮罩各自硬编码 600px 而失去同步 */
+  --g-subj-corridor-half: 600px;
   --g-subj-feather: 40px;
   --g-subj-mask: linear-gradient(
     90deg,
     #000 0,
-    #000 calc(50% - 600px - var(--g-subj-feather)),
-    rgb(0 0 0 / var(--g-subj-corridor)) calc(50% - 600px),
-    rgb(0 0 0 / var(--g-subj-corridor)) calc(50% + 600px),
-    #000 calc(50% + 600px + var(--g-subj-feather)),
+    #000 calc(50% - var(--g-subj-corridor-half) - var(--g-subj-feather)),
+    rgb(0 0 0 / var(--g-subj-corridor)) calc(50% - var(--g-subj-corridor-half)),
+    rgb(0 0 0 / var(--g-subj-corridor)) calc(50% + var(--g-subj-corridor-half)),
+    #000 calc(50% + var(--g-subj-corridor-half) + var(--g-subj-feather)),
+    #000 100%
+  );
+  /* 「走廊外专供」遮罩：走廊内 alpha 恒为 0，走廊外恒为 1（羽化段与上行对称）。
+     它是 --g-subj-mask 的补集，专给不能进入走廊的强调色用。 */
+  --g-subj-outside-mask: linear-gradient(
+    90deg,
+    #000 0,
+    #000 calc(50% - var(--g-subj-corridor-half) - var(--g-subj-feather)),
+    transparent calc(50% - var(--g-subj-corridor-half)),
+    transparent calc(50% + var(--g-subj-corridor-half)),
+    #000 calc(50% + var(--g-subj-corridor-half) + var(--g-subj-feather)),
     #000 100%
   );
 }
@@ -493,7 +507,14 @@ html[data-font='sans'] body {
   mask-image: radial-gradient(circle 520px at 86% -4%, #000 0 60%, transparent 100%);
 }
 
-/* 内圈校色环：唯一允许出现强调色的位置（C 级自由区） */
+/* 校色环：唯一允许出现强调色的位置（C 级自由区）。
+   半径 242–244px，与 ::before 的 repeating-radial 环带（22n）对齐：
+   强调色正好顶替第 11 圈，读起来是「光圈里被点亮的一环」。
+   为什么不是紧贴圆心的 138–140px：那一段弧 x 跨度 1104–1373，1440 下
+   x<1320 全在走廊内，而 x>1320 的那截又整段躲在 72px 高的不透明页头
+   后面 —— 实测差分成像只剩 y 73–76 的 4–10 个像素，等于把强调色删掉。
+   242–244 这一圈的可见段落在 y≈100–193 的右侧自由列里，既在走廊外、
+   又在页头之下。 */
 .g-bg-subject-px-aperture::after {
   content: '';
   position: absolute;
@@ -501,10 +522,19 @@ html[data-font='sans'] body {
   background-repeat: no-repeat;
   background-image: radial-gradient(
     circle at 86% -4%,
-    transparent 0 138px,
-    var(--g-subj-accent) 138px 140px,
-    transparent 140px 100%
+    transparent 0 242px,
+    var(--g-subj-accent) 242px 244px,
+    transparent 244px 100%
   );
+  /* 强调色环必须完全落在走廊之外。
+     父级走廊遮罩只把主体压到 22%，而 accent 在走廊内实测仍有 1.36–1.62:1
+     （超过 1.25:1 上限），所以这里再乘一层补集遮罩把走廊内压到 0。
+     为什么不能用圆形遮罩：圆心 86% -4% 在 1440 下是 x≈1238，本身就落在
+     走廊（120–1320）里，任何「还看得见环」的半径都会把环的一段留在走廊内；
+     只有沿走廊边界横切才能做到零例外。窄屏自由区消失时整环隐去，
+     与 `px-colorbar` 强调色块「远端才出现」是同一套取舍。 */
+  -webkit-mask-image: var(--g-subj-outside-mask);
+  mask-image: var(--g-subj-outside-mask);
 }
 
 /* ── 灰阶色卡：重心 = 底边；单向；唯一「实心色块 / 硬分格」母题 ── */

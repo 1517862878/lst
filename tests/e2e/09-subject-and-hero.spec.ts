@@ -245,4 +245,83 @@ test.describe('首页 Hero 字阶与密度', () => {
     expect(m.visibleItems).toBeGreaterThanOrEqual(4)
     expect(m.overflow).toBeLessThanOrEqual(1)
   })
+
+  /**
+   * 强调色只能落在走廊外：像素光圈的 accent 校色环必须对走廊零贡献。
+   *
+   * 用差分成像而不是读 CSS 值：环是否侵入走廊取决于「半径 × 走廊遮罩 × 页面
+   * 遮挡」三者的几何关系，读声明值看不出结论（138–140px 那一版读起来完全正常，
+   * 实际却整段被页头盖住）。两张截图唯一差别是 ::after 在不在，
+   * 内容不变所以互相抵消，剩下的差异只能是校色环画的。
+   * PNG 交给浏览器自己用 canvas 解码，避免为测试引入图像库。
+   */
+  test('1440×900：像素光圈的 accent 校色环不进走廊，且仍在自由区显影', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('/')
+    await writeAppearance(page, { subject: 'px-aperture', palette: 'p1' })
+    await expect(page.locator('[class*="subject-px-aperture"]')).toHaveCount(1)
+
+    // 静止化：图与字必须在两次截图之间完全一致，否则假差异会被算成环的贡献
+    await page.waitForLoadState('networkidle')
+    await page.waitForFunction(() =>
+      Array.from(document.images).every((img) => img.complete),
+    )
+    await page.addStyleTag({
+      content: '*, *::before, *::after { animation: none !important; transition: none !important; }',
+    })
+    await page.waitForTimeout(200)
+
+    const withRing = (await page.screenshot()).toString('base64')
+    await page.addStyleTag({
+      content: '.g-bg-subject-px-aperture::after { display: none !important; }',
+    })
+    const withoutRing = (await page.screenshot()).toString('base64')
+
+    const diff = await page.evaluate(
+      async ({ a, b }) => {
+        const load = async (b64: string) => {
+          const img = new Image()
+          img.src = 'data:image/png;base64,' + b64
+          await img.decode()
+          const canvas = document.createElement('canvas')
+          canvas.width = img.naturalWidth
+          canvas.height = img.naturalHeight
+          const ctx = canvas.getContext('2d')
+          if (!ctx) throw new Error('2d context unavailable')
+          ctx.drawImage(img, 0, 0)
+          return ctx.getImageData(0, 0, canvas.width, canvas.height)
+        }
+        const A = await load(a)
+        const B = await load(b)
+        const w = A.width
+        // 走廊 = 中央 1200px 内容列，与 --g-subj-corridor-half 对齐
+        const [c0, c1] = [w / 2 - 600, w / 2 + 600] as const
+        // noUncheckedIndexedAccess 下类型化数组下标是 number | undefined
+        const at = (d: Uint8ClampedArray, i: number): number => d[i] ?? 0
+        let inside = 0
+        let outside = 0
+        for (let y = 0; y < A.height; y += 1) {
+          for (let x = 0; x < w; x += 1) {
+            const i = (y * w + x) * 4
+            const d = Math.max(
+              Math.abs(at(A.data, i) - at(B.data, i)),
+              Math.abs(at(A.data, i + 1) - at(B.data, i + 1)),
+              Math.abs(at(A.data, i + 2) - at(B.data, i + 2)),
+            )
+            if (d > 2) {
+              if (x >= c0 && x <= c1) inside += 1
+              else outside += 1
+            }
+          }
+        }
+        return { inside, outside }
+      },
+      { a: withRing, b: withoutRing },
+    )
+
+    expect(diff.inside).toBe(0)
+    expect(diff.outside).toBeGreaterThan(50)
+  })
 })

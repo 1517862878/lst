@@ -395,10 +395,15 @@
    它与 pixel-theme.css 的意图也是矛盾的 —— 768–900px 下排两栏会把右栏压到
    320px 最小宽度以下，正是 pixel-theme.css 那里要避免的情况。已删除。 */
 
+/* 作品详情页的图片外框。
+   像素风基线是 2px 硬描边 + 零圆角；这里曾残留 1px 描边与 var(--g-radius-lg)，
+   会被 pixel-theme.css 的同名规则覆盖成 2px（因为后者在来源顺序里更靠后），
+   属于「两处定义、只有一处生效」的隐患。统一到像素风基线，避免将来调顺序时
+   突然冒出一个 1px 圆角版本。 */
 .g-work-media {
-  border-radius: var(--g-radius-lg);
+  border-radius: 0;
+  border: var(--g-border) solid var(--g-line);
   overflow: hidden;
-  border: 1px solid var(--g-line);
 }
 
 .g-work-info {

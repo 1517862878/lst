@@ -317,19 +317,29 @@
   image-rendering: auto;
 }
 
-/* 详情页大图：由容器控制尺寸，图片用 contain 完整显示。
-   关键：必须给容器一个明确高度。
-   因为占位色块用 position:absolute; inset:0 铺满父容器，
-   父容器若高度为 0（aspect-ratio:auto 且无内容撑开），色块就完全看不见。 */
+/* 详情页大图：容器尺寸跟随图片比例本身。
+   ─────────────────────────────────────────────
+   历史：这里原本是 `height: min(66vh, 640px)` —— 一个「固定大小」的盒子，
+   竖构图照片会被这个高度钉住、再用 object-fit: contain 居中，结果左右各留
+   大片空档（实测 800×1300 竖图：容器 666×594，照片只渲染 365×594，
+   左右空档各 148px，容器浪费 45%）。用户反馈的「固定大小」正是这条。
+   现在改成：高度设成 auto，宽度按 68vh 反算 `calc(68vh * 比例)`，
+   并用 aspect-ratio 让盒子本身等于图片比例：
+     · 竖图 → 宽度变窄、高度吃满 68vh，左右零空档
+     · 横图 → 宽度吃满栏宽，高度按比例，上下零空档
+   容器之所以还能撑住高度（不会像注释里担心的那样塌掉），是因为
+   `aspect-ratio` + `width` 已经同时确定了两个方向的尺寸，
+   不再依赖内容撑开，也不再用绝对定位的占位块撑高。
+   比例来自 PhotoThumb 传入的 `--g-photo-ar`（数值宽高比），缺省按 1。 */
 .g-photo-thumb-display {
   position: relative;
-  width: 100%;
-  aspect-ratio: auto !important;
-  height: min(66vh, 640px);
-  min-height: 300px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* 关键：覆盖掉上面那条固定高度（否则本文件内的重复定义会让它存活） */
+  height: auto;
+  width: min(100%, calc(68vh * var(--g-photo-ar, 1)));
+  aspect-ratio: var(--g-photo-ar, 1) !important;
+  min-height: 0;
+  max-height: none;
+  display: block;
   background: var(--g-surface-2);
 }
 
@@ -894,31 +904,31 @@
   justify-content: center;
 }
 
-/* 详情页大图：由容器控制尺寸，图片用 contain 完整显示。
-   注意不能同时设 aspect-ratio 和 max-height，否则容器会塌陷。 */
+/* 详情页大图（第二处，作品详情页章节）。
+   与上方 .g-photo-thumb-display 是同一选择器，这里只补「比例驱动尺寸」的
+   最终取值；两处都必须写，因为文件内重复定义按顺序取后者、且各自带不同属性，
+   删掉任何一处都会让某条属性失去来源。尺寸规则的唯一真源仍是 --g-photo-ar。 */
 .g-photo-thumb-display {
-  width: 100%;
-  aspect-ratio: auto !important;
-  min-height: 300px;
-  max-height: 68vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  height: auto;
+  width: min(100%, calc(68vh * var(--g-photo-ar, 1)));
+  aspect-ratio: var(--g-photo-ar, 1) !important;
+  min-height: 0;
+  max-height: none;
+  display: block;
   background: var(--g-surface-2);
 }
 
 .g-photo-thumb-display .g-photo-thumb-img {
   width: 100%;
-  height: auto;
-  max-height: 66vh;
+  height: 100%;
   object-fit: contain;
 }
 
-/* 占位色块在大图模式下撑满容器 */
+/* 占位色块在大图模式下撑满容器（不再用 min-height 撑高，
+   容器高度已由 aspect-ratio 决定） */
 .g-photo-thumb-display .g-photo-thumb-fill {
   position: absolute;
   inset: 0;
-  min-height: 300px;
 }
 
 /* 占位色块容器需要有定位上下文 */

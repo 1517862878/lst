@@ -8,6 +8,7 @@
  * 为什么保留占位块：种子数据只有 imageKey 字符串、没有实际文件。
  * 直接显示 <img src=""> 会得到破图，比色块更糟。所以"读不到就回退"是常态而非异常。
  */
+import type { CSSProperties } from 'react'
 import type { Photo } from '@/domain/types'
 import { usePhotoImage } from '@/hooks/usePhotoImage'
 import { cn } from '@/lib/cn'
@@ -43,10 +44,24 @@ export function PhotoThumb({ photo, size = 'thumb', priority = false, className 
   const light = `hsl(${hue} 38% 72%)`
   const dark = `hsl(${hue} 42% 46%)`
 
+  /**
+   * 数值比例（宽/高）必须单独传给 CSS。
+   *
+   * 为什么不能只靠 aspectRatio 字符串：`.g-photo-thumb-display` 需要按比例反算
+   * 宽度上限（`calc(68vh * 比例)`），而 `aspectRatio: "800 / 1300"` 是字符串，
+   * CSS 里无法取它的商。传一个数值自定义属性，样式就能直接做乘法。
+   * 宽高缺失或为 0 时回落到 1（正方形容器），避免出现 NaN / 除零。
+   */
+  const ar = photo.width > 0 && photo.height > 0 ? photo.width / photo.height : 1
+  const style: CSSProperties = {
+    aspectRatio: `${photo.width || 1} / ${photo.height || 1}`,
+    '--g-photo-ar': String(ar),
+  } as CSSProperties
+
   return (
     <div
       className={cn('g-photo-thumb', size === 'display' && 'g-photo-thumb-display', className)}
-      style={{ aspectRatio: `${photo.width} / ${photo.height}` }}
+      style={style}
       role="img"
       aria-label={url ? photo.title : `${photo.title}（示例占位图）`}
     >

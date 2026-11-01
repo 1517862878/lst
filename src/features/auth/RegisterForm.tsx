@@ -22,6 +22,7 @@ export function RegisterForm() {
   const [submitting, setSubmitting] = useState(false)
   const [sendingCode, setSendingCode] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState('')
+  const [devCode, setDevCode] = useState('')
   const turnstileEnabled = Boolean((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim())
   const handleTurnstileToken = useCallback((token: string) => setTurnstileToken(token), [])
   const handleTurnstileError = useCallback((message: string) => setError(message), [])
@@ -39,7 +40,10 @@ export function RegisterForm() {
     setSendingCode(true)
     try {
       if (isApi && turnstileEnabled && !turnstileToken) throw new Error('请先完成人机验证')
-      await requestRegistrationCode(normalizedPhone, turnstileToken || undefined)
+      const result = await requestRegistrationCode(normalizedPhone, turnstileToken || undefined)
+      // 本地开发（SMS_PROVIDER=console）服务端把验证码直接回给前端，
+      // 显示出来免得开发时去翻后端控制台日志
+      if (result.devCode) setDevCode(result.devCode)
       toast.show('success', isApi ? '验证码已发送' : '演示模式：验证码发送成功')
     } catch (err) {
       setError(err instanceof Error ? err.message : '验证码发送失败')
@@ -67,8 +71,8 @@ export function RegisterForm() {
       setError('验证码为 6 位数字')
       return
     }
-    if (password.length < 6) {
-      setError('密码至少 6 位')
+    if (password.length < 8) {
+      setError('密码至少 8 位')
       return
     }
     setSubmitting(true)
@@ -106,7 +110,12 @@ export function RegisterForm() {
         required
         endAdornment={<Button type="button" size="sm" variant="secondary" loading={sendingCode} disabled={!phone.trim()} onClick={handleSendCode}>发送验证码</Button>}
       />
-      <Input label="密码" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isApi ? '至少 6 位，请勿与其他网站共用' : '至少 6 位（演示模式不具安全性）'} autoComplete="new-password" required />
+      {devCode && (
+        <p className="g-auth-note" role="status">
+          本地开发模式：验证码为 <strong>{devCode}</strong>（生产环境通过短信下发）
+        </p>
+      )}
+      <Input label="密码" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isApi ? '至少 8 位，请勿与其他网站共用' : '至少 8 位（演示模式不具安全性）'} autoComplete="new-password" minLength={8} maxLength={64} required />
       {isApi && <TurnstileWidget action="register_code" onToken={handleTurnstileToken} onError={handleTurnstileError} />}
       <Checkbox
         label={<>我已阅读并同意 <Link to="/terms" target="_blank" rel="noreferrer">用户协议</Link></>}

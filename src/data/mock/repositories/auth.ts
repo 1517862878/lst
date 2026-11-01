@@ -2,7 +2,7 @@
  * Mock 鉴权仓储（伪造会话，ROADMAP §5.1）。
  * 安全边界：演示模式，密码不加密、不假装安全；会话存 localStorage。
  */
-import { AppError, ErrorCodes, type AuthRepository, type SignUpInput } from '@/data/contracts'
+import { AppError, ErrorCodes, type AuthRepository, type PasswordResetInput, type PhoneCodeResult, type SignUpInput } from '@/data/contracts'
 import type { Photo, Profile, Session, SessionRestriction } from '@/domain/types'
 import { DEMO_PASSWORD } from '@/domain/constants'
 import { pickActiveRestriction } from '@/domain/restrictions'
@@ -91,8 +91,10 @@ export const mockAuthRepository: AuthRepository = {
     return session
   },
 
-  async requestRegistrationCode(_phone: string, _turnstileToken?: string): Promise<void> {
+  async requestRegistrationCode(_phone: string, _turnstileToken?: string): Promise<PhoneCodeResult> {
     // Mock 模式不发送短信；保留异步契约供 UI 无缝切换数据源。
+    // 返回形态与 api 一致（sent=true），但不给 devCode —— 演示模式验证码根本不校验
+    return { sent: true }
   },
 
   async signUp(input: SignUpInput): Promise<Session> {
@@ -154,5 +156,28 @@ export const mockAuthRepository: AuthRepository = {
       throw new AppError(ErrorCodes.NOT_FOUND, `用户不存在：${username}`)
     }
     return withPinned(profile, await db.getAll('photos'))
+  },
+
+  /**
+   * 忘记密码（mock 模式）。
+   *
+   * 演示模式没有真实凭据：所有账号的密码都是固定的 DEMO_PASSWORD，
+   * 本地库不存任何密码字段。所以「重置密码」在这里没有任何东西可改 ——
+   * 假装成功会让用户以为密码真的换掉了。
+   * 明确抛出「演示模式不支持」，比静默返回成功诚实得多；
+   * 真实的重置流程走 api 模式（后端 /api/auth/password/*）。
+   */
+  async requestPasswordResetCode(_phone: string): Promise<PhoneCodeResult> {
+    throw new AppError(
+      ErrorCodes.VALIDATION,
+      '演示模式没有真实账号凭据，密码固定为 demo1234，无需重置。请直接登录。',
+    )
+  },
+
+  async resetPassword(_input: PasswordResetInput): Promise<void> {
+    throw new AppError(
+      ErrorCodes.VALIDATION,
+      '演示模式没有真实账号凭据，密码固定为 demo1234，无法重置。请直接登录。',
+    )
   },
 }

@@ -51,6 +51,7 @@ const TagsPage = lazyNamed(() => import('@/pages/TagsPage'), 'TagsPage')
 const TagDetailPage = lazyNamed(() => import('@/pages/TagDetailPage'), 'TagDetailPage')
 const LoginPage = lazyNamed(() => import('@/pages/LoginPage'), 'LoginPage')
 const RegisterPage = lazyNamed(() => import('@/pages/RegisterPage'), 'RegisterPage')
+const ForgotPasswordPage = lazyNamed(() => import('@/pages/ForgotPasswordPage'), 'ForgotPasswordPage')
 const PublishPage = lazyNamed(() => import('@/pages/PublishPage'), 'PublishPage')
 const ProfilePage = lazyNamed(() => import('@/pages/ProfilePage'), 'ProfilePage')
 const SettingsPage = lazyNamed(() => import('@/pages/SettingsPage'), 'SettingsPage')
@@ -137,6 +138,7 @@ export const router = createRouter(
         { path: 'tags/:tag', element: <TagDetailPage /> },
         { path: 'login', element: <LoginPage /> },
         { path: 'register', element: <RegisterPage /> },
+        { path: 'forgot-password', element: <ForgotPasswordPage /> },
         { path: 'publish', element: <PublishPage /> },
         { path: 'u/:username', element: <ProfilePage /> },
         { path: 'settings', element: <SettingsPage /> },

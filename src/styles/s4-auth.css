@@ -37,6 +37,26 @@
   font-weight: 700;
 }
 
+/*
+ * 表单内的说明行（验证码已发送提示 / 本地开发验证码回显）。
+ * 必须和 .g-auth-error 区分开：那是红色告警，这是中性提示，
+ * 用 info 色调 + 虚线左边框，避免用户把「验证码已发送」误读成报错。
+ */
+.g-auth-note {
+  margin: 0;
+  padding: var(--g-space-2) var(--g-space-3);
+  border-left: 3px solid var(--g-accent, #4a90d9);
+  background: var(--g-surface-2, rgba(74, 144, 217, 0.08));
+  color: var(--g-ink-2);
+  font-size: var(--g-text-sm);
+  line-height: 1.5;
+}
+
+.g-auth-note strong {
+  color: var(--g-ink-1);
+  letter-spacing: 0.05em;
+}
+
 .g-demo-banner {
   background: var(--g-warning);
   color: #fff;

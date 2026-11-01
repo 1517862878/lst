@@ -409,13 +409,41 @@ export interface AuthRepository {
   /** 读取当前会话（无会话返回 null） */
   getSession(): Promise<Session | null>
   signIn(username: string, password: string, turnstileToken?: string): Promise<Session>
-  requestRegistrationCode(phone: string, turnstileToken?: string): Promise<void>
+  requestRegistrationCode(phone: string, turnstileToken?: string): Promise<PhoneCodeResult>
   signUp(input: SignUpInput): Promise<Session>
   signOut(): Promise<void>
   /** 按 id 取资料 */
   getProfile(id: string): Promise<Profile>
   /** 按用户名取资料（个人主页路径用） */
   getProfileByUsername(username: string): Promise<Profile>
+
+  /**
+   * 忘记密码：按手机号请求重置验证码。
+   *
+   * 与注册验证码共用同一套短信设施，但用途（purpose）不同，
+   * 服务端按 purpose 隔离，重置码不能拿去注册。
+   * 手机号不存在时也回 sent=true（不泄露「这个号码是否注册过」）。
+   */
+  requestPasswordResetCode(phone: string): Promise<PhoneCodeResult>
+
+  /**
+   * 忘记密码：用验证码 + 新密码完成重置。成功后旧会话全部失效。
+   * 新密码与注册同口径（8–64 位）。
+   */
+  resetPassword(input: PasswordResetInput): Promise<void>
+}
+
+/** 发码结果。devCode 只在本地开发（SMS_PROVIDER=console）时返回，用于页面直接显示 */
+export interface PhoneCodeResult {
+  sent: boolean
+  devCode?: string
+  expiresAt?: string
+}
+
+export interface PasswordResetInput {
+  phone: string
+  code: string
+  newPassword: string
 }
 
 export interface StorageRepository {

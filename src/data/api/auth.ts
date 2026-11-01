@@ -1,5 +1,12 @@
 /** 真实后端鉴权仓储：会话由 HttpOnly cookie 持有。 */
-import { AppError, ErrorCodes, type AuthRepository, type SignUpInput } from '@/data/contracts'
+import {
+  AppError,
+  ErrorCodes,
+  type AuthRepository,
+  type PasswordResetInput,
+  type PhoneCodeResult,
+  type SignUpInput,
+} from '@/data/contracts'
 import type { Profile, Session } from '@/domain/types'
 import { request } from './client'
 
@@ -21,8 +28,8 @@ export const apiAuthRepository: AuthRepository = {
     })
   },
 
-  async requestRegistrationCode(phone: string, turnstileToken?: string): Promise<void> {
-    await request<void>('/api/auth/register/request-code', {
+  async requestRegistrationCode(phone: string, turnstileToken?: string): Promise<PhoneCodeResult> {
+    return request<PhoneCodeResult>('/api/auth/register/request-code', {
       method: 'POST',
       body: { phone, ...(turnstileToken ? { turnstileToken } : {}) },
     })
@@ -45,5 +52,16 @@ export const apiAuthRepository: AuthRepository = {
 
   async getProfileByUsername(username: string): Promise<Profile> {
     return request<Profile>(`/api/profiles/by-username/${encodeURIComponent(username)}`)
+  },
+
+  async requestPasswordResetCode(phone: string): Promise<PhoneCodeResult> {
+    return request<PhoneCodeResult>('/api/auth/password/request-code', {
+      method: 'POST',
+      body: { phone },
+    })
+  },
+
+  async resetPassword(input: PasswordResetInput): Promise<void> {
+    await request<void>('/api/auth/password/reset', { method: 'POST', body: input })
   },
 }

@@ -41,14 +41,35 @@ export const usernameSchema = z
   .max(20, '用户名最多 20 位')
   .regex(/^[a-zA-Z0-9_\-\u4e00-\u9fa5]+$/, '仅限中文、字母、数字、下划线、连字符')
 
+/**
+ * 密码规则：**统一 8–64 位**（2026-11 统一）。
+ *
+ * 曾经三条入口各写一套（注册 6 位 / 改密 8 位 / 重置 6 位），同一个账号
+ * 换个入口就被不同规则拦下 —— 用户看到的是「刚才注册说 6 位就行，改密码又要 8 位」。
+ * 现在只保留这一份，前端表单、后端 assertPassword、数据库层都以它为准。
+ *
+ * ⚠️ 但**登录不计入**这三条（见 loginSchema 的注释）：老用户里存在 6 位密码，
+ * 对登录也套 8 位等于把他们锁在门外。收紧规则只作用于「设置新密码」的那三条路径。
+ */
+export const PASSWORD_MIN_LENGTH = 8
+export const PASSWORD_MAX_LENGTH = 64
+
 export const passwordSchema = z
   .string()
-  .min(6, '密码至少 6 位')
-  .max(64, '密码最多 64 位')
+  .min(PASSWORD_MIN_LENGTH, `密码至少 ${PASSWORD_MIN_LENGTH} 位`)
+  .max(PASSWORD_MAX_LENGTH, `密码最多 ${PASSWORD_MAX_LENGTH} 位`)
 
+/**
+ * 登录表单：**不校验密码长度与格式**。
+ *
+ * 为什么与注册分开：登录是「验证既有凭据」，不是「设置新密码」。
+ * 给登录加长度下限会让所有 6 位老密码的账号直接登不进来，
+ * 而且长度不对时应由服务端统一回「用户名或密码错误」——
+ * 前端提前报「密码至少 8 位」反而泄露了「这个长度的密码不可能是对的」。
+ */
 export const loginSchema = z.object({
   username: usernameSchema,
-  password: passwordSchema,
+  password: z.string().min(1, '请填写密码'),
 })
 
 export const registerSchema = z.object({

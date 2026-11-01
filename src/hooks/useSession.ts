@@ -4,7 +4,7 @@
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createRepositories } from '@/data'
-import type { SignUpInput } from '@/data/contracts'
+import type { PasswordResetInput, PhoneCodeResult, SignUpInput } from '@/data/contracts'
 import type { Session } from '@/domain/types'
 import { queryKeys } from './queryKeys'
 
@@ -63,13 +63,32 @@ export function useSignOut() {
 export function useSignUp() {
   const queryClient = useQueryClient()
   return {
-    async requestRegistrationCode(phone: string, turnstileToken?: string): Promise<void> {
-      await repos().auth.requestRegistrationCode(phone, turnstileToken)
+    async requestRegistrationCode(phone: string, turnstileToken?: string): Promise<PhoneCodeResult> {
+      return repos().auth.requestRegistrationCode(phone, turnstileToken)
     },
     async signUp(input: SignUpInput): Promise<Session> {
       const session = await repos().auth.signUp(input)
       queryClient.setQueryData(queryKeys.session(), session)
       return session
+    },
+  }
+}
+
+/**
+ * 忘记密码：请求重置验证码 + 提交新密码。
+ *
+ * 成功后服务端会清掉会话 Cookie（旧会话作废），所以这里把会话缓存也置空，
+ * 避免界面上还显示「已登录」而实际请求已经 401。
+ */
+export function usePasswordReset() {
+  const queryClient = useQueryClient()
+  return {
+    async requestCode(phone: string): Promise<PhoneCodeResult> {
+      return repos().auth.requestPasswordResetCode(phone)
+    },
+    async reset(input: PasswordResetInput): Promise<void> {
+      await repos().auth.resetPassword(input)
+      queryClient.setQueryData(queryKeys.session(), null)
     },
   }
 }

@@ -31,8 +31,18 @@ function flag(body: unknown, key: string): boolean {
 function assertUsername(username: string): void {
   if (!USERNAME_RE.test(username)) throw validation('用户名需 2–20 位，可用中文、字母、数字、下划线、连字符')
 }
+/**
+ * 设置新密码的唯一校验口径：**8–64 位**。
+ *
+ * 三条设置密码的路径（注册 / 短信重置 / 登录后改密）都必须走这里，
+ * 曾经它们各写一套（6 / 6 / 8），同一账号换个入口就被不同规则拦下。
+ *
+ * 注意登录**不**走这里：登录是验证既有凭据，老用户存在 6 位密码，
+ * 对登录套 8 位会把他们直接锁死。登录端只要求「非空」，长度不符时
+ * 由 verifyPassword 失败统一回「用户名或密码错误」。
+ */
 function assertPassword(password: string): void {
-  if (password.length < 6 || password.length > 64) throw validation('密码需 6–64 位')
+  if (password.length < 8 || password.length > 64) throw validation('密码需 8–64 位')
 }
 function hashCode(salt: string, code: string): string {
   return createHash('sha256').update(`${salt}:${code}`).digest('hex')

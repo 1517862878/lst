@@ -27,6 +27,12 @@ export function LoginPage() {
           <p className="g-auth-switch">
             还没有账号？ <Link to="/register">立即注册</Link>
           </p>
+          {/* 忘记密码只对真实后端有意义：演示模式密码固定 demo1234，没有可重置的凭据 */}
+          {isApi && (
+            <p className="g-auth-switch">
+              忘记密码？ <Link to="/forgot-password">用手机号重置</Link>
+            </p>
+          )}
         </div>
       </Container>
     </GuestOnly>

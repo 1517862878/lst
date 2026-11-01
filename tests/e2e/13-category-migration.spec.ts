@@ -121,7 +121,9 @@ test.describe('老用户分类迁移', () => {
     await page.waitForTimeout(800)
 
     const after = await readState(page)
-    expect(after.slice).toBe(5)
+    // 断言「切片推进」而不是钉死数字：这个用例验的是分类迁移，不是切片号本身。
+    // （切片号会随每次新增切片增长：2026-11 已到 6）
+    expect(after.slice).toBeGreaterThanOrEqual(5)
     expect(after.catSlugs).toHaveLength(8)
     expect(after.catSlugs.every((s) => NEW_SLUGS.includes(s))).toBe(true)
     expect(after.catSlugs.some((s) => OLD_SLUGS.includes(s))).toBe(false)

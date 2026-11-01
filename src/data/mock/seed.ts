@@ -2,6 +2,14 @@
  * 演示种子数据（DATA-MODEL §9 / ROADMAP §5）。
  * 规格：10 用户、80 作品、300 互动（likes+favorites）、12 篇文章、8 分类、4 主题。
  * 版权：全部作品 credit='示例素材'；示例图片占位（S3 前无真实图片文件，用纯色 SVG data URL 兜底）。
+ *
+ * ⚠️ 2026-11 起，「80 件示例作品」不再是无条件播种的：
+ *   线上（GitHub Pages 演示站）用 VITE_SEED_DEMO_PHOTOS=0 构建，作品数为 0，
+ *   站点只显示真实用户上传的内容。原因很直白 —— 这 80 件作品的 imageKey 指向
+ *   并不存在的 WebP 文件，页面上是渐变色占位块，访客会把它们当成「网站自己的图」。
+ *   演示账号（alice / bob / editor）仍然播种：没有账号就没法登录演示。
+ *   `includeDemoPhotos: false` 时本函数产出空作品集，依赖作品的下游数据
+ *   （互动 / 评论 / 通知 / 治理案例）随之整体跳过 —— 不能留悬空引用。
  */
 import type {
   AppNotification,
@@ -62,6 +70,14 @@ const DESCRIPTIONS = [
   '微距下的世界，细节惊人。',
 ] as const
 
+export interface SeedOptions {
+  /**
+   * 是否播种 80 件示例作品以及「依附于作品」的全部数据（互动 / 评论 / 通知 / 治理案例）。
+   * 默认 true，保持本地演示与 E2E 的原样行为；生产构建里由 seedInit 传 false。
+   */
+  includeDemoPhotos?: boolean
+}
+
 export interface SeedResult extends ModerationSeedResult {
   profiles: Profile[]
   photos: Photo[]
@@ -73,7 +89,9 @@ export interface SeedResult extends ModerationSeedResult {
   notifications: NotificationRow[]
 }
 
-export function buildSeedData(): SeedResult {
+export function buildSeedData(options: SeedOptions = {}): SeedResult {
+  const includeDemoPhotos = options.includeDemoPhotos !== false
+
   const profiles: Profile[] = USER_NAMES.map((username, i) => {
     const demo = DEMO_ACCOUNTS.find((d) => d.username === username)
     return {
@@ -91,7 +109,15 @@ export function buildSeedData(): SeedResult {
     }
   })
 
-  const photos: Photo[] = Array.from({ length: 80 }, (_, i) => {
+  /**
+   * 80 件示例作品。
+   *
+   * 这里刻意用 `includeDemoPhotos ? ... : []` 而不是把整段 if 包起来：
+   * rand() 是固定种子的序列，走过作品生成这一段之后再走别的段，序列不能跳。
+   * 不生成作品时直接给空数组，后续「依附作品的」段落各自有 photos.length === 0
+   * 的早退分支。
+   */
+  const photos: Photo[] = includeDemoPhotos ? Array.from({ length: 80 }, (_, i) => {
     const author = pick(profiles)
     const category = pick(CATEGORIES)
     const publishedAt = now - Math.floor(rand() * 60) * DAY - Math.floor(rand() * DAY)
@@ -139,7 +165,7 @@ export function buildSeedData(): SeedResult {
       deletedAt: null,
       featuredAt,
     }
-  })
+  }) : []
 
   // 300 条互动，分布最近 5 周（覆盖多个周窗口，供榜单测试）
   //
@@ -156,7 +182,8 @@ export function buildSeedData(): SeedResult {
   const favorites: Interaction[] = []
 
   let guard = 0
-  while (likes.length + favorites.length < 300 && guard++ < 10000) {
+  // photos 为空（不播种示例作品）时这一循环一次都不进 —— pick(photos) 会拿到 undefined
+  while (photos.length > 0 && likes.length + favorites.length < 300 && guard++ < 10000) {
     const photo = pick(photos)
     const user = pick(profiles)
 
@@ -186,7 +213,9 @@ export function buildSeedData(): SeedResult {
     p.favoriteCount = favMap.get(p.id) ?? 0
   }
 
-  const comments: Comment[] = [
+  // 三条演示评论全部挂在示例作品上；没有示例作品时它们会是悬空引用（photoId 指向不存在的行，
+  // 详情页与通知列表都会取不到宿主），所以整组跳过。
+  const comments: Comment[] = photos.length === 0 ? [] : [
     {
       id: 'seed-comment-1',
       photoId: photos[0]!.id,
@@ -346,7 +375,10 @@ export function buildSeedData(): SeedResult {
   // ===== 8.2 治理：举报 / 处罚 / 申诉 / 审计 =====
   // 单独一个模块生成：内容只引用上面已经算好的 profiles/photos/comments，
   // 且全程不碰 rand()，所以不会影响前面任何一条种子值。
-  const moderation = buildModerationSeed(profiles, photos, comments, now)
+  // 没有示例作品时不播种：seed-report-1/4 的目标就是示例作品，留着必然悬空。
+  const moderation: ModerationSeedResult = photos.length === 0
+    ? { reports: [], sanctions: [], appeals: [], moderationActions: [] }
+    : buildModerationSeed(profiles, photos, comments, now)
 
   return { profiles, photos, likes, favorites, comments, articles, follows, notifications, ...moderation }
 }

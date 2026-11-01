@@ -72,6 +72,10 @@ jobs:
 
       - name: Build（base='/'）
         run: pnpm run build
+        env:
+          # E2E 全套件依赖「80 件确定性示例作品」：05-withdraw 直接断言 count=80，
+          # 01/10 直连 seed-photo-001。生产构建默认不播种，这里显式打开。
+          VITE_SEED_DEMO_PHOTOS: '1'
 
       - name: Generate SPA fallback
         run: node scripts/postbuild.mjs
@@ -116,6 +120,8 @@ jobs:
         env:
           VITE_BASE: /lst/
           VITE_USE_HASH_ROUTER: '1'
+          # 子路径回归同样只看页面骨架，但保持与主 E2E 同一份产物行为，避免两套构建分叉
+          VITE_SEED_DEMO_PHOTOS: '1'
 
       - name: Generate SPA fallback
         run: node scripts/postbuild.mjs

@@ -86,6 +86,30 @@ test.describe('作品详情页大图自适应', () => {
 
     // 5) 无横向溢出
     expect(m.overflow).toBeLessThanOrEqual(1)
+
+    /*
+     * 6) **外框必须贴合相框**（2026-11 用户反馈的那个 bug）。
+     *
+     * 之前的断言全都在量「相框」(.g-photo-thumb-display)，
+     * 而用户看到的是「相框外面那圈灰底」—— 外框当时恒等于栅格列宽，
+     * 竖图/方图被比例限制得比列宽窄时，左右各露出上百像素灰带
+     * （实测 686px 外框里只放 408px 照片，浪费 41%）。
+     *
+     * 所以这里量的必须是「外框宽 - 相框宽」：应当只剩一圈 padding，
+     * 而不是一整块列宽。这条断言是本次修复的唯一有效回归。
+     */
+    const gap = await page.evaluate(() => {
+      const media = document.querySelector('.g-work-media')
+      const box = document.querySelector('.g-work-media .g-photo-thumb-display')
+      if (!media || !box) return null
+      const mr = media.getBoundingClientRect()
+      const br = box.getBoundingClientRect()
+      return { x: mr.width - br.width, y: mr.height - br.height }
+    })
+    expect(gap).not.toBeNull()
+    // padding 是 var(--g-space-2)=8px/侧，加边框 2px/侧 → 约 20px，留一点容差
+    expect(gap!.x, '外框左右不应留出大块灰底').toBeLessThanOrEqual(24)
+    expect(gap!.y, '外框上下不应留出大块灰底').toBeLessThanOrEqual(24)
   })
 
   test('窄屏与中等屏都不溢出，容器不塌陷', async ({ page }) => {

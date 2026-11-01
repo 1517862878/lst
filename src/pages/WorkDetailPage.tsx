@@ -6,6 +6,7 @@
  * （只有当周有主题、且这件还没投过时才出现按钮）。
  */
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useNavigate, useParams, Link } from 'react-router'
 import { Container } from '@/components/layout/Container'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -14,6 +15,7 @@ import { Badge } from '@/components/ui/Badge'
 import { PhotoThumb } from '@/features/photos/PhotoThumb'
 import { PhotoGallery } from '@/features/photos/PhotoGallery'
 import { hasPhotoGallery } from '@/domain/photoItems'
+import { cn } from '@/lib/cn'
 import { PhotoGrid } from '@/features/photos/PhotoGrid'
 import { LicenseBadge } from '@/features/photos/LicenseBadge'
 import { TagChips } from '@/features/tags/TagLink'
@@ -143,7 +145,20 @@ export function WorkDetailPage() {
       </nav>
 
       <article className="g-work-detail">
-        <div className="g-work-media">
+        {/* g-work-media-single / -gallery 两个修饰类决定外框怎么收缩：
+            单图外框贴合照片（竖图两侧不再露灰带），画册必须吃满整列
+            （缩略条要横向铺开，按内容收缩会挤成一团）。见 pixel-theme.css 说明。
+            单图时把同一份比例（--g-photo-ar）也交给外框 —— 外框宽度与相框宽度
+            用同一个公式计算，两者才不会错开（只靠 fit-content 在 flex/grid
+            组合下测出来不生效，见 CSS 注释）。 */}
+        <div
+          className={cn('g-work-media', hasPhotoGallery(photo) ? 'g-work-media-gallery' : 'g-work-media-single')}
+          style={
+            hasPhotoGallery(photo)
+              ? undefined
+              : ({ '--g-photo-ar': String(photo.width > 0 && photo.height > 0 ? photo.width / photo.height : 1) } as CSSProperties)
+          }
+        >
           {/* 组照（8.4c）：>1 张才渲染画册；单图继续走原来那一条渲染路径，
               连 DOM 结构与样式都不变（hasPhotoGallery 里是同一份判定） */}
           {hasPhotoGallery(photo) ? (

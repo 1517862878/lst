@@ -891,6 +891,27 @@
   }
 }
 
+/*
+ * 详情页媒体区外框（那个带橙色边框、灰底的盒子）。
+ *
+ * **外框必须跟着照片收缩，不能吃满栅格列宽。**
+ * 原先它是栅格里的普通块：宽度恒等于列宽，而相框又被
+ * `calc(68vh * 比例)` 限制了宽度，竖图/方图就会在左右露出大块灰底——
+ * 看起来像「照片没适配相框」（用户报的那个 bug，实测 686px 外框里只放 408px 照片）。
+ *
+ * 所以外框宽度改由内容决定（width: fit-content + margin-inline: auto）：
+ * 横图自然吃满，竖图缩成刚刚好一圈 padding。
+ *
+ * 但**画册不能这么收缩**：缩略条要横向铺开 N 张，按内容收缩会挤成一团
+ * （8.4c 的注释里记过这个坑：内容撑开后画册只有 261px，外框却是 686px）。
+ * 因此用两个修饰类分发，而不是一条规则通吃：
+ *   · -single  → 贴合照片
+ *   · -gallery → 吃满整列
+ *
+ * 为什么不是把相框改成吃满列宽来解决：那会把竖图拉到 68vh 以上的巨图，
+ * 或者被裁切 —— 两种都比留白更糟。宽度由比例决定、外框贴合，
+ * 才是「相框适应照片」而不是「照片被塞进相框」。
+ */
 .g-work-media {
   border: var(--g-border) solid var(--g-line);
   box-shadow: var(--g-shadow-md);
@@ -902,6 +923,33 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 单图：外框与相框共用同一套比例公式，保证两者宽度严丝合缝。
+ *
+ * 为什么不用 width: fit-content（试过，实测仍为 686px）：
+ * 外框是 flex 容器，而子元素 .g-photo-thumb-display 的宽度本身也是用
+ * min(100%, calc(68vh * ar)) 算出来的（不是固有尺寸），
+ * 连 grid 的 justify-self: center 也救不回来 —— 计算宽度依旧是整列宽。
+ * 直接把外框宽度写成同一个公式，两者就必然一致：
+ *   外框 = min(100%, 68vh * ar) + 左右 padding + 边框
+ * 于是竖图外框自动缩窄、横图自动吃满，不再依赖 fit-content 的收缩语义。 */
+.g-work-media-single {
+  width: calc(min(100%, calc(68vh * var(--g-photo-ar, 1))) + 2 * var(--g-space-2) + 2 * var(--g-border));
+  /* min(100%, …) 里的 100% 是「内容盒」的 100%，再加上 padding/边框后
+     总宽会超出父级列宽（390px 实测溢出 4px）。这里用 max-width 兜住：
+     本来 box-sizing: border-box 已让 width 含 padding，但 width 里多写的
+     「+ padding + 边框」又把它们算了一遍 —— max-width 是最后一道保险。 */
+  max-width: 100%;
+  justify-self: center;
+  margin-inline: auto;
+}
+
+/* 画册：吃满整列（缩略条要铺开，不能按内容收缩） */
+.g-work-media-gallery {
+  width: 100%;
+  min-width: 0;
+  align-items: stretch;
 }
 
 /* 详情页大图（第二处，作品详情页章节）。

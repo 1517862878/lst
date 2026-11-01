@@ -49,7 +49,7 @@ function photo(id: string, authorId: string, overrides: Partial<Photo> = {}): Ph
     authorId,
     title: `作品 ${id}`,
     description: '',
-    categorySlug: 'landscape',
+    categorySlug: 'travel-doc',
     tags: [],
     locationName: '',
     locationLat: null,

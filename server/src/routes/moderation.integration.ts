@@ -129,8 +129,8 @@ before(async () => {
   await admin.query(
     `insert into public.photos
        (id,author_id,title,description,category_slug,image_key,thumb_key,width,height,status,published_at,deleted_at)
-     values ($1,$2,'待审核作品','用于申诉链路的说明','landscape',$3,$4,1200,800,'published',now(),null),
-            ($5,$2,'误报恢复作品','举报型申诉恢复可见性用','landscape',$6,$7,1200,800,'published',now(),null)
+     values ($1,$2,'待审核作品','用于申诉链路的说明','travel-doc',$3,$4,1200,800,'published',now(),null),
+            ($5,$2,'误报恢复作品','举报型申诉恢复可见性用','travel-doc',$6,$7,1200,800,'published',now(),null)
      on conflict (id) do update set status='published', published_at=now(), deleted_at=null`,
     [
       PHOTO_ID,

@@ -208,7 +208,7 @@ test('account deletion anonymizes identity and content boundary while retaining 
   await admin.query(
     `insert into public.photos
        (id,author_id,title,description,category_slug,image_key,thumb_key,width,height,status,published_at)
-     values ($1,$2,'Delete title','Delete description','landscape',$3,$4,100,100,'published',now())`,
+     values ($1,$2,'Delete title','Delete description','travel-doc',$3,$4,100,100,'published',now())`,
     [photoId, DELETE_ID, `photos/${DELETE_ID}/${photoId}/display.webp`, `photos/${DELETE_ID}/${photoId}/thumb.webp`],
   )
   await admin.query('insert into public.likes(user_id,photo_id) values($1,$2)', [DELETE_ID, photoId])

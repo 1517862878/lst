@@ -60,8 +60,8 @@ insert into auth.users (id, email, raw_user_meta_data) values
 
 insert into public.photos (author_id, title, category_slug, image_key, thumb_key, width, height, status, published_at)
 values
-  ('11111111-1111-1111-1111-111111111111', '爱丽丝的已发布作品', 'landscape', 'k/d.webp', 'k/t.webp', 1200, 800, 'published', now()),
-  ('11111111-1111-1111-1111-111111111111', '爱丽丝的草稿',       'landscape', 'k/d2.webp','k/t2.webp',1200, 800, 'draft', null);
+  ('11111111-1111-1111-1111-111111111111', '爱丽丝的已发布作品', 'travel-doc', 'k/d.webp', 'k/t.webp', 1200, 800, 'published', now()),
+  ('11111111-1111-1111-1111-111111111111', '爱丽丝的草稿',       'travel-doc', 'k/d2.webp','k/t2.webp',1200, 800, 'draft', null);
 
 \echo '--- profiles 自动创建结果 ---'
 select username, display_name, role from public.profiles order by username;

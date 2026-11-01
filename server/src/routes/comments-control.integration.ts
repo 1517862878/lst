@@ -112,7 +112,7 @@ before(async () => {
   await admin.query(
     `insert into public.photos
       (id,author_id,title,category_slug,image_key,thumb_key,width,height,status,published_at)
-     values ($1,$2,'评论控制测试作品','landscape',$3,$4,1200,800,'published',clock_timestamp())
+     values ($1,$2,'评论控制测试作品','travel-doc',$3,$4,1200,800,'published',clock_timestamp())
      on conflict (id) do update set author_id=excluded.author_id,title=excluded.title,
        status='published',published_at=excluded.published_at,deleted_at=null,comments_locked=false`,
     [PHOTO_ID, OWNER_ID, `photos/${OWNER_ID}/${PHOTO_ID}/display.webp`, `photos/${OWNER_ID}/${PHOTO_ID}/thumb.webp`],
@@ -214,7 +214,7 @@ test('4. 作者锁定成功后作品投影 commentsLocked=true（详情与列表
   // 计数器不受影响：锁定不隐藏评论
   assert.equal(detail.json().commentCount, 1)
 
-  const feed = await app.inject({ method: 'GET', url: '/api/photos?categorySlug=landscape&limit=20' })
+  const feed = await app.inject({ method: 'GET', url: '/api/photos?categorySlug=travel-doc&limit=20' })
   assert.equal(feed.statusCode, 200, feed.body)
   const listed = feed.json().items.find((item: { id: string }) => item.id === PHOTO_ID)
   assert.ok(listed, '作品应出现在列表里')

@@ -54,7 +54,7 @@ test('编辑建主题 → 作者投稿 → 详情页出现 → 编辑精选 → 
   await expect(page.getByText(/已选择 1 张：theme-entry\.jpg/)).toBeVisible({ timeout: 20_000 })
   await page.getByLabel('标题').fill(workTitle)
   await page.getByLabel('拍摄心得').fill('用于主题投稿链路验证。')
-  await page.locator('#publish-category').selectOption('landscape')
+  await page.locator('#publish-category').selectOption('travel-doc')
   await page.getByRole('checkbox', { name: /我确认拥有发布所需权利/ }).check()
   await page.getByRole('button', { name: '发布作品' }).click()
   await expect(page).toHaveURL(/\/works\/[0-9a-f-]{36}/, { timeout: 30_000 })

@@ -28,7 +28,7 @@ const photo = (id: string): Photo =>
     authorId: 'u-alice',
     title: id,
     description: '',
-    categorySlug: 'landscape',
+    categorySlug: 'travel-doc',
     tags: [],
     locationName: '',
     locationLat: null,

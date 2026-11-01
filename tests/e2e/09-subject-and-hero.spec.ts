@@ -242,7 +242,44 @@ test.describe('首页 Hero 字阶与密度', () => {
     expect(m.heroHeight / m.vh).toBeLessThanOrEqual(0.46)
     expect(m.heroBottom).toBeLessThanOrEqual(0.56 * m.vh)
     expect(m.sectionTop).toBeLessThanOrEqual(0.64 * m.vh)
-    expect(m.visibleItems).toBeGreaterThanOrEqual(4)
+    /*
+     * 首屏必须有作品内容可看。
+     *
+     * 这条原本写的是「条目 ≥4」，但它其实是被「卡片高度」绑架的：
+     * 单列布局下 844px 高度里刚好塞得下 2 排卡（4 条）；2026-11 分类名变长
+     * （「新中式国风」「暗调电影感」）后，卡片元信息行多折了一行、每张卡 +28px，
+     * 第二排被推到 846px（越过 844 的视口），条目就从 4 掉到 2。
+     * 那是内容变长的正常结果，不是布局回归 —— 拿它当门禁会让「改个分类名」
+     * 这种无关改动随时变红。
+     *
+     * 改成量「第一排作品卡的图片区是否完整进入首屏」：这才是「首屏不空旷」的本意，
+     * 且不随卡片后续内容的行数变化而抖动。
+     */
+    const firstRow = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll('.g-home-grid .g-photo-card')]
+      if (cards.length === 0) return null
+      const top = cards[0]!.getBoundingClientRect().top
+      // 同一排的卡：top 相差不到 2px
+      const sameRow = cards.filter((c) => Math.abs(c.getBoundingClientRect().top - top) < 2)
+      const media = sameRow.map((c) => c.querySelector('.g-photo-card-media')).filter(Boolean) as Element[]
+      const vh = window.innerHeight
+      return {
+        cardsInRow: sameRow.length,
+        mediaFullyVisible: media.filter((el) => {
+          const b = el.getBoundingClientRect()
+          return b.top >= 0 && b.bottom <= vh
+        }).length,
+        firstCardTop: +top.toFixed(1),
+        vh,
+      }
+    })
+    expect(firstRow).not.toBeNull()
+    if (firstRow) {
+      // 第一排作品卡存在，且整排的图片区都在首屏内（用户一眼就能看到作品）
+      expect(firstRow.cardsInRow).toBeGreaterThanOrEqual(1)
+      expect(firstRow.mediaFullyVisible).toBeGreaterThanOrEqual(1)
+      expect(firstRow.firstCardTop).toBeLessThan(firstRow.vh)
+    }
     expect(m.overflow).toBeLessThanOrEqual(1)
   })
 

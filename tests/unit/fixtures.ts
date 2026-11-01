@@ -14,7 +14,7 @@ export function makePhoto(id: string, overrides: Partial<Photo> = {}): Photo {
     authorId: 'u1',
     title: id,
     description: '',
-    categorySlug: 'landscape',
+    categorySlug: 'travel-doc',
     tags: [],
     locationName: '',
     locationLat: null,

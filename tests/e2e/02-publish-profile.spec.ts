@@ -59,7 +59,7 @@ test.describe('主链路 2 · 发布与个人主页', () => {
     // 填表
     await page.getByLabel('标题').fill(title)
     await page.getByLabel('拍摄心得').fill('E2E 自动化测试创建的拍摄心得。')
-    await page.locator('#publish-category').selectOption('landscape')
+    await page.locator('#publish-category').selectOption('travel-doc')
     await page.getByLabel('拍摄地点').fill('测试地点')
     // 8.3a 起发布页多了「标签候选」分组（role=group，aria-label 也是「标签」），
     // 只写 getByLabel('标签') 会撞 strict mode，必须指定 textbox。
@@ -104,7 +104,7 @@ test.describe('主链路 2 · 发布与个人主页', () => {
 
     await page.getByLabel('标题').fill(title)
     await page.getByLabel('拍摄心得').fill('验证个人主页可见性。')
-    await page.locator('#publish-category').selectOption('people')
+    await page.locator('#publish-category').selectOption('travel-doc')
     await page.getByRole('checkbox', { name: /我确认拥有发布所需权利/ }).check()
     await page.getByRole('button', { name: '发布作品' }).click()
     await expect(page).toHaveURL(/\/works\/[0-9a-f-]{36}/, { timeout: 30_000 })

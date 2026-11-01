@@ -7,7 +7,7 @@ const photo: Photo = {
   authorId: 'user-1',
   title: '原始标题',
   description: '原始心得',
-  categorySlug: 'landscape',
+  categorySlug: 'travel-doc',
   tags: ['晨光', '山野'],
   locationName: '杭州',
   locationLat: null,
@@ -38,7 +38,7 @@ describe('作品编辑表单', () => {
     expect(photoToEditValues(photo)).toEqual({
       title: '原始标题',
       description: '原始心得',
-      categorySlug: 'landscape',
+      categorySlug: 'travel-doc',
       tags: '晨光 山野',
       locationName: '杭州',
       license: 'cc_by',
@@ -50,7 +50,7 @@ describe('作品编辑表单', () => {
     const errors = validatePhotoEdit({
       title: '  ',
       description: '',
-      categorySlug: 'landscape',
+      categorySlug: 'travel-doc',
       tags: '一 二 三 四 五 六',
       locationName: '地'.repeat(81),
       license: 'cc0',

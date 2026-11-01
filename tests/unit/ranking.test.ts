@@ -10,7 +10,7 @@ function makePhoto(overrides: Partial<Photo>): Photo {
     authorId: 'u1',
     title: '测试作品',
     description: '',
-    categorySlug: 'landscape',
+    categorySlug: 'travel-doc',
     tags: [],
     locationName: '',
     locationLat: null,

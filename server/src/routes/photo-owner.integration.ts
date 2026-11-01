@@ -62,7 +62,7 @@ before(async () => {
   await admin.query(
     `insert into public.photos
       (id,author_id,title,category_slug,image_key,thumb_key,width,height,status,published_at)
-     values ($1,$2,'API 原标题','landscape',$3,$4,1200,800,'published',clock_timestamp())
+     values ($1,$2,'API 原标题','travel-doc',$3,$4,1200,800,'published',clock_timestamp())
      on conflict (id) do update set author_id=excluded.author_id,title=excluded.title,
        status='published',published_at=excluded.published_at,deleted_at=null`,
     [PHOTO_ID, OWNER_ID, `photos/${OWNER_ID}/${PHOTO_ID}/display.webp`, `photos/${OWNER_ID}/${PHOTO_ID}/thumb.webp`],

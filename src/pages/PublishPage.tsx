@@ -84,7 +84,13 @@ function PublishInner() {
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [categorySlug, setCategorySlug] = useState(CATEGORIES[0]?.slug ?? 'landscape')
+  /*
+   * 分类默认值取目录里的第一个，而不是写死某个 slug。
+   * 2026-11 分类换代后旧 slug（landscape 等）已下架，
+   * 写死会让「目录为空」以外的情况也悄悄指向一个不存在的分类，
+   * 提交时被后端外键拒绝。空目录时退回空串，由下面的必填校验拦下。
+   */
+  const [categorySlug, setCategorySlug] = useState(CATEGORIES[0]?.slug ?? '')
   const [locationName, setLocationName] = useState('')
   const [license, setLicense] = useState<PhotoLicense>('all_rights_reserved')
   const [tags, setTags] = useState('')

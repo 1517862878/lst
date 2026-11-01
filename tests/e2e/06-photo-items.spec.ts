@@ -56,7 +56,7 @@ test.describe('组照（多图作品）', () => {
     const title = `E2E 组照作品 ${Date.now()}`
     await page.getByLabel('标题').fill(title)
     await page.getByLabel('拍摄心得').fill('两张图的组照，用于验证画册与缩略图切换。')
-    await page.locator('#publish-category').selectOption('landscape')
+    await page.locator('#publish-category').selectOption('travel-doc')
     await page.getByRole('checkbox', { name: /我确认拥有发布所需权利/ }).check()
     await page.getByRole('button', { name: '发布作品' }).click()
     await expect(page).toHaveURL(/\/works\/[0-9a-f-]{36}/, { timeout: 30_000 })
@@ -85,7 +85,7 @@ test.describe('组照（多图作品）', () => {
     const title = `E2E 组照编辑 ${Date.now()}`
     await page.getByLabel('标题').fill(title)
     await page.getByLabel('拍摄心得').fill('验证编辑页读回组照。')
-    await page.locator('#publish-category').selectOption('landscape')
+    await page.locator('#publish-category').selectOption('travel-doc')
     await page.getByRole('checkbox', { name: /我确认拥有发布所需权利/ }).check()
     await page.getByRole('button', { name: '发布作品' }).click()
     await expect(page).toHaveURL(/\/works\/[0-9a-f-]{36}/, { timeout: 30_000 })

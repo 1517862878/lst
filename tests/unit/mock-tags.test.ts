@@ -48,7 +48,7 @@ function photo(
     authorId,
     title: id,
     description: '',
-    categorySlug: 'landscape',
+    categorySlug: 'travel-doc',
     tags,
     locationName: '',
     locationLat: null,

@@ -43,7 +43,7 @@ function photo(): Photo {
     authorId: 'u1',
     title: '晨雾',
     description: '',
-    categorySlug: 'landscape',
+    categorySlug: 'travel-doc',
     tags: [],
     locationName: '',
     locationLat: null,

@@ -33,7 +33,7 @@ async function publishGallery(page: import('@playwright/test').Page): Promise<vo
   await page.waitForSelector('.g-item-list', { timeout: 25_000 })
   await page.getByLabel('标题').fill(`画册样式 ${Date.now()}`)
   await page.getByLabel('拍摄心得').fill('用于验证画册样式。')
-  await page.locator('#publish-category').selectOption('landscape')
+  await page.locator('#publish-category').selectOption('travel-doc')
   await page.getByRole('checkbox', { name: /我确认拥有发布所需权利/ }).check()
   await page.getByRole('button', { name: '发布作品' }).click()
   await expect(page).toHaveURL(/\/works\/[0-9a-f-]{36}/, { timeout: 35_000 })

@@ -64,7 +64,7 @@ describe('服务端草稿', () => {
     const payload = {
       title: '山间晨雾',
       description: '',
-      categorySlug: 'landscape',
+      categorySlug: 'travel-doc',
       locationName: '黄山',
       license: 'all_rights_reserved' as const,
       tags: ['山', '雾'],

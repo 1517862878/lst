@@ -91,7 +91,7 @@ async function seedPhoto(
   await admin.query(
     `insert into public.photos
        (id,author_id,title,category_slug,image_key,thumb_key,width,height,status,published_at,like_count,deleted_at)
-     values ($1,$2,$3,'landscape',$4,$5,1200,800,$6,$7,$8,null)
+     values ($1,$2,$3,'travel-doc',$4,$5,1200,800,$6,$7,$8,null)
      on conflict (id) do update set
        status=excluded.status, published_at=excluded.published_at,
        like_count=excluded.like_count, featured_at=null`,

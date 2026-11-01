@@ -77,7 +77,7 @@ function photo(overrides: Partial<Photo> = {}): Photo {
     authorId: 'u-author',
     title: '山间晨雾',
     description: '清晨的山脊',
-    categorySlug: 'landscape',
+    categorySlug: 'travel-doc',
     tags: [],
     locationName: '黄山',
     locationLat: null,

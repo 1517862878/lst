@@ -105,7 +105,7 @@ async function seedPhoto(id: string, authorId: string, status: 'published' | 're
   await admin.query(
     `insert into public.photos
        (id,author_id,title,category_slug,image_key,thumb_key,width,height,status,published_at,deleted_at)
-     values ($1,$2,$3,'landscape',$4,$5,1200,800,$6,$7,$8)
+     values ($1,$2,$3,'travel-doc',$4,$5,1200,800,$6,$7,$8)
      on conflict (id) do update set
        status=excluded.status, published_at=excluded.published_at, deleted_at=excluded.deleted_at`,
     [
@@ -147,7 +147,7 @@ before(async () => {
   }
 
   await admin.query(
-    `insert into public.categories (slug, name, sort_order) values ('landscape', '风光', 1)
+    `insert into public.categories (slug, name, sort_order) values ('travel-doc', '旅行纪实', 2)
      on conflict (slug) do nothing`,
   )
 

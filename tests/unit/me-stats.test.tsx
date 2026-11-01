@@ -99,7 +99,7 @@ const photo = (id: string, authorId: string): Photo =>
     authorId,
     title: id,
     description: '',
-    categorySlug: 'landscape',
+    categorySlug: 'travel-doc',
     tags: [],
     locationName: '',
     locationLat: null,

@@ -172,19 +172,20 @@ before(async () => {
     [ALICE_ID, BOB_ID, PRIV_ID, GHOST_ID],
   )
 
-  // Alice：3 已发布（2 个 landscape / 1 个 people）+ 草稿 + 已撤回
-  await seedPhoto({ id: ALICE_PUB1, authorId: ALICE_ID, title: 'Alice Pub 1', categorySlug: 'landscape', status: 'published', ageMinutes: 10 })
-  await seedPhoto({ id: ALICE_PUB2, authorId: ALICE_ID, title: 'Alice Pub 2', categorySlug: 'people', status: 'published', ageMinutes: 20 })
-  await seedPhoto({ id: ALICE_PUB3, authorId: ALICE_ID, title: 'Alice Pub 3', categorySlug: 'landscape', status: 'published', ageMinutes: 30 })
-  await seedPhoto({ id: ALICE_DRAFT, authorId: ALICE_ID, title: 'Alice Draft', categorySlug: 'landscape', status: 'draft', ageMinutes: 5 })
-  await seedPhoto({ id: ALICE_REMOVED, authorId: ALICE_ID, title: 'Alice Removed', categorySlug: 'landscape', status: 'removed', ageMinutes: 6 })
+  // Alice：3 已发布（2 个 travel-doc / 1 个 hk-retro）+ 草稿 + 已撤回
+  // 故意用两个分类：下面要验证 categorySlug 能筛出其中 2 件
+  await seedPhoto({ id: ALICE_PUB1, authorId: ALICE_ID, title: 'Alice Pub 1', categorySlug: 'travel-doc', status: 'published', ageMinutes: 10 })
+  await seedPhoto({ id: ALICE_PUB2, authorId: ALICE_ID, title: 'Alice Pub 2', categorySlug: 'hk-retro', status: 'published', ageMinutes: 20 })
+  await seedPhoto({ id: ALICE_PUB3, authorId: ALICE_ID, title: 'Alice Pub 3', categorySlug: 'travel-doc', status: 'published', ageMinutes: 30 })
+  await seedPhoto({ id: ALICE_DRAFT, authorId: ALICE_ID, title: 'Alice Draft', categorySlug: 'travel-doc', status: 'draft', ageMinutes: 5 })
+  await seedPhoto({ id: ALICE_REMOVED, authorId: ALICE_ID, title: 'Alice Removed', categorySlug: 'travel-doc', status: 'removed', ageMinutes: 6 })
   // Bob：2 已发布 + 草稿 + 已撤回；私密账号与 discoverable=false 账号各 1 张
-  await seedPhoto({ id: BOB_PUB1, authorId: BOB_ID, title: 'Bob Pub 1', categorySlug: 'night', status: 'published', ageMinutes: 60 })
-  await seedPhoto({ id: BOB_PUB2, authorId: BOB_ID, title: 'Bob Pub 2', categorySlug: 'macro', status: 'published', ageMinutes: 70 })
-  await seedPhoto({ id: BOB_DRAFT, authorId: BOB_ID, title: 'Bob Draft', categorySlug: 'night', status: 'draft', ageMinutes: 15 })
-  await seedPhoto({ id: BOB_REMOVED, authorId: BOB_ID, title: 'Bob Removed', categorySlug: 'night', status: 'removed', ageMinutes: 16 })
-  await seedPhoto({ id: PRIV_PUB1, authorId: PRIV_ID, title: 'Priv Pub 1', categorySlug: 'night', status: 'published', ageMinutes: 40 })
-  await seedPhoto({ id: GHOST_PUB1, authorId: GHOST_ID, title: 'Ghost Pub 1', categorySlug: 'architecture', status: 'published', ageMinutes: 50 })
+  await seedPhoto({ id: BOB_PUB1, authorId: BOB_ID, title: 'Bob Pub 1', categorySlug: 'hk-retro', status: 'published', ageMinutes: 60 })
+  await seedPhoto({ id: BOB_PUB2, authorId: BOB_ID, title: 'Bob Pub 2', categorySlug: 'japanese-soft', status: 'published', ageMinutes: 70 })
+  await seedPhoto({ id: BOB_DRAFT, authorId: BOB_ID, title: 'Bob Draft', categorySlug: 'hk-retro', status: 'draft', ageMinutes: 15 })
+  await seedPhoto({ id: BOB_REMOVED, authorId: BOB_ID, title: 'Bob Removed', categorySlug: 'hk-retro', status: 'removed', ageMinutes: 16 })
+  await seedPhoto({ id: PRIV_PUB1, authorId: PRIV_ID, title: 'Priv Pub 1', categorySlug: 'hk-retro', status: 'published', ageMinutes: 40 })
+  await seedPhoto({ id: GHOST_PUB1, authorId: GHOST_ID, title: 'Ghost Pub 1', categorySlug: 'cinematic-dark', status: 'published', ageMinutes: 50 })
 
   // 互动残留清干净，保证断言从确定状态出发（照片 id 是本文件独有的，按用户删即可）
   const all = [ALICE_ID, BOB_ID, PRIV_ID, GHOST_ID]
@@ -269,16 +270,16 @@ test('authorUsername is case-insensitive and composes with existing filters', as
   assert.equal(mixed.json().total, 3)
 
   // 与 categorySlug 叠加
-  const landscape = await app.inject({
+  const travelPhotos = await app.inject({
     method: 'GET',
-    url: '/api/photos?authorUsername=pi_alice&categorySlug=landscape&limit=50',
+    url: '/api/photos?authorUsername=pi_alice&categorySlug=travel-doc&limit=50',
   })
-  assert.equal(landscape.statusCode, 200, landscape.body)
+  assert.equal(travelPhotos.statusCode, 200, travelPhotos.body)
   assert.deepEqual(
-    landscape.json().items.map((item: { id: string }) => item.id).sort(),
+    travelPhotos.json().items.map((item: { id: string }) => item.id).sort(),
     [ALICE_PUB1, ALICE_PUB3].sort(),
   )
-  assert.equal(landscape.json().total, 2)
+  assert.equal(travelPhotos.json().total, 2)
 
   // 与 sort 叠加：行为与不带 authorUsername 时一致（仍是 latest/popular 语义）
   const popular = await app.inject({

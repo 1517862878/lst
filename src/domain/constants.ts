@@ -5,16 +5,26 @@
 import type { ArticleTopic, Category } from './types'
 
 // ===== 分类种子（8 个，定稿）=====
+//
+// 2026-11 分类体系换代：按「拍摄风格」而不是「题材」重新划分。
+// 原先是 风景 / 人文 / 建筑 / 工业 / 科技 / 微距 / 夜景 / 黑白（题材维度），
+// 现在改为风格维度（校园清新 … 美式复古），这是产品定位从「工科记录」
+// 转向「风格化摄影社区」的直接体现。
+//
+// slug 命名规则：用英文风格名，保持 URL 可读且稳定（如 /categories/campus-fresh）。
+// 旧 slug 的处置见 supabase/migrations/20261101003800_style_categories.sql：
+// 迁移会把历史作品的 category_slug 映射到最接近的新分类，
+// 保证外键不破、旧链接不出 404。
 
 export const CATEGORIES: readonly Category[] = [
-  { slug: 'landscape', name: '风景', description: '自然风光、地貌、天象', sortOrder: 1, coverPhotoId: null, isActive: true },
-  { slug: 'people', name: '人文', description: '纪实、街拍、人物与生活', sortOrder: 2, coverPhotoId: null, isActive: true },
-  { slug: 'architecture', name: '建筑', description: '建筑外观、室内、结构', sortOrder: 3, coverPhotoId: null, isActive: true },
-  { slug: 'industrial', name: '工业', description: '工厂、机械、工程现场', sortOrder: 4, coverPhotoId: null, isActive: true },
-  { slug: 'technology', name: '科技', description: '科技产品、实验、数码', sortOrder: 5, coverPhotoId: null, isActive: true },
-  { slug: 'macro', name: '微距', description: '微距摄影、细节特写', sortOrder: 6, coverPhotoId: null, isActive: true },
-  { slug: 'night', name: '夜景', description: '夜间、长曝、星空', sortOrder: 7, coverPhotoId: null, isActive: true },
-  { slug: 'monochrome', name: '黑白', description: '黑白摄影、影调', sortOrder: 8, coverPhotoId: null, isActive: true },
+  { slug: 'campus-fresh', name: '校园清新', description: '校园日常、青春感、明亮通透', sortOrder: 1, coverPhotoId: null, isActive: true },
+  { slug: 'travel-doc', name: '旅行纪实', description: '旅途见闻、在地生活、纪实叙事', sortOrder: 2, coverPhotoId: null, isActive: true },
+  { slug: 'japanese-soft', name: '日系治愈', description: '低对比、柔光、干净留白', sortOrder: 3, coverPhotoId: null, isActive: true },
+  { slug: 'hk-retro', name: '港风复古', description: '霓虹、暖调、颗粒感与旧时光', sortOrder: 4, coverPhotoId: null, isActive: true },
+  { slug: 'new-chinese', name: '新中式国风', description: '写意留白、东方色、传统意象', sortOrder: 5, coverPhotoId: null, isActive: true },
+  { slug: 'korean-clear', name: '韩系清透', description: '高亮低饱和、通透皮肤质感', sortOrder: 6, coverPhotoId: null, isActive: true },
+  { slug: 'cinematic-dark', name: '暗调电影感', description: '低光、强影调、叙事感构图', sortOrder: 7, coverPhotoId: null, isActive: true },
+  { slug: 'american-retro', name: '美式复古', description: '暖橙、公路、复古颗粒', sortOrder: 8, coverPhotoId: null, isActive: true },
 ]
 
 // ===== 学习板块主题种子（4 个，定稿）=====

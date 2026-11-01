@@ -167,8 +167,8 @@ before(async () => {
   await admin.query(
     `insert into public.photos
        (id,author_id,title,description,category_slug,image_key,thumb_key,width,height,status,published_at,deleted_at)
-     values ($1,$2,'可互动的作品','用于验证受限账号仍能浏览与点赞','landscape',$3,$4,1200,800,'published',now(),null),
-            ($5,$6,'受限作者的作品','用于验证内容限制只能拦发布不能拦浏览','landscape',$7,$8,1200,800,'published',now(),null)
+     values ($1,$2,'可互动的作品','用于验证受限账号仍能浏览与点赞','travel-doc',$3,$4,1200,800,'published',now(),null),
+            ($5,$6,'受限作者的作品','用于验证内容限制只能拦发布不能拦浏览','travel-doc',$7,$8,1200,800,'published',now(),null)
      on conflict (id) do update set status='published', published_at=now(), deleted_at=null`,
     [
       TARGET_PHOTO_ID,

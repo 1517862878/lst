@@ -56,7 +56,7 @@ try {
     `insert into public.photos
        (id,author_id,title,description,category_slug,tags,location_name,image_key,thumb_key,
         width,height,status,published_at)
-     values ($1,$2,'API 原标题','真实 API 浏览器旅程','landscape',array['api-e2e'],
+     values ($1,$2,'API 原标题','真实 API 浏览器旅程','travel-doc',array['api-e2e'],
        '测试地点',$3,$4,1200,800,'published',clock_timestamp())`,
     [
       PHOTO_ID,
@@ -69,7 +69,7 @@ try {
     `insert into public.photos
        (id,author_id,title,description,category_slug,tags,location_name,image_key,thumb_key,
         width,height,status,published_at)
-     values ($1,$2,'API 待撤回作品','供撤回流程使用','landscape',array['api-e2e'],
+     values ($1,$2,'API 待撤回作品','供撤回流程使用','travel-doc',array['api-e2e'],
        '测试地点',$3,$4,1200,800,'published',clock_timestamp())`,
     [
       WITHDRAW_PHOTO_ID,

@@ -46,9 +46,15 @@
    ══════════════════════════════════════════ */
 .g-hero {
   text-align: center;
-  padding: var(--g-space-8) var(--g-space-4) var(--g-space-7);
+  padding: var(--g-space-7) var(--g-space-4) var(--g-space-6);
   border-bottom: var(--g-border) solid var(--g-line);
-  margin-bottom: var(--g-space-6);
+  /*
+   * 16px（不是 --g-space-5 的 24px）：1440×900 实测里，Hero 底边到首个
+   * .g-section 顶边一共吃掉 134px，56vh 的硬指标只剩 1.4px 余量（见文件末尾
+   * 「首页密度」一节与 docs/视觉规格-背景系统与字体体系.md §4.1.1）。
+   * 收这一档与 .g-home .g-section 一起做，换来 17px 余量，且不动标题字号。
+   */
+  margin-bottom: var(--g-space-4);
   position: relative;
   /* 背景：主色淡纹 + 网格，营造"标题画面" */
   background:
@@ -61,28 +67,35 @@
     );
 }
 
+/*
+ * 首页 Hero 大标题：72px 基准（--g-text-hero，12×6 = 24×3）。
+ * 2026-11 从 --g-text-2xl(48px) 提上来：48px 只占 1440 视口的约 0.13 屏宽，
+ * 首屏看起来像「一行普通文字 + 大片空白」。提到 72px 后渲染宽度约 0.24 屏宽，
+ * 硬投影也同步从 3/6px 加到 4/8px，否则大字号下投影会显得像描边。
+ * 窄屏另有上限（见文件末尾的 639px 媒体查询）。
+ */
 .g-hero-title {
   margin: 0;
-  font-size: var(--g-text-2xl);
+  font-size: var(--g-text-hero);
   font-weight: 400;
   letter-spacing: 0.08em;
   line-height: 1.2;
   color: var(--g-ink);
   /* 像素风的标题投影：硬偏移，不用模糊 */
   text-shadow:
-    3px 3px 0 var(--g-brand-soft),
-    6px 6px 0 color-mix(in srgb, var(--g-brand) 25%, transparent);
+    4px 4px 0 var(--g-brand-soft),
+    8px 8px 0 color-mix(in srgb, var(--g-brand) 25%, transparent);
 }
 
 .g-hero-subtitle {
-  margin: var(--g-space-4) auto 0;
-  font-size: var(--g-text-base);
+  margin: var(--g-space-3) auto 0;
+  font-size: var(--g-text-lg);
   color: var(--g-ink-2);
-  max-width: 520px;
+  max-width: 640px;
 }
 
 .g-hero-note {
-  margin: var(--g-space-4) auto 0;
+  margin: var(--g-space-3) auto 0;
   max-width: 560px;
   font-size: var(--g-text-xs);
   color: var(--g-warning);
@@ -95,19 +108,79 @@
 
 .g-hero-actions {
   display: flex;
-  gap: var(--g-space-4);
+  gap: var(--g-space-3);
   justify-content: center;
-  margin-top: var(--g-space-5);
+  margin-top: var(--g-space-4);
   flex-wrap: wrap;
 }
 
 /* ── 首页网格 ── */
 .g-home-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  /* 180px 而不是 200px：1440 视口（容器 1200 − 32 padding = 1168）下
+     配合 gap 16px，180px 能让 auto-fill 稳定排出 6 列，
+     正好放下「本周精选」的 6 张卡片在第一排（验收指标之一）。
+     200px 时只能排 5 列，第 6 张掉到第二屏。 */
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: var(--g-space-4);
   /* 让同一行的卡片自动等高，避免高度参差不齐 */
   align-items: stretch;
+}
+
+/*
+ * 首页密度收紧（2026-11）。
+ * 起因：Hero 字号提到 72px 后，首屏「标题 + 第一排卡片」开始放不下 ——
+ * 区块间距沿用的是全站值（--g-space-7 = 48px），在首页显得空。
+ * 这里只改首页作用域（.g-home），其它页面的阅读节奏不受影响。
+ * 注意：不靠缩小标题达标，收紧的是间距。
+ *
+ * 16px 是实测逼出来的值：--g-space-6(32px) 时 1440×900 的首个 .g-section
+ * 顶边落在 518.6px（56vh = 504px，超 14.6px）；收到 16px 后落到 486.6px。
+ */
+.g-home .g-section {
+  margin-block: var(--g-space-4);
+}
+
+.g-home .g-section-head {
+  margin-bottom: var(--g-space-3);
+}
+
+/*
+ * 窄屏 Hero 上限：60px 仍是 12 的整数倍（像素体的硬约束）。
+ * 用 min() 而不是写死 60px —— 用户把正文字号调小时，--g-text-hero 会降到 48/60，
+ * 此时不该反而把标题放大到 60px。
+ *
+ * 同时收紧窄屏的纵向内边距（48/32 → 24/16）：390×844 实测 Hero 高 396.4px，
+ * 占视口 47.0%，超过 46% 的上限；减掉 40px 后落到 356.4px（42.2%）。
+ * 顶部只留 24px 还顺带把首屏 4 张卡的余量从 17px 拉到 25px —— 条目数那条
+ * 指标卡在「第 2 排卡顶 826.7 < 844」上，余量必须留够（标题一旦折成 3 行 +18px）。
+ * 收的是留白，不是字号。
+ */
+@media (max-width: 639px) {
+  .g-hero {
+    padding-block: var(--g-space-5) var(--g-space-4);
+  }
+
+  .g-hero-title {
+    font-size: min(var(--g-text-hero), 60px);
+  }
+
+  /*
+   * 窄屏「本周精选」改 2 列紧凑卡。
+   * 起因：390×844 首屏可见条目要求 ≥4，而单列时一张 .g-photo-card 就有 431px
+   * （封面 4:3 = 265 + 标题 36 + 作者/标签/计数 126），首屏只放得下 1 张。
+   * 2 列后单卡宽 171px、封面 4:3 = 124px；再隐去标签行与计数行（作者保留，
+   * 这两行在窄屏是「点进去才知道」的信息），卡高落到 ~200px，
+   * 首屏能看到 2×2 = 4 张卡。
+   */
+  .g-home-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .g-home-grid .g-photo-card .g-tag-chips,
+  .g-home-grid .g-photo-card .g-photo-card-counts {
+    display: none;
+  }
 }
 
 /* ══════════════════════════════════════════

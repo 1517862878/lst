@@ -12,6 +12,9 @@ server/dist/
 # 本地包缓存与临时目录（含构建用 TMP）
 .pnpm-store/
 .tmp/
+# 同义临时目录：不同工具/脚本会写成 _tmp、tmp，一并忽略，避免误提交
+_tmp/
+tmp/
 
 # 本地环境
 *.local

@@ -123,6 +123,10 @@ export function applyAppearance(settings: AppearanceSettings): void {
   root.style.setProperty('--g-text-lg', `${scale.lg}px`)
   root.style.setProperty('--g-text-xl', `${scale.xl}px`)
   root.style.setProperty('--g-text-2xl', `${scale['2xl']}px`)
+  // 首页 Hero 大标题：夹在 48–72 并量化到 12 的整数倍。
+  // index.html 的首屏预涂脚本里有同一份公式的拷贝 —— 漏写这一行会让
+  // Hero 在「首屏 → 水合」之间跳一次字号（正文其它档位已经踩过这个坑）。
+  root.style.setProperty('--g-text-hero', `${scale.hero}px`)
 
   if (resolved.photoActive && settings.photo) {
     root.style.setProperty('--bg-photo-blur', `${settings.photo.blur}px`)

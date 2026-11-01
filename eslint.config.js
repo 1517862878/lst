@@ -14,6 +14,9 @@ export default tseslint.config(
       'playwright-report',
       'test-results',
       '.tmp',
+      // 同义临时目录：与 .gitignore 保持一致，避免本地排查脚本把 lint 拖红
+      '_tmp',
+      'tmp',
       '.pnpm-store',
     ],
   },

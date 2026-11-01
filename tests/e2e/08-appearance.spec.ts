@@ -31,25 +31,30 @@ test.describe('外观设置', () => {
     await page.goto('/appearance')
 
     await page.getByText('P3 墨绿胶片').click()
-    await page.getByText('像素扫描线', { exact: true }).click()
+    // 旧主体（像素网格/网点/扫描线）已换代，这里用新主体「工程剖面线」
+    await page.getByText('工程剖面线', { exact: true }).click()
     await page.getByText('现代无衬线').click()
 
     // 立刻生效：html 上的标记 + 正文字体
     const markers = await page.evaluate(() => ({
       palette: document.documentElement.dataset.palette,
       font: document.documentElement.dataset.font,
+      subject: document.documentElement.dataset.subject,
     }))
     expect(markers.palette).toBe('p3')
     expect(markers.font).toBe('sans')
+    expect(markers.subject).toBe('px-hatch')
 
     await page.reload()
     const after = await page.evaluate(() => ({
       palette: document.documentElement.dataset.palette,
       font: document.documentElement.dataset.font,
+      subject: document.documentElement.dataset.subject,
       body: getComputedStyle(document.body).fontFamily,
     }))
     expect(after.palette).toBe('p3')
     expect(after.font).toBe('sans')
+    expect(after.subject).toBe('px-hatch')
     expect(after.body.toLowerCase()).toContain('inter')
   })
 
@@ -121,6 +126,59 @@ test.describe('外观设置', () => {
     // 关键控件在窄屏仍可操作（触控目标不小于 44px 是 UX 口径，这里先保证可见可点）
     await expect(page.getByRole('button', { name: '上传照片' })).toBeVisible()
     await expect(page.getByRole('button', { name: '增大正文字号' })).toBeVisible()
+  })
+
+  test('字号拉到最大档时页头不撑破视口，也不折行（既有溢出 bug 回归）', async ({ page }) => {
+    const WIDTHS = [390, 900, 1440]
+
+    // 不变量：页头宽度与字号设置无关（页头字阶钉回默认档）。
+    // 所以先量默认档作基线，再把字号拉到最大档，两轮必须逐项相等。
+    const measure = async (width: number) => {
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('/')
+      await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
+      return page.evaluate(() => {
+        const de = document.documentElement
+        const header = document.querySelector('.g-header')
+        const name = document.querySelector('.g-brand-name')
+        return {
+          overflow: de.scrollWidth - de.clientWidth,
+          headerH: header ? Math.round(header.getBoundingClientRect().height) : 0,
+          // 品牌名被压出省略号时 > 0
+          truncated: name ? name.scrollWidth - name.clientWidth : 0,
+        }
+      })
+    }
+
+    const baseline: Array<{ width: number; m: Awaited<ReturnType<typeof measure>> }> = []
+    for (const width of WIDTHS) baseline.push({ width, m: await measure(width) })
+
+    // 走真实用户路径：把正文字号点到最大档
+    await page.goto('/appearance')
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const bump = page.getByRole('button', { name: '增大正文字号' })
+    for (let i = 0; i < 8; i++) {
+      const current = await page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue('--g-text-base').trim(),
+      )
+      if (current === '24px') break
+      await bump.click()
+    }
+    expect(
+      await page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue('--g-text-base').trim(),
+      ),
+    ).toBe('24px')
+
+    for (const { width, m: base } of baseline) {
+      const after = await measure(width)
+      expect(after.overflow, `${width}px 最大字号横向溢出`).toBeLessThanOrEqual(1)
+      // 历史 bug：390px/24px 溢出 7px，861–1024px 溢出最多 184px
+      expect(after.overflow, `${width}px 与默认档一致`).toBe(base.overflow)
+      // 页头折行会让高度几乎翻倍
+      expect(after.headerH, `${width}px 页头高度`).toBe(base.headerH)
+      expect(after.truncated, `${width}px 品牌名截断`).toBe(0)
+    }
   })
 })
 

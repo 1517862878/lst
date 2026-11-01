@@ -53,8 +53,10 @@ export function HomePage() {
 
   if (legacyFollowing) return <Navigate to="/?tab=following" replace />
 
+  // g-home 是首页密度的作用域钩子：Hero 提到 72px 后需要收紧区块间距，
+  // 但只收首页，不动其它页面的阅读节奏（见 pixel-theme.css 的 .g-home .g-section）
   return (
-    <Container>
+    <Container className="g-home">
       <section className="g-hero" aria-label="站点介绍">
         <h1 className="g-hero-title">工科影展</h1>
         <p className="g-hero-subtitle">分享你的拍摄作品、拍摄地点与心得</p>

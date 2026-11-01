@@ -96,6 +96,12 @@ html[data-palette='p1'] {
   --g-stars-head: #ffffff;
   --g-stars-bg: #12203a;
   --g-stars-opacity: 1;
+
+  /* 主体取色阶梯（方案 §3.2 实测：1.25 / 1.82 / 2.81 / 6.46:1） */
+  --g-subj-faint: #24314a;
+  --g-subj-mid: #3e4a60;
+  --g-subj-strong: #5c6679;
+  --g-subj-accent: #7fa6d9;
 }
 
 /* ── P2 · 米白纸面 Paper Day（唯一浅底，全项 ≥4.88:1） ── */
@@ -145,6 +151,14 @@ html[data-palette='p2'] {
   --g-stars-head: #1a1611;
   --g-stars-bg: #f7f3e9;
   --g-stars-opacity: 0.18;
+
+  /* 主体取色阶梯（方案 §3.2 实测：1.25 / 1.79 / 2.80 / 5.44:1）
+     P2 是唯一浅底：faint/mid/strong 反而比底色**更深**，
+     由「底色 → 正文色 #1A1611」的混合方向自动保证，无需特判。 */
+  --g-subj-faint: #dfdbd1;
+  --g-subj-mid: #bcb8af;
+  --g-subj-strong: #95928a;
+  --g-subj-accent: #9a4e1e;
 }
 
 html[data-palette='p2'] body {
@@ -192,6 +206,12 @@ html[data-palette='p3'] {
   --g-stars-head: #ffffff;
   --g-stars-bg: #0f1f1a;
   --g-stars-opacity: 0.9;
+
+  /* 主体取色阶梯（方案 §3.2 实测：1.25 / 1.78 / 2.80 / 8.22:1） */
+  --g-subj-faint: #21312c;
+  --g-subj-mid: #3a4844;
+  --g-subj-strong: #586560;
+  --g-subj-accent: #8fbf9f;
 }
 
 /* ── P4 · 碳灰霓虹 Carbon Neon（全项 ≥5.25:1） ── */
@@ -233,6 +253,12 @@ html[data-palette='p4'] {
   --g-stars-head: #ffffff;
   --g-stars-bg: #121214;
   --g-stars-opacity: 0.75;
+
+  /* 主体取色阶梯（方案 §3.2 实测：1.24 / 1.78 / 2.80 / 7.16:1） */
+  --g-subj-faint: #262628;
+  --g-subj-mid: #3f3f41;
+  --g-subj-strong: #5c5c5e;
+  --g-subj-accent: #b08cff;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -322,37 +348,232 @@ html[data-font='sans'] body {
   pointer-events: none;
 }
 
-.g-bg-subject-px-grid {
-  background-image:
-    linear-gradient(var(--g-bg-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--g-bg-grid) 1px, transparent 1px);
-  background-size: 8px 8px;
-}
-
-.g-bg-subject-px-halftone {
-  /* 45° 网点：两组圆柱渐变错位叠加，向下逐渐加密 */
-  background-image: radial-gradient(circle at 50% 50%, var(--g-bg-grid) 1px, transparent 1.5px);
-  background-size: 8px 8px;
-  background-position: 0 0;
-  mask-image: linear-gradient(180deg, rgb(0 0 0 / 0.35) 0%, rgb(0 0 0 / 1) 100%);
-}
-
-.g-bg-subject-px-scanline {
-  background-image: repeating-linear-gradient(
-    0deg,
-    rgb(0 0 0 / 0.14) 0 1px,
-    transparent 1px 4px
+/* ── 文字走廊：把规格 §1.6 的 A 级安全区变成纯 CSS 组遮罩 ──
+   中央 1200px 内容列投影带内主体降到 22%（实测透出 ≤1.24:1），走廊外保持 100%。
+   用 mask 而不是 opacity：opacity 会把边缘构图一起压平。
+   窄屏（<1200px）时 calc 停靠点被钳制到 0/100%，整屏恒为 22% ——
+   等价于「窄屏 A 级退化为整屏」，不需要媒体查询。
+   注意：accent 档在走廊内实测 1.36–1.62:1（超 A 级上限），
+   所以 accent 只允许落在走廊之外（角点、校色环、色卡远端）。 */
+:root {
+  --g-subj-corridor: 0.22;
+  --g-subj-feather: 40px;
+  --g-subj-mask: linear-gradient(
+    90deg,
+    #000 0,
+    #000 calc(50% - 600px - var(--g-subj-feather)),
+    rgb(0 0 0 / var(--g-subj-corridor)) calc(50% - 600px),
+    rgb(0 0 0 / var(--g-subj-corridor)) calc(50% + 600px),
+    #000 calc(50% + 600px + var(--g-subj-feather)),
+    #000 100%
   );
-  mask-image: linear-gradient(180deg, rgb(0 0 0 / 0.25) 0%, rgb(0 0 0 / 0.9) 100%);
 }
 
-/* px-grid 主体本身就是 8px 网格：再叠基础网格层会画两遍同位置线（变粗发黑），所以关掉 */
-html[data-subject='px-grid'] .g-bg-grid {
+/* 只挂到新主体上，不挂 .g-bg-subject 通用类：
+   px-stars 走独立 canvas（SiteBackground.tsx），绝不能受走廊遮罩影响 */
+.g-bg-subject-px-viewfinder,
+.g-bg-subject-px-sprocket,
+.g-bg-subject-px-aperture,
+.g-bg-subject-px-colorbar,
+.g-bg-subject-px-hatch {
+  -webkit-mask-image: var(--g-subj-mask);
+  mask-image: var(--g-subj-mask);
+}
+
+/* 底边是硬边色块，feather 需要放宽，否则走廊边缘会看出「断裂」 */
+.g-bg-subject-px-colorbar {
+  --g-subj-feather: 200px;
+}
+
+/* ── 取景框：重心 = 四个屏幕角；四重对称；唯一「细线 + 四角」母题 ── */
+.g-bg-subject-px-viewfinder::before {
+  content: '';
+  position: absolute;
+  inset: 24px;
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--g-subj-accent) 0 0), linear-gradient(var(--g-subj-accent) 0 0),
+    linear-gradient(var(--g-subj-accent) 0 0), linear-gradient(var(--g-subj-accent) 0 0),
+    linear-gradient(var(--g-subj-strong) 0 0), linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(var(--g-subj-strong) 0 0), linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(var(--g-subj-strong) 0 0), linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(var(--g-subj-strong) 0 0), linear-gradient(var(--g-subj-strong) 0 0);
+  background-size:
+    8px 8px, 8px 8px, 8px 8px, 8px 8px,
+    72px 6px, 6px 72px, 72px 6px, 6px 72px,
+    72px 6px, 6px 72px, 72px 6px, 6px 72px;
+  background-position:
+    left top, right top, left bottom, right bottom,
+    left top, left top, right top, right top,
+    left bottom, left bottom, right bottom, right bottom;
+}
+
+/* 四边刻度尺（96px 节距，与 8px 网格无整数倍关系）+ 中心左右各一个对焦框 */
+.g-bg-subject-px-viewfinder::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-image:
+    repeating-linear-gradient(90deg, var(--g-subj-mid) 0 2px, transparent 2px 96px),
+    repeating-linear-gradient(90deg, var(--g-subj-mid) 0 2px, transparent 2px 96px),
+    repeating-linear-gradient(180deg, var(--g-subj-mid) 0 2px, transparent 2px 96px),
+    repeating-linear-gradient(180deg, var(--g-subj-mid) 0 2px, transparent 2px 96px),
+    linear-gradient(var(--g-subj-mid) 0 0), linear-gradient(var(--g-subj-mid) 0 0),
+    linear-gradient(var(--g-subj-mid) 0 0), linear-gradient(var(--g-subj-mid) 0 0);
+  background-size:
+    100% 14px, 100% 14px, 14px 100%, 14px 100%,
+    32px 2px, 2px 32px, 32px 2px, 2px 32px;
+  background-position:
+    center top, center bottom, left center, right center,
+    calc(50% - 120px) center, calc(50% - 120px) center,
+    calc(50% + 120px) center, calc(50% + 120px) center;
+}
+
+/* ── 胶片齿孔：重心 = 左右片边；镜面对称；唯一「块面 + 镂空」母题 ── */
+.g-bg-subject-px-sprocket {
+  background-repeat: no-repeat;
+  background-image:
+    repeating-linear-gradient(180deg, var(--g-bg) 0 16px, transparent 16px 40px),
+    linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(var(--g-subj-faint) 0 0),
+    repeating-linear-gradient(180deg, var(--g-bg) 0 16px, transparent 16px 40px),
+    linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(var(--g-subj-faint) 0 0);
+  background-size: 24px 100%, 2px 100%, 40px 100%, 24px 100%, 2px 100%, 40px 100%;
+  background-position:
+    left 8px top, left 40px top, left top,
+    right 8px top, right 40px top, right top;
+}
+
+/* 顶部片边码：48px 细刻度 + 240px 粗刻度 */
+.g-bg-subject-px-sprocket::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 18px;
+  background-repeat: no-repeat;
+  background-image:
+    repeating-linear-gradient(90deg, var(--g-subj-mid) 0 2px, transparent 2px 48px),
+    repeating-linear-gradient(90deg, var(--g-subj-strong) 0 4px, transparent 4px 240px);
+}
+
+/* ── 像素光圈：重心 = 右上角外侧；唯一「曲线 / 径向 / 单角」母题 ── */
+.g-bg-subject-px-aperture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-image:
+    conic-gradient(
+      from 0deg at 86% -4%,
+      transparent 0deg 12deg,
+      var(--g-subj-strong) 12deg 15deg,
+      transparent 15deg 72deg,
+      var(--g-subj-strong) 72deg 75deg,
+      transparent 75deg 132deg,
+      var(--g-subj-strong) 132deg 135deg,
+      transparent 135deg 192deg,
+      var(--g-subj-strong) 192deg 195deg,
+      transparent 195deg 252deg,
+      var(--g-subj-strong) 252deg 255deg,
+      transparent 255deg 312deg,
+      var(--g-subj-strong) 312deg 315deg,
+      transparent 315deg 360deg
+    ),
+    repeating-radial-gradient(
+      circle at 86% -4%,
+      transparent 0 22px,
+      var(--g-subj-faint) 22px 24px
+    );
+  /* 光圈只活在右上角 520px 内，向走廊方向羽化（与元素的走廊 mask 相乘叠加） */
+  -webkit-mask-image: radial-gradient(circle 520px at 86% -4%, #000 0 60%, transparent 100%);
+  mask-image: radial-gradient(circle 520px at 86% -4%, #000 0 60%, transparent 100%);
+}
+
+/* 内圈校色环：唯一允许出现强调色的位置（C 级自由区） */
+.g-bg-subject-px-aperture::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-image: radial-gradient(
+    circle at 86% -4%,
+    transparent 0 138px,
+    var(--g-subj-accent) 138px 140px,
+    transparent 140px 100%
+  );
+}
+
+/* ── 灰阶色卡：重心 = 底边；单向；唯一「实心色块 / 硬分格」母题 ── */
+.g-bg-subject-px-colorbar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 88px;
+  border-top: 4px solid var(--g-subj-strong);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--g-subj-strong) 0 0), linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(var(--g-subj-strong) 0 0), linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(
+      90deg,
+      var(--g-subj-faint) 0 23%,
+      var(--g-subj-mid) 0 46%,
+      var(--g-subj-strong) 0 69%,
+      var(--g-subj-mid) 0 92%,
+      var(--g-subj-accent) 0 100%
+    );
+  background-size: 2px 100%, 2px 100%, 2px 100%, 2px 100%, 100% 100%;
+  background-position: 23% 0, 46% 0, 69% 0, 92% 0, 0 0;
+}
+
+/* 光楔：色卡上沿一条 bg → strong → bg 的连续灰阶 */
+.g-bg-subject-px-colorbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 96px;
+  height: 8px;
+  background-image: linear-gradient(
+    90deg,
+    var(--g-bg) 0%,
+    var(--g-subj-strong) 50%,
+    var(--g-bg) 100%
+  );
+}
+
+/* ── 工程剖面线：重心 = 左上 / 右下两个对角三角；唯一「45° 斜向」母题 ── */
+.g-bg-subject-px-hatch::before,
+.g-bg-subject-px-hatch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(45deg, var(--g-subj-strong) 0 2px, transparent 2px 64px),
+    repeating-linear-gradient(45deg, var(--g-subj-mid) 0 2px, transparent 2px 16px);
+}
+
+/* 两个三角必须分到两个伪元素：mask 默认 add 合成，写在同一元素上会联合覆盖整卡 */
+.g-bg-subject-px-hatch::before {
+  -webkit-mask-image: linear-gradient(135deg, #000 0 24%, transparent 44%);
+  mask-image: linear-gradient(135deg, #000 0 24%, transparent 44%);
+}
+
+.g-bg-subject-px-hatch::after {
+  -webkit-mask-image: linear-gradient(315deg, #000 0 24%, transparent 44%);
+  mask-image: linear-gradient(315deg, #000 0 24%, transparent 44%);
+}
+
+/* 45° 剖面线叠在 8px 正交网格上会出摩尔纹：这套主体下关掉常驻网格层
+   （改写自原 html[data-subject='px-grid'] .g-bg-grid 规则） */
+html[data-subject='px-hatch'] .g-bg-grid {
   display: none;
-}
-
-html[data-palette='p2'] .g-bg-subject-px-scanline {
-  background-image: repeating-linear-gradient(0deg, rgb(26 22 17 / 0.08) 0 1px, transparent 1px 4px);
 }
 
 /* 背景照片（规格 §3.1–3.3） */
@@ -634,20 +855,164 @@ html[data-bg-photo='on'] .g-bg-grid {
     radial-gradient(circle at 12% 88%, var(--g-stars-base) 1px, transparent 1.5px);
 }
 
-.g-subject-preview[data-subject='px-grid']::after {
+/* ── 新主体的预览卡复刻（214×56，几何缩到 1/4–1/3）──
+   与全屏主体同构：同样是 ::before + ::after 双面，所以预览卡不会
+   「看起来像 A、切过去是 B」。px-none 的预览（下方「纯色」）保留不动。 */
+
+/* 取景框 */
+.g-subject-preview[data-subject='px-viewfinder']::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  background-repeat: no-repeat;
   background-image:
-    linear-gradient(var(--g-bg-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--g-bg-grid) 1px, transparent 1px);
-  background-size: 8px 8px;
+    linear-gradient(var(--g-subj-accent) 0 0), linear-gradient(var(--g-subj-accent) 0 0),
+    linear-gradient(var(--g-subj-accent) 0 0), linear-gradient(var(--g-subj-accent) 0 0),
+    linear-gradient(var(--g-subj-strong) 0 0), linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(var(--g-subj-strong) 0 0), linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(var(--g-subj-strong) 0 0), linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(var(--g-subj-strong) 0 0), linear-gradient(var(--g-subj-strong) 0 0);
+  background-size:
+    3px 3px, 3px 3px, 3px 3px, 3px 3px,
+    20px 2px, 2px 20px, 20px 2px, 2px 20px,
+    20px 2px, 2px 20px, 20px 2px, 2px 20px;
+  background-position:
+    left top, right top, left bottom, right bottom,
+    left top, left top, right top, right top,
+    left bottom, left bottom, right bottom, right bottom;
 }
 
-.g-subject-preview[data-subject='px-halftone']::after {
-  background-image: radial-gradient(circle at 50% 50%, var(--g-bg-grid) 1px, transparent 1.5px);
-  background-size: 8px 8px;
+.g-subject-preview[data-subject='px-viewfinder']::after {
+  background-repeat: no-repeat;
+  background-image:
+    repeating-linear-gradient(90deg, var(--g-subj-mid) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(90deg, var(--g-subj-mid) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(180deg, var(--g-subj-mid) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(180deg, var(--g-subj-mid) 0 1px, transparent 1px 26px),
+    linear-gradient(var(--g-subj-mid) 0 0), linear-gradient(var(--g-subj-mid) 0 0),
+    linear-gradient(var(--g-subj-mid) 0 0), linear-gradient(var(--g-subj-mid) 0 0);
+  background-size:
+    100% 4px, 100% 4px, 4px 100%, 4px 100%,
+    12px 1px, 1px 12px, 12px 1px, 1px 12px;
+  background-position:
+    center top, center bottom, left center, right center,
+    calc(50% - 18px) center, calc(50% - 18px) center,
+    calc(50% + 18px) center, calc(50% + 18px) center;
 }
 
-.g-subject-preview[data-subject='px-scanline']::after {
-  background-image: repeating-linear-gradient(0deg, rgb(0 0 0 / 0.18) 0 1px, transparent 1px 4px);
+/* 胶片齿孔 */
+.g-subject-preview[data-subject='px-sprocket']::after {
+  background-repeat: no-repeat;
+  background-image:
+    repeating-linear-gradient(180deg, var(--g-bg) 0 4px, transparent 4px 10px),
+    linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(var(--g-subj-faint) 0 0),
+    repeating-linear-gradient(180deg, var(--g-bg) 0 4px, transparent 4px 10px),
+    linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(var(--g-subj-faint) 0 0);
+  background-size: 7px 100%, 2px 100%, 11px 100%, 7px 100%, 2px 100%, 11px 100%;
+  background-position:
+    left 2px top, left 11px top, left top,
+    right 2px top, right 11px top, right top;
+}
+
+/* 像素光圈 */
+.g-subject-preview[data-subject='px-aperture']::after {
+  background-repeat: no-repeat;
+  background-image:
+    conic-gradient(
+      from 0deg at 78% 4%,
+      transparent 0deg 12deg,
+      var(--g-subj-strong) 12deg 16deg,
+      transparent 16deg 72deg,
+      var(--g-subj-strong) 72deg 76deg,
+      transparent 76deg 132deg,
+      var(--g-subj-strong) 132deg 136deg,
+      transparent 136deg 192deg,
+      var(--g-subj-strong) 192deg 196deg,
+      transparent 196deg 252deg,
+      var(--g-subj-strong) 252deg 256deg,
+      transparent 256deg 312deg,
+      var(--g-subj-strong) 312deg 316deg,
+      transparent 316deg 360deg
+    ),
+    radial-gradient(
+      circle at 78% 4%,
+      transparent 0 12px,
+      var(--g-subj-faint) 12px 13px,
+      transparent 13px 20px,
+      var(--g-subj-faint) 20px 21px,
+      transparent 21px 28px,
+      var(--g-subj-faint) 28px 29px,
+      transparent 29px 36px,
+      var(--g-subj-faint) 36px 37px,
+      transparent 37px 44px,
+      var(--g-subj-faint) 44px 45px,
+      transparent 45px 52px
+    ),
+    radial-gradient(
+      circle at 78% 4%,
+      transparent 0 6px,
+      var(--g-subj-accent) 6px 7px,
+      transparent 7px 100%
+    );
+}
+
+/* 灰阶色卡 */
+.g-subject-preview[data-subject='px-colorbar']::after {
+  inset: auto 0 0 0;
+  height: 18px;
+  border-top: 2px solid var(--g-subj-strong);
+  background-repeat: no-repeat;
+  background-image:
+    linear-gradient(var(--g-subj-strong) 0 0), linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(var(--g-subj-strong) 0 0), linear-gradient(var(--g-subj-strong) 0 0),
+    linear-gradient(
+      90deg,
+      var(--g-subj-faint) 0 23%,
+      var(--g-subj-mid) 0 46%,
+      var(--g-subj-strong) 0 69%,
+      var(--g-subj-mid) 0 92%,
+      var(--g-subj-accent) 0 100%
+    );
+  background-size: 2px 100%, 2px 100%, 2px 100%, 2px 100%, 100% 100%;
+  background-position: 23% 0, 46% 0, 69% 0, 92% 0, 0 0;
+}
+
+.g-subject-preview[data-subject='px-colorbar']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 20px;
+  height: 3px;
+  background-image: linear-gradient(
+    90deg,
+    var(--g-bg) 0%,
+    var(--g-subj-strong) 50%,
+    var(--g-bg) 100%
+  );
+}
+
+/* 工程剖面线（两个三角必须分到两个伪元素：mask 默认 add 合成） */
+.g-subject-preview[data-subject='px-hatch']::before,
+.g-subject-preview[data-subject='px-hatch']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(45deg, var(--g-subj-strong) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(45deg, var(--g-subj-mid) 0 1px, transparent 1px 6px);
+}
+
+.g-subject-preview[data-subject='px-hatch']::before {
+  -webkit-mask-image: linear-gradient(135deg, #000 0 26%, transparent 46%);
+  mask-image: linear-gradient(135deg, #000 0 26%, transparent 46%);
+}
+
+.g-subject-preview[data-subject='px-hatch']::after {
+  -webkit-mask-image: linear-gradient(315deg, #000 0 26%, transparent 46%);
+  mask-image: linear-gradient(315deg, #000 0 26%, transparent 46%);
 }
 
 .g-subject-preview[data-subject='px-none']::after {

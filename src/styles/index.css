@@ -213,6 +213,31 @@ html {
   min-height: 56px;
 }
 
+/*
+ * 页头的字阶钉回默认档 —— 修「外观字号拉到最大档时页头横向溢出」这个既有 bug。
+ *
+ * 现象（改动前实测，13 个宽度 × 4 个字号档共 52 组，7 组溢出）：
+ *   390px/24px 溢出 7px，861px/24px 溢出 184px，900px 溢出 145px，1024px 溢出 21px，
+ *   320px/16px（默认档）也溢出 13px。
+ * 根因：.g-brand 字号跟随 --g-text-lg，最大档（24px）时是 36px、品牌名宽 197.8px；
+ *   加上右侧账号簇 171px（flex-shrink: 1 但最小内容宽压不动）、间距与内边距，
+ *   页头内容宽被撑到约 1045px 且不回流。.g-nav 是 flex: 1 1 0%，basis 为 0 时
+ *   不可收缩，所以整条页头无法靠收缩化解。
+ *
+ * 修法：页头是导航 chrome，不是正文。外观字号（/appearance）作用于正文内容，
+ *   在页头子树里把字阶钉回默认档，页头宽度就与字号设置无关 —— 52 组全部归零，
+ *   且默认档位零变化（base 16px 时 --g-text-lg 本来就是 24px）。
+ *   --g-text-* 由 applyAppearance() 内联写在 <html> 上，这里在同元素重新声明：
+ *   自定义属性在子树内的声明一定压过继承值，不依赖选择器优先级。
+ *   需要放大页头的用户请用浏览器缩放，那会等比放大整站，才是无障碍的正路。
+ */
+.g-header {
+  --g-text-xs: 12px;
+  --g-text-sm: 14px;
+  --g-text-base: 16px;
+  --g-text-lg: 24px;
+}
+
 /* ── 品牌标识 ── */
 .g-brand {
   display: inline-flex;
@@ -236,6 +261,33 @@ html {
   height: 20px;
   color: var(--g-brand);
   shape-rendering: crispEdges;
+  flex-shrink: 0;
+}
+
+/*
+ * 品牌名可截断 —— 页头横向溢出的兜底。
+ *
+ * 真正的解法是 .g-header 上的字阶钉回默认档（见上方注释），
+ * 页头宽度因此与外观字号设置无关；这条只是最后一道保险，
+ * 让品牌名在任何情况下都宁可出省略号，也不把视口撑破。
+ */
+.g-brand-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * 320–359px 再收紧一层：这一带即使默认字号也差几像素
+ * （320px/16px 实测文档横向溢出 13px），低于项目设计下限
+ * （e2e 一律测 390px，360px 起已够用），所以让品牌名可收缩、宁可省略号。
+ * 放进全局会让 861px 默认档位下品牌名被压掉 13px 出现省略号，属新增回归。
+ */
+@media (max-width: 359px) {
+  .g-brand {
+    min-width: 0;
+    flex-shrink: 1;
+  }
 }
 
 /* 品牌前的像素方块装饰 */

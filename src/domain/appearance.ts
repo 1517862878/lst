@@ -16,8 +16,22 @@
 /** 配色：auto 沿用明暗主题，p1–p4 = 规格 §2 的四套经典配色 */
 export type PaletteId = 'auto' | 'p1' | 'p2' | 'p3' | 'p4'
 
-/** 内置主体（「现在的主体」= 像素星空，作为内置主体之一保留） */
-export type SubjectId = 'px-stars' | 'px-grid' | 'px-halftone' | 'px-scanline' | 'px-none'
+/**
+ * 内置主体（「现在的主体」= 像素星空，作为内置主体之一保留）。
+ *
+ * 2026-11 重设计：`px-grid` / `px-halftone` / `px-scanline` 三套删除 ——
+ * 它们与常驻网格层 `.g-bg-grid` 同图案同色（1.00–1.25:1），在 8px 网格之上
+ * 无法互相分离。替换为重心/形态/填充互不相同的 5 套（见
+ * `docs/视觉规格-内置主体重设计方案.md`）。旧值经 `subjectOf()` 回落到 `px-none`。
+ */
+export type SubjectId =
+  | 'px-stars'
+  | 'px-viewfinder'
+  | 'px-sprocket'
+  | 'px-aperture'
+  | 'px-colorbar'
+  | 'px-hatch'
+  | 'px-none'
 
 /** 字体搭配方案（规格 §4.2 的 T1–T4，全部 OFL-1.1 可商用） */
 export type FontId = 'pixel' | 'pixel-sans' | 'serif' | 'sans'
@@ -95,39 +109,65 @@ export const SUBJECTS: readonly SubjectOption[] = [
   {
     id: 'px-stars',
     name: '像素星空（当前主体）',
-    description: '把现有星空确立为内置主体 #1：像素星点 + 银河径向渐变，密度随视口自适应。',
+    description: '像素星点 + 银河径向渐变，密度随视口自适应',
     canvas: true,
   },
   {
-    id: 'px-grid',
-    name: '像素网格',
-    description: '8px 方格网 + 极淡对角线，最接近地图编辑器的原始质感。',
+    id: 'px-viewfinder',
+    name: '取景框',
+    description: '四角取景标尺 + 中心对焦框，像取景器里看世界',
     canvas: false,
   },
   {
-    id: 'px-halftone',
-    name: '像素网点',
-    description: '45° 半调网点，向下逐渐加密，像印刷制版。',
+    id: 'px-sprocket',
+    name: '胶片齿孔',
+    description: '左右片边齿孔 + 片边码刻度，像一条挂在背景里的 35mm 胶片',
     canvas: false,
   },
   {
-    id: 'px-scanline',
-    name: '像素扫描线',
-    description: 'CRT 横向扫描线 + 顶部微光带，复古显示器质感。',
+    id: 'px-aperture',
+    name: '像素光圈',
+    description: '右上角六叶光圈与同心曝光环，像镜头正对着你',
+    canvas: false,
+  },
+  {
+    id: 'px-colorbar',
+    name: '灰阶色卡',
+    description: '底边一条五格色卡 + 光楔，像现场校色板',
+    canvas: false,
+  },
+  {
+    id: 'px-hatch',
+    name: '工程剖面线',
+    description: '对角剖面线 + 两个三角分区，像工程图纸的剖面',
     canvas: false,
   },
   {
     id: 'px-none',
     name: '纯净无主体',
-    description: '只留配色底与硬边。用于长文阅读、投屏与省电场景。',
+    description: '只留配色底与硬边。用于长文阅读、投屏与省电场景',
     canvas: false,
   },
 ]
 
 export const SUBJECT_IDS: readonly SubjectId[] = SUBJECTS.map((s) => s.id)
 
+/**
+ * 旧主体 id → 新 id 的迁移映射。
+ *
+ * 三套被删掉的主体（`px-grid` / `px-halftone` / `px-scanline`）都是「极简纹理」
+ * 取向，所以映射到 `px-none` 而不是回落 `SUBJECTS[0]`（星空）—— 否则老用户的
+ * 「极简」偏好会被悄悄换成满屏星点，等于替用户改了设置。
+ */
+const LEGACY_SUBJECT_ALIASES: Readonly<Record<string, SubjectId>> = {
+  'px-grid': 'px-none',
+  'px-halftone': 'px-none',
+  'px-scanline': 'px-none',
+}
+
 export function subjectOf(id: SubjectId): SubjectOption {
-  return SUBJECTS.find((s) => s.id === id) ?? SUBJECTS[0]!
+  const mapped = LEGACY_SUBJECT_ALIASES[id] ?? id
+  return SUBJECTS.find((s) => s.id === mapped) ?? SUBJECTS[0]!
 }
 
 /* ─────────────────────────── 字体目录 ─────────────────────────── */
@@ -272,6 +312,12 @@ export const FONT_SIZE_MAX = 24
  * 比例与 tokens.css 对齐（12/14/16/24/36/48），保证放大后节奏不变。
  *
  * xl 用 36 而不是 32：像素体要求 12 的整数倍，32 是 8/3 倍会落在半像素上。
+ *
+ * hero（首页大标题）：tokens.css 基准 72px = 12×6 = 24×3。放大正文时如果让它
+ * 跟着 48/16 的比例线性走，20px 正文会推出 90px 的标题 —— 已经超出「首页
+ * 首屏一屏放得下标题 + 第一排卡片」的布局预算，所以单独夹在 48–72 之间，
+ * 并同样量化到 12 的整数倍（像素体不能落在半像素上）。
+ * 这条公式在 index.html 的首屏预涂脚本里有一份拷贝，改这里必须同步改那边。
  */
 export function textScaleFor(base: number) {
   const b = clampInt(base, FONT_SIZE_MIN, FONT_SIZE_MAX)
@@ -282,6 +328,7 @@ export function textScaleFor(base: number) {
     lg: Math.round((b * 24) / 16),
     xl: Math.round((b * 36) / 16),
     '2xl': Math.round((b * 48) / 16),
+    hero: Math.min(72, Math.max(48, Math.round((b * 72) / 16 / 12) * 12)),
   }
 }
 
@@ -440,8 +487,11 @@ function round3(v: number): number {
 export function normalizeAppearance(raw: unknown): AppearanceSettings {
   const src = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
   const palette = PALETTE_IDS.includes(src.palette as PaletteId) ? (src.palette as PaletteId) : DEFAULT_APPEARANCE.palette
-  const subject = SUBJECT_IDS.includes(src.subject as SubjectId)
-    ? (src.subject as SubjectId)
+  // 旧主体 id（px-grid / px-halftone / px-scanline）必须先过别名表：这三套已被删除，
+  // 直接判合法性会落到 DEFAULT_APPEARANCE.subject（星空），把用户当初选的「极简」改掉。
+  const mappedSubject = LEGACY_SUBJECT_ALIASES[String(src.subject)] ?? src.subject
+  const subject = SUBJECT_IDS.includes(mappedSubject as SubjectId)
+    ? (mappedSubject as SubjectId)
     : DEFAULT_APPEARANCE.subject
   const font = FONT_IDS.includes(src.font as FontId) ? (src.font as FontId) : DEFAULT_APPEARANCE.font
   // 字号先按「该字体自己的可调区间」夹紧：像素体只允许 12/14/16/24，黑体是 15–18 …

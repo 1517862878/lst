@@ -464,7 +464,8 @@ export function AppearancePage() {
             <div className="g-slider-head">
               <span id="appearance-fontsize-label">正文字号</span>
               <span className="g-slider-value">
-                {settings.baseFontSize}px（标题自动等比到 {textScaleFor(settings.baseFontSize)['2xl']}px）
+                {settings.baseFontSize}px（标题自动等比到 {textScaleFor(settings.baseFontSize)['2xl']}px
+                ，首页大标题 {textScaleFor(settings.baseFontSize).hero}px）
               </span>
             </div>
             <div className="g-fontsize-row">

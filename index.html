@@ -26,7 +26,10 @@
         var s = (a && a.state) || a || {}
         if (s.palette && s.palette !== 'auto') document.documentElement.dataset.palette = s.palette
         if (s.font) document.documentElement.dataset.font = s.font
-        if (typeof s.baseFontSize === 'number' && s.baseFontSize >= 14 && s.baseFontSize <= 20) {
+        // 字号档位守卫放宽到 12–24（= FONT_SIZE_MIN..FONT_SIZE_MAX）。
+        // 原来的 >=14 && <=20 让选 12 或 24 的用户首屏跳一次字号 ——
+        // Hero 从 48px 提到 72px 后，这一跳会明显得多（60 → 72），所以一并修掉。
+        if (typeof s.baseFontSize === 'number' && s.baseFontSize >= 12 && s.baseFontSize <= 24) {
           var b = Math.round(s.baseFontSize)
           var r = document.documentElement.style
           r.setProperty('--g-text-xs', Math.round((b * 12) / 16) + 'px')
@@ -35,8 +38,22 @@
           r.setProperty('--g-text-lg', Math.round((b * 24) / 16) + 'px')
           r.setProperty('--g-text-xl', Math.round((b * 36) / 16) + 'px')
           r.setProperty('--g-text-2xl', Math.round((b * 48) / 16) + 'px')
+          // 与 src/domain/appearance.ts 的 textScaleFor().hero 完全同式（48–72，12 的整数倍）
+          r.setProperty(
+            '--g-text-hero',
+            Math.min(72, Math.max(48, Math.round((b * 72) / 16 / 12) * 12)) + 'px',
+          )
         }
         if (s.subject) document.documentElement.dataset.subject = s.subject
+        // 主体目录已换代：px-grid / px-halftone / px-scanline 三套被删除，
+        // 旧值在预涂阶段就落定到 px-none，否则首帧会先按已不存在的旧主体渲染一次。
+        if (
+          s.subject === 'px-grid' ||
+          s.subject === 'px-halftone' ||
+          s.subject === 'px-scanline'
+        ) {
+          document.documentElement.dataset.subject = 'px-none'
+        }
       } catch (e) {
         /* 忽略损坏的偏好数据 */
       }

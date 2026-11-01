@@ -60,8 +60,12 @@ function parseSeedFlag(raw: string | undefined, isProd: boolean): boolean {
  *   2) 清掉指向这些作品的引用（主题投稿与封面、收藏夹成员）。
  * **只删 seed 自己的确定性 id**（seed-photo-/seed-user-），绝不按「看起来像示例」
  * 猜 —— 用户自己上传的作品可能刚好叫这个名字，删错就是数据丢失。
+ *
+ * 切片 7：2026-11 学习板块改为「作者自行上传」，不再预置 12 篇虚拟教程。
+ * 这一片同样是「必须删已有数据」：老浏览器里躺着 seed-article-01…12，
+ * 不删的话学习板块永远显示那 12 篇正文为空的骨架。
  */
-const SEED_SLICE = 6
+const SEED_SLICE = 7
 
 /**
  * 旧分类 slug → 新分类 slug（与 supabase/migrations/0038 的映射表逐条一致）。
@@ -144,6 +148,11 @@ export async function ensureSeeded(): Promise<void> {
       await removeDemoPhotoSeed()
     }
 
+    // 0039：清掉预置的虚拟教程文章。与作品清理同样的道理 ——
+    // 老浏览器的 seedSlice 早已写满，必须放在「提前返回」之前。
+    // 只删 seed-article-NN（seed 自己的确定性 id），绝不按「看起来像官方教程」猜。
+    await removeSeedArticles()
+
     if ((slice ?? 1) >= SEED_SLICE) return
 
     const seed = buildSeedData({ includeDemoPhotos: SEED_DEMO_PHOTOS })
@@ -225,6 +234,29 @@ export async function ensureSeeded(): Promise<void> {
  * （idb 会把微任务链保持在事务内），但不能在事务里再发起别的 await 之外的落库写入
  * 之外的操作 —— 所以 localStorage 的处理放在事务**之后**。
  */
+/**
+ * 删除预置的虚拟教程文章（切片 7）。
+ *
+ * 只匹配 seed 自己的确定性 id `seed-article-NN`。**不按 slug / 标题 / 作者匹配**：
+ * 用户完全可能自己也写一篇叫「拍摄技巧入门 · 第 1 讲」，按标题删就会误删真实文章。
+ *
+ * 不需要额外清引用：文章不挂别的东西（relatedPhotoIds 只是字符串数组，
+ * 指向的作品被删时也不会反过来影响文章本身）。
+ */
+async function removeSeedArticles(): Promise<void> {
+  const db = await getDb()
+  const all = await db.getAll('articles')
+  const demo = all.filter((a) => SEED_ARTICLE_ID_RE.test(a.id))
+  if (demo.length === 0) return
+  const tx = db.transaction('articles', 'readwrite')
+  for (const article of demo) await tx.objectStore('articles').delete(article.id)
+  await tx.done
+  console.info(`[seed] 已清理 ${demo.length} 篇预置虚拟教程`)
+}
+
+/** seed 预置的虚拟教程 id：seed-article-1 … seed-article-12 */
+const SEED_ARTICLE_ID_RE = /^seed-article-\d{1,2}$/
+
 async function removeDemoPhotoSeed(): Promise<void> {
   const db = await getDb()
   const demoIds = new Set(

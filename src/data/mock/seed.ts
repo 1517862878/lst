@@ -22,7 +22,7 @@ import type {
   Photo,
   Profile,
 } from '@/domain/types'
-import { ARTICLE_TOPICS, CATEGORIES, DEMO_ACCOUNTS, DEMO_PASSWORD } from '@/domain/constants'
+import { CATEGORIES, DEMO_ACCOUNTS, DEMO_PASSWORD } from '@/domain/constants'
 import type { NotificationRow } from './db'
 import { buildModerationSeed, type ModerationSeedResult } from './seedModeration'
 
@@ -254,32 +254,17 @@ export function buildSeedData(options: SeedOptions = {}): SeedResult {
     p.commentCount = comments.filter((c) => c.photoId === p.id).length
   }
 
-  // 12 篇文章骨架（S7 填充正文）
-  const articles: Article[] = ARTICLE_TOPICS.flatMap((topic, ti) =>
-    Array.from({ length: 3 }, (_, ai) => {
-      const idx = ti * 3 + ai + 1
-      const t = now - (90 - idx * 7) * DAY
-      return {
-        id: `seed-article-${idx}`,
-        slug: `${topic.slug}-${ai + 1}`,
-        topicSlug: topic.slug,
-        title: `${topic.name}入门 · 第 ${ai + 1} 讲`,
-        summary: '正文将在 S7 阶段填充。',
-        bodyMd: `# ${topic.name} · 第 ${ai + 1} 讲\n\n> 正文将在 S7 阶段填充。`,
-        coverKey: null,
-        authorId: profiles[2]!.id,
-        difficulty: ai === 0 ? 'beginner' : ai === 1 ? 'intermediate' : 'advanced',
-        readingMinutes: 5 + ai * 3,
-        tags: [topic.name],
-        equipment: [],
-        relatedPhotoIds: [],
-        status: 'published',
-        publishedAt: iso(t),
-        updatedAt: iso(t),
-        version: 1,
-      }
-    }),
-  )
+  /**
+   * 教程文章：**不再预置**（0039）。
+   *
+   * 早先这里灌 12 篇「XX入门 · 第 N 讲」骨架，正文只有一句「正文将在 S7 阶段填充」。
+   * 学习板块现在改成「作者自己上传」：虚拟教程既没有真实内容，又会把真实文章挤下去，
+   * 所以整段删掉，由用户发/存草稿（见 ArticleWritePage）。
+   *
+   * 保留函数形状（返回空数组）而不是直接删变量：SeedResult 的字段契约不变，
+   * seedInit 的各切片写入代码也不用改。
+   */
+  const articles: Article[] = []
 
   // ===== 二期：关注关系 =====
   //

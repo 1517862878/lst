@@ -46,6 +46,7 @@ export const queryKeys = {
   rankingWeeks: () => ['rankingWeeks'] as const,
   articles: (query: ArticleListQuery) => ['articles', query] as const,
   article: (slug: string) => ['article', slug] as const,
+  myArticles: () => ['articles', 'mine'] as const,
   topics: () => ['topics'] as const,
   search: (query: SearchQuery) => ['search', query] as const,
   userSearch: (query: string) => ['search', 'users', query] as const,

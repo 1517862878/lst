@@ -9,6 +9,7 @@ import type {
   AppealStatus,
   AppNotification,
   Article,
+  ArticleDifficulty,
   ArticleTopic,
   BlockedUser,
   Category,
@@ -345,10 +346,48 @@ export interface RankingRepository {
   listWeeks(): Promise<Array<{ isoWeek: string; kind: 'live' | 'final' }>>
 }
 
+export interface ArticleWriteInput {
+  slug: string
+  topicSlug: string
+  title: string
+  summary: string
+  bodyMd: string
+  difficulty: ArticleDifficulty
+  readingMinutes: number
+  tags: string[]
+  equipment: string[]
+  relatedPhotoIds: string[]
+  /** true = 直接发布；false = 存草稿 */
+  publish: boolean
+}
+
+export interface ArticleUpdateInput {
+  topicSlug: string
+  title: string
+  summary: string
+  bodyMd: string
+  difficulty: ArticleDifficulty
+  readingMinutes: number
+  tags: string[]
+  equipment: string[]
+  relatedPhotoIds: string[]
+  publish: boolean
+}
+
 export interface ArticleRepository {
   list(query: ArticleListQuery): Promise<Page<Article>>
   getBySlug(slug: string): Promise<Article>
   listTopics(): Promise<ArticleTopic[]>
+  /** 作者本人：列出自己的文章（含草稿）。api 走 /api/me/articles */
+  listMine(): Promise<Article[]>
+  /** 创建文章（草稿或直接发布）；作者恒为当前登录用户 */
+  create(input: ArticleWriteInput): Promise<Article>
+  /** 修改自己的文章；publish=true 把草稿转发布 */
+  update(id: string, input: ArticleUpdateInput): Promise<Article>
+  /** 删除自己的文章 */
+  remove(id: string): Promise<void>
+  /** slug 是否已被占用（创建前预检，给用户可操作提示） */
+  slugTaken(slug: string): Promise<boolean>
 }
 
 export interface CategoryRepository {

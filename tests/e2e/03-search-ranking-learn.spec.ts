@@ -6,7 +6,7 @@
  *   → 学习板块打开文章并验证正文渲染
  */
 import { expect, test } from '@playwright/test'
-import { resetApp } from './utils'
+import { resetApp, signIn } from './utils'
 
 test.describe('主链路 3 · 搜索、榜单与学习', () => {
   test.beforeEach(async ({ page }) => {
@@ -75,20 +75,47 @@ test.describe('主链路 3 · 搜索、榜单与学习', () => {
     await expect(page.locator('body')).not.toContainText('Application error')
   })
 
-  test('学习板块可打开文章并渲染正文', async ({ page }) => {
-    await page.goto('/learn')
-    await expect(page.getByRole('heading', { name: '学习' }).first()).toBeVisible()
+  /**
+   * 0039 起学习板块不再预置 12 篇虚拟教程，改为「作者自行上传」。
+   *
+   * 所以这条用例不能再去点一篇现成的文章 —— 它必须自己走一遍真实路径：
+   * 登录 → 写教程 → 发布 → 从学习板块进入 → 正文渲染。
+   * 这反而比原来覆盖得更完整（发布链路本身也被测到了）。
+   */
+  test('学习板块可发布文章并打开渲染正文', async ({ page }) => {
+    await signIn(page, 'alice')
+    await page.goto('/learn/write')
+    await expect(page.getByRole('heading', { name: '写教程' })).toBeVisible()
 
-    // 进入任一篇文章
-    const articleLink = page.locator('a[href^="/learn/"]:not([href="/learn"])').first()
-    await expect(articleLink).toBeVisible({ timeout: 20_000 })
-    await articleLink.click()
+    const slug = `e2e-article-${Date.now()}`
+    await page.getByLabel('标题').fill('E2E 自动发布的教程')
+    await page.getByLabel('文章地址（URL）').fill(slug)
+    await page.getByLabel('摘要').fill('这条摘要由自动化用例生成。')
+    await page
+      .getByLabel('正文（Markdown）')
+      .fill('# E2E 教程\n\n这是自动化用例写入的正文。\n\n## 小节\n\n更多内容，用来确保正文足够长。')
 
-    // 文章页应有标题与正文（正文容器非空）
-    await expect(page).toHaveURL(/\/learn\/.+/)
-    await expect(page.locator('h1')).toBeVisible()
+    await page.getByRole('button', { name: '发布', exact: true }).click()
+
+    // 发布后跳转到文章页，正文必须真的渲染出来
+    await expect(page).toHaveURL(new RegExp(`/learn/${slug}`), { timeout: 20_000 })
+    // 用 .first()：Markdown 正文里的 `# 标题` 也会渲染成 h1，严格模式下会撞名
+    await expect(page.locator('h1').first()).toBeVisible()
     const main = await page.locator('main, article').first().innerText()
     expect(main.length).toBeGreaterThan(100)
+
+    // 再回学习板块，确认它出现在列表里（不是只存在于详情页）
+    await page.goto('/learn')
+    await expect(page.getByRole('heading', { name: '学习板块' }).first()).toBeVisible()
+    const articleLink = page.locator('a[href^="/learn/"]:not([href="/learn"])').first()
+    await expect(articleLink).toBeVisible({ timeout: 20_000 })
+  })
+
+  test('学习板块在无文章时给出「写第一篇」空态', async ({ page }) => {
+    // 全新浏览器（resetApp 已清库）且不再预置文章 → 必须是空态而不是空白列表
+    await page.goto('/learn')
+    await expect(page.getByText('还没有教程')).toBeVisible()
+    await expect(page.getByRole('link', { name: /写第一篇教程|登录后发布/ })).toBeVisible()
   })
 
   test('法律页可访问且条款非空', async ({ page }) => {

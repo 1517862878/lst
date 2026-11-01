@@ -9,7 +9,7 @@
 import type { FastifyInstance } from 'fastify'
 import { currentUser, requireUser } from '../lib/auth.js'
 import { withAnonymous, withRls } from '../lib/db.js'
-import { notFound, validation } from '../lib/errors.js'
+import { conflict, notFound, validation } from '../lib/errors.js'
 import {
   createComment,
   createPhoto,
@@ -26,7 +26,7 @@ import { getInteractionState, listByPhoto, listFavoritesByUser, listLikesByUser 
 import { listPhotos, getPhoto, relatedPhotos } from '../repositories/photos.js'
 import { listPhotoItems, replacePhotoItems, type PhotoItemInput } from '../repositories/photo-items.js'
 import { listCategories, getCategory, listArticleTopics } from '../repositories/categories.js'
-import { listArticles, getArticleBySlug } from '../repositories/articles.js'
+import { listArticles, getArticleBySlug, listMyArticles, createArticle, updateArticle, deleteArticle, articleSlugTaken } from '../repositories/articles.js'
 import {
   getLiveRanking,
   getFinalRanking,
@@ -81,6 +81,81 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
   const proto = Object.getPrototypeOf(value)
   return proto === Object.prototype || proto === null
+}
+
+/** 文章 id 的形状校验（与 account-center 同一份正则口径） */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** 文章 slug：URL 用，只允许小写字母、数字、连字符（与 0007 的 check 约束一致） */
+const ARTICLE_SLUG_RE = /^[a-z0-9-]{1,80}$/
+
+const ARTICLE_DIFFICULTIES = new Set(['beginner', 'intermediate', 'advanced'])
+
+/**
+ * 文章字段读取器（创建与更新共用）。
+ *
+ * 为什么不复用 zod schema：zod 那份（src/domain/schemas.ts）是前端表单的校验，
+ * 后端历来自己写这一份（如 parsePhotoPatch）。两边的上限数字必须同源 ——
+ * 这里每个上限都照抄 0007 的列约束，改一处要连前端一起改。
+ */
+function readArticleFields(body: Record<string, unknown>) {
+  const text = (name: string, max: number, required = true): string => {
+    const raw = body[name]
+    const value = typeof raw === 'string' ? raw.trim() : ''
+    if (required && !value) throw validation(`${name} 不能为空`)
+    if (value.length > max) throw validation(`${name} 不能超过 ${max} 个字符`)
+    return value
+  }
+  const list = (name: string, maxItems: number, maxLen: number): string[] => {
+    const raw = body[name]
+    if (raw == null) return []
+    if (!Array.isArray(raw) || !raw.every((v) => typeof v === 'string')) {
+      throw validation(`${name} 必须是字符串数组`)
+    }
+    const cleaned = [...new Set((raw as string[]).map((v) => v.trim()).filter(Boolean))]
+    if (cleaned.length > maxItems) throw validation(`${name} 最多 ${maxItems} 条`)
+    if (cleaned.some((v) => v.length > maxLen)) throw validation(`${name} 每条不能超过 ${maxLen} 个字符`)
+    // 控制字符会让 Markdown 之外的纯文本渲染出现不可见注入，统一挡掉
+    if (cleaned.some((v) => /[\p{Cc}\p{Cf}]/u.test(v))) throw validation(`${name} 含不可见字符`)
+    return cleaned
+  }
+
+  const difficulty = text('difficulty', 20)
+  if (!ARTICLE_DIFFICULTIES.has(difficulty)) throw validation('difficulty 不合法')
+  const topicSlug = text('topicSlug', 40)
+  if (!ARTICLE_SLUG_RE.test(topicSlug)) throw validation('topicSlug 不合法')
+
+  const minutes = body.readingMinutes
+  if (minutes != null && (!Number.isInteger(minutes) || Number(minutes) < 1 || Number(minutes) > 600)) {
+    throw validation('阅读时长必须是 1–600 的整数分钟')
+  }
+
+  return {
+    topicSlug,
+    title: text('title', 80),
+    summary: text('summary', 140, false),
+    bodyMd: text('bodyMd', 100_000, false),
+    difficulty,
+    readingMinutes: minutes == null ? 1 : Number(minutes),
+    tags: list('tags', 6, 20),
+    equipment: list('equipment', 6, 24),
+    relatedPhotoIds: list('relatedPhotoIds', 6, 36),
+    publish: body.publish === true,
+  }
+}
+
+export function parseArticleCreate(body: Record<string, unknown>) {
+  const slug = typeof body.slug === 'string' ? body.slug.trim() : ''
+  if (!ARTICLE_SLUG_RE.test(slug)) {
+    throw validation('文章地址只能用小写字母、数字和连字符，1–80 位')
+  }
+  const id = typeof body.id === 'string' ? body.id.trim() : ''
+  if (!UUID_RE.test(id)) throw validation('文章 id 必须是 UUID')
+  return { id, slug, ...readArticleFields(body) }
+}
+
+export function parseArticleUpdate(body: Record<string, unknown>) {
+  return readArticleFields(body)
 }
 
 export function validateExif(value: unknown): Record<string, unknown> | null {
@@ -593,6 +668,60 @@ export async function registerRoutes(app: FastifyInstance) {
   app.get('/api/article-topics', async () => {
     return withAnonymous((c) => listArticleTopics(c))
   })
+
+  // 自己的文章（含草稿）。走 withRls：RLS 只让作者读到自己的草稿。
+  app.get('/api/me/articles', async (req) => {
+    const user = await requireUser(req)
+    return withRls(user.userId, (c) => listMyArticles(c))
+  })
+
+  // --------------------------------------------------------------------------
+  // 用户上传教程文章（0039）
+  //
+  // 谁能写：任何登录用户（RLS p_articles_write 已放开到 author_id = auth.uid()）。
+  // 作者身份不在请求体里 —— 由数据库函数取 auth.uid()，前端无法冒用他人署名。
+  // --------------------------------------------------------------------------
+
+  app.post<{ Body: Record<string, unknown> }>(
+    '/api/articles',
+    { config: { rateLimit: PUBLISH_RATE_LIMIT } },
+    async (req) => {
+      const user = await requireUser(req)
+      const input = parseArticleCreate(req.body ?? {})
+      return withRls(user.userId, async (c) => {
+        // 先查一次 slug：给用户「换个地址重试」的可操作提示，而不是泛化的 409。
+        // 真正的唯一性仍由唯一索引兜底（并发下这次查询可能过时，交给 23505 翻译成 409）。
+        if (await articleSlugTaken(c, input.slug)) {
+          throw conflict('这个文章地址已被占用，请换一个 slug')
+        }
+        return createArticle(c, input)
+      })
+    },
+  )
+
+  app.patch<{ Params: { id: string }; Body: Record<string, unknown> }>(
+    '/api/articles/:id',
+    { config: { rateLimit: MUTATION_RATE_LIMIT } },
+    async (req) => {
+      const user = await requireUser(req)
+      if (!UUID_RE.test(req.params.id)) throw notFound('文章不存在')
+      const input = parseArticleUpdate(req.body ?? {})
+      return withRls(user.userId, (c) => updateArticle(c, req.params.id, input))
+    },
+  )
+
+  app.delete<{ Params: { id: string } }>(
+    '/api/articles/:id',
+    { config: { rateLimit: MUTATION_RATE_LIMIT } },
+    async (req, reply) => {
+      const user = await requireUser(req)
+      if (!UUID_RE.test(req.params.id)) throw notFound('文章不存在')
+      const ok = await withRls(user.userId, (c) => deleteArticle(c, req.params.id))
+      // 删不到（不存在或不是自己的）统一 404：不泄露「这篇文章存在但不属于你」
+      if (!ok) throw notFound('文章不存在')
+      return reply.code(204).send()
+    },
+  )
 
   // ==========================================================================
   // 周榜

@@ -115,6 +115,23 @@ export async function buildApp() {
       })
     }
 
+    /**
+     * Fastify 自带的 4xx（请求体解析失败、content-type 不对、空 JSON body 等）。
+     *
+     * 必须在这里拦下，否则会掉进下面的 500 分支：
+     * 例如 DELETE 带 `content-type: application/json` 但 body 为空，
+     * Fastify 抛 FST_ERR_CTP_EMPTY_JSON_BODY（自带 statusCode 400），
+     * 原来会被报成「服务器内部错误」，排查时完全指错方向。
+     */
+    const fastifyStatus = (err as { statusCode?: unknown }).statusCode
+    if (typeof fastifyStatus === 'number' && fastifyStatus >= 400 && fastifyStatus < 500) {
+      req.log.warn({ url: req.url, statusCode: fastifyStatus }, '请求本身有问题')
+      return reply.status(fastifyStatus).send({
+        code: 'VALIDATION',
+        message: fastifyStatus === 400 ? '请求格式不正确' : '请求无法处理',
+      })
+    }
+
     // 未知错误：记录完整栈，但不外泄细节
     req.log.error({ err, url: req.url }, '未处理的服务端错误')
     return reply.status(500).send({

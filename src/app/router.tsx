@@ -66,6 +66,7 @@ const RankingPage = lazyNamed(() => import('@/pages/RankingPage'), 'RankingPage'
 const LearnHomePage = lazyNamed(() => import('@/pages/LearnHomePage'), 'LearnHomePage')
 const LearnTopicPage = lazyNamed(() => import('@/pages/LearnTopicPage'), 'LearnTopicPage')
 const ArticlePage = lazyNamed(() => import('@/pages/ArticlePage'), 'ArticlePage')
+const ArticleWritePage = lazyNamed(() => import('@/pages/ArticleWritePage'), 'ArticleWritePage')
 const FeedPage = lazyNamed(() => import('@/pages/FeedPage'), 'FeedPage')
 // 摄影专业化（8.4a）：器材与地点各两页，独立分包（点进来的人才会付这份体积）
 const GearPage = lazyNamed(() => import('@/pages/GearPage'), 'GearPage')
@@ -153,6 +154,8 @@ export const router = createRouter(
         { path: 'rankings/weekly/:isoWeek', element: <RankingPage /> },
         { path: 'learn', element: <LearnHomePage /> },
         { path: 'learn/topics/:topic', element: <LearnTopicPage /> },
+        // write 必须排在 :slug 之前，否则 /learn/write 会被当成一篇文章的 slug
+        { path: 'learn/write', element: <ArticleWritePage /> },
         { path: 'learn/:slug', element: <ArticlePage /> },
         { path: 'about', element: <AboutPage /> },
         { path: 'terms', element: <TermsPage /> },

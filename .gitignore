@@ -16,6 +16,11 @@ server/dist/
 _tmp/
 tmp/
 
+# 本地数据库备份（含真实数据，绝不入库；备份由人工放在 backups/）
+# 例外：backups/README.md 记录「这里该放什么、怎么恢复」，那份要入库
+backups/*
+!backups/README.md
+
 # 本地环境
 *.local
 .env
